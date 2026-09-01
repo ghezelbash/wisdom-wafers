@@ -1,0 +1,22 @@
+{
+  "home": "خانه",
+  "explore": "جستجو",
+  "profile": "پروفایل",
+  "welcome": "به ویفر خرد خوش آمدید",
+  "daily_recommendations": "پیشنهادات روزانه",
+  "resume_learning": "ادامه یادگیری",
+  "continue": "ادامه",
+  "check_answer": "بررسی پاسخ",
+  "correct": "درست است!",
+  "incorrect": "نادرست!",
+  "finish_lesson": "پایان درس",
+  "auth_login_subtitle": "خوش آمدید! برای ادامه وارد شوید.",
+  "auth_signup_subtitle": "برای شروع یادگیری یک حساب بسازید.",
+  "auth_email": "ایمیل",
+  "auth_password": "رمز عبور",
+  "auth_login_btn": "ورود",
+  "auth_signup_btn": "ثبت نام",
+  "auth_switch_to_signup": "حساب کاربری ندارید؟ ثبت نام کنید",
+  "auth_switch_to_login": "قبلا ثبت نام کرده‌اید؟ وارد شوید",
+  "auth_error_empty": "لطفا تمام فیلدها را پر کنید"
+}
