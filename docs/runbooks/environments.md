@@ -27,12 +27,14 @@ promise, and the emulator is the other supported shape.
 
 ## Local development
 
-```bash
-cp .env.example .env      # fill in, or leave Firebase blank and use the emulator
-npm run emulators         # auth on 9099, Firestore on 8181, Storage on 9199
-npm run seed:emulator     # editor/reviewer/admin accounts and one draft
-npm start
-```
+The canonical sequence lives in the **README**; it is not repeated here. In
+short: `npm run emulators` (Auth, Firestore, Storage **and** Functions),
+`npm run seed:emulator`, `npm start`, then `npm run smoke:local` to prove the
+stack is wired up.
+
+`npm run emulators:lite` starts the three services the Node test suites need,
+without Functions — those suites invoke the handlers directly with injected
+`Deps` rather than calling over the wire.
 
 **`APP_VARIANT` comes from the shell, not from `.env`.** Expo exports only
 `EXPO_PUBLIC_*` into the environment `app.config.ts` is evaluated in, so setting

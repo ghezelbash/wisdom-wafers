@@ -133,9 +133,16 @@ docs/adr/                 architecture decision records
 
 ## Backend and emulators
 
-- `npm run emulators` starts auth, Firestore and Storage;
-  `npm run test:emulator` runs the rules and integration suites against them.
+- `npm run emulators` starts the **full stack** — auth, Firestore, Storage and
+  Functions — building the functions first. `npm run emulators:lite` drops
+  Functions for the test suites, which invoke handlers directly with injected
+  `Deps`. `npm run test:emulator` runs the rules and integration suites;
+  `npm run smoke:local` proves the whole thing over HTTP the way the app does.
   Firestore is on **8181**, not 8080 (OrbStack commonly holds 8080).
+- The seeder publishes launch content **through the real pipeline**, never by
+  writing catalogue documents by hand. A seeder that hand-writes them is one
+  that can disagree with the publisher, and the disagreement surfaces as a
+  checksum failure on a device rather than in the seeder.
 - The emulator project is `demo-dananeh`: a `demo-` id is never backed by a real
   project, so a test cannot reach production.
 - **A development build only talks to a real project on purpose** — set
@@ -281,8 +288,10 @@ wrong on web but the code reads correctly.
 
 ## Backend workflows
 
-- `npm run emulators` · `npm run seed:emulator` (editor/reviewer/admin accounts
-  and one draft) · `npm run admin` (the CMS on :5273).
+- `npm run emulators` · `npm run seed:emulator` (editor/reviewer/admin/reader
+  accounts, `appConfig/public`, the three launch seeds published with their
+  manifests and Storage bundles, and two drafts) · `npm run admin` (the CMS on
+  :5273) · `npm run smoke:local`.
 - `npm run build:functions` compiles the schema package **and** the functions.
   Cloud Functions runs Node, so `@dananeh/content-schema` must be built — its
   `exports` map gives bundlers the TypeScript source and Node the compiled copy.

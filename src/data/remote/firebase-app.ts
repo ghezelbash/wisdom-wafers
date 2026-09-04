@@ -63,7 +63,17 @@ function getApp(): FirebaseApp {
       ? getApps()[0]
       : initializeApp(
           usingEmulator
-            ? { ...config, apiKey: config.apiKey ?? 'demo-key', projectId: EMULATOR_PROJECT }
+            ? {
+                ...config,
+                apiKey: config.apiKey ?? 'demo-key',
+                projectId: EMULATOR_PROJECT,
+                // The bucket has to follow the project. Left alone it kept the
+                // name from `.env`, so emulator mode addressed a bucket named
+                // after whatever real project was configured — which the
+                // emulator happens to serve anyway, hiding the mistake until
+                // something looked at the URL.
+                storageBucket: `${EMULATOR_PROJECT}.appspot.com`,
+              }
             : config
         );
   }

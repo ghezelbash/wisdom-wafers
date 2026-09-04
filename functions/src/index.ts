@@ -44,9 +44,21 @@ export const publish = onCall(async (request) => {
   }
 });
 
+/**
+ * Turns a workflow failure into something the CMS can act on.
+ *
+ * `PublishError` is included because publishing is the last step of the
+ * workflow: an approved draft whose revision is already live raises
+ * `revision-exists`, which is an ordinary editorial condition — a correction
+ * needs a new revision number — and surfaced as `INTERNAL` it read to an editor
+ * as "something is broken".
+ */
 function workflowCall<T>(handler: () => Promise<T>) {
   return handler().catch((error) => {
     if (error instanceof WorkflowError) {
+      throw new HttpsError('failed-precondition', error.code, { issues: error.issues });
+    }
+    if (error instanceof PublishError) {
       throw new HttpsError('failed-precondition', error.code, { issues: error.issues });
     }
     throw error;

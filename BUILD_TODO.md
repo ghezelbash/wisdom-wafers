@@ -23,6 +23,28 @@ Goal order adjusted for what the first track already built; the reasoning is in
       Jalali dates, schema parsing, fixture validity, registry fallback
 - [x] Eight ADRs; `app.config.ts` with per-variant identity; zero lint errors
 
+## Local full stack — done (release goal 2)
+
+- [x] `npm run emulators` starts **Auth, Firestore, Storage and Functions**,
+      building the functions first; `emulators:lite` keeps the fast subset the
+      Node suites use
+- [x] The seeder produces a *usable* environment: four accounts including an
+      ordinary reader, `appConfig/public` with the gate open, the three launch
+      seeds published **through the real pipeline** with their revisions,
+      manifests, checksums and Storage bundles, topics, paths, and two drafts —
+      one authored by an admin, so the self-approval rule can be reached at all
+- [x] Emulator mode addresses the emulator's own bucket. It kept the name from
+      `.env`, so it was talking to a bucket named after a real project — which
+      the emulator serves anyway, hiding the mistake
+- [x] `npm run smoke:local`: 18 checks over HTTP the way the app does — sign-in,
+      catalogue, bundle download with checksum, three callables, idempotency,
+      the PII guard, and the whole editorial workflow including both refusal
+      paths
+- [x] `publishApproved` maps `PublishError` instead of answering `INTERNAL`;
+      an approved draft at an already-published revision is an ordinary
+      editorial condition, not a broken server
+- [x] A real README with one canonical startup sequence
+
 ## C · Firebase shape and security — done
 
 *Taken before B: identity needs a backend to verify against, and the emulator is

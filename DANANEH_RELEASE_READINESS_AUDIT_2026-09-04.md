@@ -86,6 +86,9 @@
 | **Release Goal 1** — emulator/integration tests | ۱۶ suite و ۱۶۹ تست Pass، بدون هشدار open-handle و با exit code صفر |
 | **Release Goal 1** — Expo Doctor | ۲۱ از ۲۱ Pass؛ AsyncStorage به ۲.۲.۰ و چهار پکیج دیگر به نسخه‌ی SDK 57 برگشتند |
 | **Release Goal 1** — lint | ۰ error و ۰ warning (`--max-warnings 0`) |
+| **Release Goal 1** — GitHub Actions | هر ۶ job سبز روی PR #3، شامل Expo Doctor و Android native build |
+| **Release Goal 2** — `npm run smoke:local` | ۱۸ بررسی Pass روی محیط تازه: ورود، catalogue، دانلود bundle با checksum، سه callable، idempotency، PII guard و کل جریان تحریریه |
+| **Release Goal 2** — full-stack emulators | Auth، Functions، Firestore و Storage همگی بالا؛ خاموش‌شدن تمیز بدون process باقی‌مانده |
 | Lint | بدون error؛ ۲ warning در `src/i18n.ts` |
 | Expo web export | Pass |
 | Expo Android JS export | Pass؛ این APK یا native build نیست |
@@ -305,7 +308,7 @@ asset pack نهایی دانانه اکنون ساخته شده، در `assets/b
 7. **OTA واقعاً فعال نیست:** generated Android manifest مقدار `expo.modules.updates.ENABLED=false` داشت؛ runbook فعلی درباره‌ی EAS Update زودتر از implementation نوشته شده است.
 8. ~~**CI native را نمی‌سازد**~~ — **fixed in Goal 7**: CI now runs `npm run check:config` and an Android `prebuild` + `assembleDebug`. Expo Doctor remains `continue-on-error` pending the AsyncStorage version decision.
 9. ~~**Native QA وجود ندارد**~~ — **fixed in Goal 8** (ADR 17). `npm run check:android` asserts eleven things out of the generated manifest/resources and is a CI gate; nine Maestro flows cover the tester paths; `docs/runbooks/native-qa.md` lists what only a device can answer. Original text: SQLite، notifications، file system، deep link، keyboard و RTL فقط با unit/web پوشش داده شده‌اند؛ Maestro/Detox/EAS device smoke test وجود ندارد.
-10. **اسناد وضعیت گمراه‌کننده‌اند:** `BUILD_TODO.md` بعضی بخش‌های وصل‌نشده را done اعلام کرده و recommendation پیاده‌شده را undone نشان می‌دهد. README نیز هنوز README پیش‌فرض Expo است.
+10. ~~**اسناد وضعیت گمراه‌کننده‌اند**~~ — **fixed**: `BUILD_TODO.md` reconciled against the code across goals 1–9, and the default Expo README replaced with a real one carrying the canonical local startup sequence (release goal 2).
 11. **محتوای اولین تجربه ناقص است:** seed اول image block دارد ولی asset واقعی ندارد و fallback متن جایگزین نشان داده می‌شود. source URLها نیز به homepage ناشر اشاره می‌کنند، نه صفحه‌ی دقیق منبع.
 12. **حقوقی/پشتیبانی:** privacy policy، terms، support contact، data retention، account deletion URL و Data Safety answers وجود ندارند.
 13. ~~**Backup privacy**~~ — **fixed in Goal 8**: `android.allowBackup: false`, asserted by `check:android`. The trade — a reader changing phones loses on-device progress without an account — is recorded in ADR 17.
