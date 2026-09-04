@@ -48,25 +48,58 @@ export function ImageBlockView({ block, seed }: BlockViewProps<ImageBlock>) {
     );
   }
 
+  /**
+   * A described figure — no picture, said so.
+   *
+   * What this replaces was an empty grey frame with the alt text centred in it,
+   * which is exactly what a *failed* image looks like: a reader could not tell
+   * a deliberate description from a broken asset, and neither could the publish
+   * gate. So the two are now different things on the screen and in the schema.
+   * The figure is a titled card that reads as an editorial element, and an
+   * image block that is neither described nor pictured cannot be published.
+   */
+  if (block.describedOnly || !block.imageUrl) {
+    const position = seed.blocks.findIndex((item) => item.id === block.id) + 1;
+
+    return (
+      <View className="mb-3 rounded-card border border-hairline bg-card p-5">
+        <View className="mb-3 flex-row items-center gap-2">
+          <Icon name="info" size={18} color="brand" />
+          <Text variant="caption" weight="bold" color="brand" className="min-w-0 flex-1">
+            {t('player.image.figureLabel')} {localizeDigits(position, i18n.language)}
+          </Text>
+        </View>
+
+        {/* The description is the content here, so it is set as body text —
+            not as a caption inside a frame pretending to hold a picture. */}
+        <Text variant="body" className="mb-3">
+          {block.alt}
+        </Text>
+
+        {block.caption ? (
+          <Text variant="bodySm" color="secondary" className="mb-3">
+            {block.caption}
+          </Text>
+        ) : null}
+
+        <Text variant="caption" color="secondary">
+          {t('player.image.describedNote')}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View>
       <View
         className="mb-4 overflow-hidden rounded-card border border-hairline bg-track"
         style={{ aspectRatio: RATIO[block.aspect] }}>
-        {block.imageUrl ? (
-          <Image
-            source={{ uri: block.imageUrl }}
-            accessibilityLabel={block.alt}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-          />
-        ) : (
-          <View className="flex-1 items-center justify-center px-6">
-            <Text variant="caption" color="secondary" className="text-center">
-              {block.alt}
-            </Text>
-          </View>
-        )}
+        <Image
+          source={{ uri: block.imageUrl }}
+          accessibilityLabel={block.alt}
+          style={{ width: '100%', height: '100%' }}
+          contentFit="cover"
+        />
       </View>
 
       {block.caption ? (

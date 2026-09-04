@@ -240,6 +240,8 @@ export default function HomeScreen() {
                 <Pressable
                   accessibilityRole="button"
                   disabled={due.length === 0}
+                  // An inline text action is still a touch target.
+                  style={{ minHeight: MinTouchTarget, justifyContent: 'center' }}
                   onPress={() => router.push('/review')}>
                   <Text
                     variant="caption"

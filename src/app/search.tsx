@@ -110,6 +110,9 @@ export default function SearchScreen() {
             placeholderTextColor={theme.textSecondary}
             style={{
               flex: 1,
+              // The field filled 23pt of a 48pt row, so most of the box a
+              // reader aims at did not focus it.
+              alignSelf: 'stretch',
               color: theme.textPrimary,
               fontFamily: Fonts.sans,
               fontSize: 15,
@@ -123,7 +126,13 @@ export default function SearchScreen() {
         <Pressable
           accessibilityRole="button"
           onPress={() => router.back()}
-          style={{ minHeight: MinTouchTarget, justifyContent: 'center' }}>
+          // «لغو» is two glyphs wide: tall enough and far too narrow.
+          style={{
+            minHeight: MinTouchTarget,
+            minWidth: MinTouchTarget,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
           <Text variant="bodySm" weight="bold" color="brand">
             {t('search.cancel')}
           </Text>
@@ -141,6 +150,12 @@ export default function SearchScreen() {
             accessibilityRole="button"
             accessibilityState={{ selected: filter === id }}
             onPress={() => setFilter(id)}
+            style={{
+              minHeight: MinTouchTarget,
+              minWidth: MinTouchTarget,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
             className={`rounded-chip border px-3 py-2 ${
               filter === id ? 'border-brand bg-brand-tint' : 'border-hairline bg-card'
             }`}>

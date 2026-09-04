@@ -67,8 +67,7 @@
       "medium": "Intermediate",
       "advanced": "Advanced"
     },
-    "sources": "{{count}} sources",
-    "illustration": "Illustration for {{topic}}"
+    "sources": "{{count}} sources"
   },
   "auth": {
     "title": "Sign in",
@@ -178,7 +177,10 @@
     "true": "True",
     "false": "False",
     "image": {
-      "altRecorded": "Alt text is recorded for this image"
+      "altRecorded": "Alt text is recorded for this image",
+      "figureLabel": "Figure",
+      "describedTitle": "Described figure",
+      "describedNote": "This part is described in words instead of shown as a picture"
     },
     "ordering": {
       "hint": "Move rows with the up and down buttons",
@@ -431,7 +433,8 @@
     "deniedTitle": "Notifications are off in your device settings",
     "deniedBody": "The app can't change this itself. If you want a reminder, allow it in your device settings — everything else works without it.",
     "deniedPath": "Path: Settings → Dananeh → Notifications",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "toggle": "Daily reminder"
   },
   "deleteAccount": {
     "title": "Delete account",

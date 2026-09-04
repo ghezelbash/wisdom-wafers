@@ -21,6 +21,18 @@ export const ImageBlockSchema = z.object({
   id,
   type: z.literal('image'),
   imageUrl: z.string().url().optional(),
+  /**
+   * The block is a **described figure**: there is no picture, and that is the
+   * editorial decision rather than an asset that failed to arrive.
+   *
+   * An image block used to be publishable with no `imageUrl` at all, and the
+   * player drew the alt text inside an empty grey frame — a placeholder that
+   * looked exactly like a broken image. It could not be told apart from a
+   * missing asset, by a reader or by the publish gate. Now the gate refuses an
+   * image block that has neither a picture nor this flag, so shipping an empty
+   * frame takes a deliberate act.
+   */
+  describedOnly: z.literal(true).optional(),
   /** A publish gate: an image with no alt text cannot be published. */
   alt: z.string().min(1).max(300),
   caption: z.string().max(400).optional(),

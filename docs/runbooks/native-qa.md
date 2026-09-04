@@ -11,6 +11,7 @@ What the automated checks cover, and what only a device can answer.
 | Generated icons, splash, RTL, permissions, backup, package | `npm run check:android` | yes |
 | Deep-link allow-list | `npm test` | yes |
 | Nine smoke flows on a device | `npm run smoke:android` | no — needs a device |
+| Touch targets, contrast, direction and 200% text | `npm run ux:audit` | no — needs the web server running |
 
 `npm run check:android` reads the generated project rather than trusting that
 prebuild succeeded. It found two real defects the first time it ran:
@@ -19,9 +20,30 @@ silently no-opped, and `allowBackup` was at the platform default of `true`,
 which would have copied reflections the app calls "on this device only" into the
 reader's Google account.
 
+`npm run ux:audit` renders the real app in Persian and English, light and dark,
+at 100% and 200% text, and measures every interactive box and every text run in
+the **rendered DOM** — the question being what a reader can hit and read, which
+depends on layout rather than on a class name.
+
+It found that **every button in the app had collapsed to the height of its
+label**: `Pressable`'s `style={({ pressed }) => …}` is dropped when the same
+component carries a NativeWind `className`, and the height lived inside it. The
+number was right there in the source, which is why nothing else caught it. Seven
+other target failures came out of the same run — see
+`docs/qa/2026-09-05/README.md`.
+
+Add `-- --shots <dir>` to keep the screenshots. It is not in CI because it needs
+a running dev server; run it before a release and when a screen's layout
+changes.
+
 ## By hand, on a device
 
 Only these. Everything else above is automated.
+
+**Nothing below is signed off.** No Android SDK is installed in the environment
+these goals were built in, so every item here is owner-action. Each needs a
+screenshot or a note recorded against it in this file before an external build
+goes out.
 
 ### 1 · Cold start on a real device
 Force-stop, then launch. Time to the first frame of Home, three times, and note
@@ -68,6 +90,23 @@ are in the app's own directory and must survive it.
 Install the APK on a clean device. Then install a newer build over it: progress
 and the account survive. Then uninstall and reinstall: the app starts fresh
 without crashing.
+
+### 10 · The launcher icon, on a themed launcher
+
+Install, then look at the home screen: the adaptive icon at rest, the icon under
+"Themed icons" on Android 13+, and the icon in the app drawer and in Settings →
+Apps. A monochrome layer that is drawn wrong shows up as a filled blob rather
+than as the seed mark. `npm run check:android` proves the resources are
+*generated*; only a launcher proves they are *right*.
+
+### 11 · The cold-start hand-off
+
+Record a cold start in light mode and again in dark. There must be exactly one
+splash: the native Dananeh splash, dissolving into Home. A second screen, a
+flash of white, or a different background colour between the two means the
+overlay in `src/components/brand-splash.tsx` and the `expo-splash-screen`
+configuration in `app.config.ts` have drifted apart — they carry the same
+colours and the same 124pt mark on purpose, and a test holds them together.
 
 ## Devices
 

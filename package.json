@@ -67,7 +67,6 @@
     "ios": "APP_VARIANT=development expo run:ios",
     "lint": "expo lint --max-warnings 0",
     "prebuild": "APP_VARIANT=development expo prebuild --platform android --clean",
-    "reset-project": "node ./scripts/reset-project.js",
     "seed:emulator": "node scripts/seed-emulator.mjs",
     "smoke:android": "./scripts/smoke-android.sh",
     "smoke:local": "node scripts/smoke-local.mjs",
@@ -80,7 +79,8 @@
     "web": "APP_VARIANT=development expo start --web",
     "diagnose": "npm run build:functions && node scripts/diagnose.mjs",
     "docs:events": "node scripts/event-coverage.mjs",
-    "check:events": "node scripts/event-coverage.mjs --check"
+    "check:events": "node scripts/event-coverage.mjs --check",
+    "ux:audit": "node scripts/ux-audit.mjs"
   },
   "private": true,
   "workspaces": [

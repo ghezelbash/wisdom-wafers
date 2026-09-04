@@ -330,6 +330,43 @@ the safe one.*
 - [ ] App Check: monitor → staging enforce → phased production
 - [ ] Native Analytics, Crashlytics, Performance
 
+
+### Brand and native UX — done (release goal 9)
+
+- [x] **The Expo starter is gone from the screen.** `AnimatedSplashOverlay` drew
+      a full-screen Expo logo on Expo blue after the native Dananeh splash, on
+      every cold start. Replaced by `brand-splash.tsx`, which continues the
+      native splash in the same two colours with the same 124pt mark, so a cold
+      start is one splash rather than two
+- [x] Fourteen starter images, `assets/expo.icon/`, six unimported starter
+      components and two starter scripts deleted;
+      `tests/static/brand-assets.test.ts` fails if any of them, or Expo blue,
+      comes back
+- [x] **Every button had collapsed to its label height** — 364×30 against a 44pt
+      floor. `Pressable`'s `style={({ pressed }) => …}` is dropped when the
+      component also carries a NativeWind `className`, taking `minHeight` with
+      it (ADR 24)
+- [x] Seven more targets raised to 44: tab items (42), garden and search chips
+      (40 tall, 43 wide), the search field (23 of a 48pt row), the reminder
+      switch (40×20, now a pressable 44×44 box) and an inline text action (22)
+- [x] **No placeholder visual ships.** The hero cover said "an illustration for
+      psychology" on a grey band; it is now the seed mark on the topic family's
+      tint. An image block must carry a picture or `describedOnly: true`, and
+      the publish gate refuses anything else — a described figure is a titled
+      figure card, not alt text in an empty frame
+- [x] `expo-router` warned on every launch that `seed`, `settings`, `topic`,
+      `path` and `review` were not routes; the declarations now name the real
+      files, so options set on them apply
+- [x] `npm run ux:audit` — the rendered app in fa/en × light/dark × 100%/200%,
+      measuring targets, contrast and direction. All pass; record and
+      screenshots in `docs/qa/2026-09-05/`
+- [x] `contrast.test.ts` computes the ratios the tokens claim. Three had drifted
+      (5.6 for 6.1, 5.0 for 4.9, 9.3 for 9.2) — the colours were right, the
+      comments were not
+- [ ] TalkBack, a themed launcher icon, a real cold-start recording and a
+      reminder that actually fires — no Android SDK in this environment, so
+      they are owner actions, listed in `docs/runbooks/native-qa.md`
+
 ## K · CI/CD and release — done
 
 - [x] GitHub Actions: static checks, unit tests, emulator suite on a JDK, a web

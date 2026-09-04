@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/icon';
 import { Text } from '@/components/Text';
+import { MinTouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Four tabs. Search is a pushed screen from Home and Explore, never a fifth
@@ -42,6 +43,10 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             accessibilityState={{ selected: focused }}
             accessibilityLabel={label}
             className="flex-1 items-center gap-[5px]"
+            // The icon, the gap and an 11pt label come to 42 — two short of the
+            // floor. The bar has 65pt of room above the inset, so the target
+            // grows downwards and nothing moves.
+            style={{ minHeight: MinTouchTarget }}
             onPress={() => {
               const event = navigation.emit({
                 type: 'tabPress',

@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import { Platform, useColorScheme, View } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { AnimatedSplashOverlay } from '@/components/brand-splash';
 import { useNotificationRouting } from '@/hooks/use-notification-routing';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AuthProvider } from '@/context/AuthContext';
@@ -155,13 +155,21 @@ function RootNavigator() {
       </Stack.Protected>
 
       <Stack.Protected guard={session.onboarded}>
+        {/* Named exactly as the files are. `seed`, `settings`, `topic`,
+            `path` and `review` are directories, not routes — expo-router
+            warned on every launch that no such route existed, and any options
+            set on them would have applied to nothing. */}
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="seed" />
-        <Stack.Screen name="settings" />
+        <Stack.Screen name="seed/[id]/index" />
+        <Stack.Screen name="seed/[id]/complete" />
+        <Stack.Screen name="settings/notifications" />
+        <Stack.Screen name="settings/storage" />
+        <Stack.Screen name="settings/delete-account" />
         <Stack.Screen name="search" />
-        <Stack.Screen name="topic" />
-        <Stack.Screen name="path" />
-        <Stack.Screen name="review" />
+        <Stack.Screen name="topic/[id]" />
+        <Stack.Screen name="path/[id]" />
+        <Stack.Screen name="review/index" />
+        <Stack.Screen name="review/session" />
       </Stack.Protected>
 
       <Stack.Screen name="auth" options={{ presentation: 'modal' }} />

@@ -102,7 +102,9 @@ export default function GardenScreen() {
             accessibilityRole="button"
             accessibilityState={{ selected: segment === id }}
             onPress={() => setSegment(id)}
-            className={`flex-row items-center gap-2 rounded-chip border px-3 py-2 ${
+            // A caption line plus `py-2` comes to 40; the floor is 44.
+            style={{ minHeight: MinTouchTarget, minWidth: MinTouchTarget }}
+            className={`flex-row items-center justify-center gap-2 rounded-chip border px-3 py-2 ${
               segment === id ? 'border-brand bg-brand-tint' : 'border-hairline bg-card'
             }`}>
             <Text variant="caption" weight="bold" color={segment === id ? 'brand' : 'secondary'}>

@@ -73,6 +73,18 @@ export const SeedBundleStrictSchema = z
     (bundle) => bundle.blocks.every((block) => block.type !== 'image' || block.alt.length > 0),
     { message: 'every image needs alt text', path: ['blocks'] }
   )
+  .refine(
+    (bundle) =>
+      bundle.blocks.every(
+        (block) => block.type !== 'image' || !!block.imageUrl || block.describedOnly === true
+      ),
+    {
+      // An image block with neither is what shipped an empty frame carrying alt
+      // text — indistinguishable from an asset that failed to load.
+      message: 'an image block needs a picture, or must declare itself described-only',
+      path: ['blocks'],
+    }
+  )
   .refine((bundle) => bundle.reviewItems.length >= 1, {
     message: 'a published seed needs at least one review item',
     path: ['reviewItems'],
