@@ -89,6 +89,9 @@
 | **Release Goal 1** — GitHub Actions | هر ۶ job سبز روی PR #3، شامل Expo Doctor و Android native build |
 | **Release Goal 2** — `npm run smoke:local` | ۱۸ بررسی Pass روی محیط تازه: ورود، catalogue، دانلود bundle با checksum، سه callable، idempotency، PII guard و کل جریان تحریریه |
 | **Release Goal 2** — full-stack emulators | Auth، Functions، Firestore و Storage همگی بالا؛ خاموش‌شدن تمیز بدون process باقی‌مانده |
+| **Release Goal 3** — unit / emulator tests | ۱۹ suite و ۲۶۴ تست · ۱۷ suite و ۱۸۶ تست، شامل `two-device-sync.test.ts` |
+| **Release Goal 4** — unit / emulator tests | ۲۰ suite و ۲۸۱ تست · ۱۷ suite و ۱۸۶ تست |
+| **Release Goal 4** — flags و gate روی اپ در حال اجرا | kill switch مرور `/review` را غیرقابل‌دسترس کرد؛ maintenance صفر درخواست Storage داشت؛ forced update هیچ راه فراری نداشت؛ بازگرداندن config همه‌چیز را برگرداند |
 | Lint | بدون error؛ ۲ warning در `src/i18n.ts` |
 | Expo web export | Pass |
 | Expo Android JS export | Pass؛ این APK یا native build نیست |

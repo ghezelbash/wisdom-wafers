@@ -40,14 +40,33 @@ export const firestoreConfigFetcher: ConfigFetcher = async () => {
  * The flags are applied first and the gate is derived from the same document,
  * so a build never ends up honouring half of one fetch and half of another.
  */
+/**
+ * How long the app waits to be told what it may do.
+ *
+ * Nothing mounts until this settles, so it cannot be unbounded: a Firestore
+ * read against an unreachable host does not fail quickly, and an app that will
+ * not open because a config service is slow is worse than one that opens with
+ * the flags it shipped with.
+ */
+export const CONFIG_TIMEOUT_MS = 4000;
+
+const withTimeout = <T,>(work: Promise<T>, ms: number): Promise<T> =>
+  Promise.race([
+    work,
+    new Promise<T>((_resolve, reject) =>
+      setTimeout(() => reject(new Error('config-timeout')), ms)
+    ),
+  ]);
+
 export async function refreshRemoteConfig(
   appVersion: string,
-  fetch: ConfigFetcher = firestoreConfigFetcher
+  fetch: ConfigFetcher = firestoreConfigFetcher,
+  timeoutMs = CONFIG_TIMEOUT_MS
 ): Promise<RemoteState> {
   let config: RemoteAppConfig | null = null;
 
   try {
-    config = await fetch();
+    config = await withTimeout(fetch(), timeoutMs);
   } catch {
     // Unreachable is the same as absent: the binary's own defaults stand.
     return { gate: { state: 'open' }, flags: applyRemoteFlags({}), fetchedAt: null };

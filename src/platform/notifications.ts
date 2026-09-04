@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { isEnabled } from './config';
 import { adjustForQuietHours, parseTime, type QuietHours } from './reminder-rules';
 
 export { routeFromNotificationData, isAllowedRoute } from './deep-links';
@@ -102,6 +103,14 @@ export async function scheduleDailyReminder(
   copy: { title: string; body: string },
   quiet?: QuietHours
 ): Promise<{ scheduled: boolean; at?: { hour: number; minute: number } }> {
+  // Switched off remotely: nothing is scheduled, and anything already on the
+  // schedule is taken off. A kill switch that only stops *new* reminders would
+  // leave every existing reader still being pinged.
+  if (!isEnabled('remindersEnabled')) {
+    await cancelDailyReminder();
+    return { scheduled: false };
+  }
+
   const notifications = await api();
   if (!notifications) return { scheduled: false };
 

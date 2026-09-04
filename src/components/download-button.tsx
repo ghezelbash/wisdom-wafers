@@ -19,8 +19,12 @@ import { formatMegabytes } from '@/lib/format-bytes';
  */
 export function DownloadButton({ seedId }: { seedId: string }) {
   const { t, i18n } = useTranslation();
-  const { entryFor, sizeFor, download, retry } = useCatalog();
+  const { entryFor, sizeFor, download, retry, downloadsEnabled } = useCatalog();
   const entry = entryFor(seedId);
+
+  // Switched off remotely: nothing is offered rather than something that fails.
+  // A copy already on the device keeps working — the reader was promised it.
+  if (!downloadsEnabled && (!entry || entry.state !== 'cached')) return null;
 
   if (!entry || entry.state === 'missing') {
     const bytes = sizeFor(seedId);

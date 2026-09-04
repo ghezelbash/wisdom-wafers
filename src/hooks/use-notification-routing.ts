@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import { getFlags } from '@/platform/config';
 import { routeFromNotificationData } from '@/platform/deep-links';
 
 /**
@@ -28,7 +29,10 @@ export function useNotificationRouting(enabled: boolean) {
         // against an allow-list of routes that exist — a slash test would
         // accept `//evil.example/x`, which several link handlers read as an
         // absolute URL.
-        const route = routeFromNotificationData(data);
+        // The flags are consulted too: a reminder scheduled before a feature
+        // was switched off must open nothing, not a screen that no longer
+        // exists.
+        const route = routeFromNotificationData(data, getFlags());
         if (route) router.push(route as never);
       };
 

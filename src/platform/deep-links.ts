@@ -1,3 +1,5 @@
+import type { FeatureFlags } from '@/platform/config';
+
 /**
  * Where a notification or a link is allowed to send a reader.
  *
@@ -33,6 +35,40 @@ const WITH_ID = ['/seed', '/topic', '/path'] as const;
  */
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
+/**
+ * Routes that only exist while a feature is on.
+ *
+ * A disabled feature has to be unreachable, not merely unadvertised: hiding the
+ * button leaves the route open to a deep link, a notification that was
+ * scheduled before the switch was thrown, and navigation state restored from a
+ * previous launch.
+ *
+ * Settings screens are deliberately absent — a reader must always be able to
+ * reach the place that explains why something is unavailable.
+ */
+const ROUTE_REQUIRES: Record<string, keyof FeatureFlags> = {
+  '/review': 'reviewEnabled',
+};
+
+/** The flag a route needs, if it needs one. */
+export function routeRequirement(route: string): keyof FeatureFlags | undefined {
+  const [, segment] = route.split('/');
+  return ROUTE_REQUIRES[`/${segment}`];
+}
+
+/**
+ * Whether this build may open the route *right now*.
+ *
+ * Separate from `isAllowedRoute`, which asks whether the route exists at all:
+ * one is about the shape of the target, the other about the current
+ * configuration, and conflating them makes a kill switch look like a malformed
+ * link.
+ */
+export function isRouteEnabled(route: string, flags: FeatureFlags): boolean {
+  const required = routeRequirement(route);
+  return required === undefined || flags[required] === true;
+}
+
 export function isAllowedRoute(candidate: unknown): candidate is string {
   if (typeof candidate !== 'string') return false;
 
@@ -54,10 +90,21 @@ export function isAllowedRoute(candidate: unknown): candidate is string {
   return (WITH_ID as readonly string[]).includes(prefix) && ID.test(segments[2]);
 }
 
-/** The route a notification wants opened, if it named one this build allows. */
-export function routeFromNotificationData(data: unknown): string | null {
+/**
+ * The route a notification wants opened, if it named one this build allows.
+ *
+ * `flags` is optional so the shape check can be used on its own; when it is
+ * given, a reminder scheduled before a feature was switched off opens nothing
+ * rather than a screen that should no longer exist.
+ */
+export function routeFromNotificationData(
+  data: unknown,
+  flags?: FeatureFlags
+): string | null {
   const route = (data as { route?: unknown })?.route;
-  return isAllowedRoute(route) ? route : null;
+  if (!isAllowedRoute(route)) return null;
+  if (flags && !isRouteEnabled(route, flags)) return null;
+  return route;
 }
 
 /** The deep link for one seed, for anything that needs to construct one. */

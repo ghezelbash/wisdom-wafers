@@ -16,6 +16,7 @@ import { useIdentity } from '@/context/AuthContext';
 import { recordReviewed } from '@/domain/progress/events';
 import { dueItems, growthCount, weeklyGrowth, INTERVAL_DAYS, type Confidence } from '@/lib/schedule';
 import type { Seed } from '@/models/seed';
+import { FeatureGate } from '@/components/feature-gate';
 
 const CONFIDENCES: Confidence[] = ['easy', 'good', 'hard', 'again'];
 
@@ -32,7 +33,7 @@ interface Outcome {
  * screen must not allow. Confidence is recorded separately from correctness,
  * and each rating states the interval it produces, so the scheduler is legible.
  */
-export default function ReviewSessionScreen() {
+function ReviewSessionScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
 
@@ -254,5 +255,17 @@ export default function ReviewSessionScreen() {
         </View>
       ) : null}
     </SafeAreaView>
+  );
+}
+
+/**
+ * Review is a killable feature, so the route refuses for itself — a deep link
+ * or a stale reminder does not pass the button that leads here.
+ */
+export default function GatedReview() {
+  return (
+    <FeatureGate flag="reviewEnabled">
+      <ReviewSessionScreen />
+    </FeatureGate>
   );
 }

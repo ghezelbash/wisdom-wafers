@@ -3,6 +3,7 @@ import * as Network from 'expo-network';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { content } from '@/data/content-repository';
+import { useRemoteConfig } from '@/context/RemoteConfigContext';
 import { utf8Length } from '@/data/remote/bundle-storage';
 import type { DeviceCatalog, DownloadEntry } from '@/data/local/device-catalog';
 import { type CacheEntry, type CatalogSnapshot } from '@/lib/catalog-store';
@@ -29,6 +30,8 @@ interface CatalogContextValue {
   isOnline: boolean;
   isReady: boolean;
   outbox: OutboxItem[];
+  /** False when downloads are switched off remotely; the card offers nothing. */
+  downloadsEnabled: boolean;
   entryFor: (seedId: string) => CacheEntry | undefined;
   /** The published size of a seed's artifact, or undefined if nothing declares
    *  one. A download is never offered with an invented cost. */
@@ -44,13 +47,13 @@ interface CatalogContextValue {
 const CatalogContext = createContext<CatalogContextValue | null>(null);
 
 /**
- * Where the catalogue comes from.
+ * Where the catalogue comes from, and whether keeping a copy is offered.
  *
- * `mock` serves the in-repo fixtures; `remote` pulls published content and
- * keeps what is on the device if the fetch fails, so a bad deploy degrades to
- * stale content rather than an empty app.
+ * Read from the flags rather than the environment, so a kill switch actually
+ * reaches them: `contentSource` can be pulled back to `mock` when published
+ * content is bad, and `downloadsEnabled` turned off when Storage is not
+ * answering — neither needing a release.
  */
-const CONTENT_SOURCE = process.env.EXPO_PUBLIC_CONTENT_SOURCE === 'remote' ? 'remote' : 'mock';
 
 /**
  * A cache entry for content that is already on the device and has no artifact
@@ -75,6 +78,9 @@ function inBinaryEntry(seed: Seed): DownloadEntry {
 }
 
 export function CatalogProvider({ children }: { children: React.ReactNode }) {
+  const { flags } = useRemoteConfig();
+  const contentSource = flags.contentSource;
+  const downloadsEnabled = flags.downloadsEnabled;
   const [snapshot, setSnapshot] = useState<CatalogSnapshot>({ entries: {} });
   const [isReady, setIsReady] = useState(false);
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
@@ -161,10 +167,13 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
         const catalog = await device();
         const manifest = (await catalog.getManifest(seedId)) ?? null;
 
+        // Turned off remotely: no request, and the card does not offer one.
+        if (!downloadsEnabled) return;
+
         // Without a manifest there is no artifact to fetch and no checksum to
         // verify against, so there is nothing honest to download. Fixtures fall
         // in here: they are already in the binary and already readable offline.
-        if (!manifest || CONTENT_SOURCE !== 'remote') {
+        if (!manifest || contentSource !== 'remote') {
           putEntry(inBinaryEntry(seed));
           return;
         }
@@ -182,7 +191,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
         await downloadForReal(catalog, manifest);
       })();
     },
-    [device, downloadForReal, putEntry]
+    [device, downloadForReal, putEntry, downloadsEnabled, contentSource]
   );
 
   const remove = useCallback(
@@ -253,7 +262,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
     // The network layer is imported only when a sync actually runs: it keeps
     // the Firebase SDK out of the startup path, and out of every screen's
     // module graph.
-    if (CONTENT_SOURCE === 'remote') {
+    if (contentSource === 'remote') {
       try {
         const catalog = await device();
         const [{ getDb, isFirebaseConfigured }, { RemoteContentSource }, { createBundleStorage }] =
@@ -310,7 +319,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
     const { sendOutboxItem } = await import('@/data/remote/outbox-transport');
     await flush(sendOutboxItem, isOnline);
     setOutbox(await listOutbox());
-  }, [device, isOnline]);
+  }, [device, isOnline, contentSource]);
 
   useEffect(() => {
     if (!isReady || !isOnline) return;
@@ -333,6 +342,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
       isOnline,
       isReady,
       outbox,
+      downloadsEnabled,
       entryFor: (seedId: string) => snapshot.entries[seedId],
       sizeFor: (seedId: string) => sizes[seedId] ?? snapshot.entries[seedId]?.bytes,
       download,
@@ -348,6 +358,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
       isOnline,
       isReady,
       outbox,
+      downloadsEnabled,
       download,
       remove,
       clearImagesOfCompleted,

@@ -15,39 +15,22 @@ import { SessionProvider, useSession } from '@/context/SessionContext';
 import { bootstrapLocale } from '@/lib/locale';
 import { AppGateScreen } from '@/components/app-gate-screen';
 import { MisconfiguredEnvironment } from '@/components/misconfigured-environment';
-import { appVariant, appVersion } from '@/platform/app-info';
+import { appVariant } from '@/platform/app-info';
 import { currentEnvironmentIssues } from '@/platform/env';
 import { installTelemetrySinks } from '@/platform/telemetry-sink';
-import { refreshRemoteConfig } from '@/platform/remote-config';
-import type { GateState } from '@/platform/app-gate';
+import { RemoteConfigProvider, useRemoteConfig } from '@/context/RemoteConfigContext';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [localeReady, setLocaleReady] = useState(false);
-  const [gate, setGate] = useState<GateState>({ state: 'open' });
 
   // Analytics and crash reporting go through the outbox from the first frame,
   // so a crash during startup is still recorded and delivered later.
   useEffect(() => {
     installTelemetrySinks();
   }, []);
-
-  /**
-   * The one document that can change how a shipped binary behaves.
-   *
-   * It fails open: unreachable, absent or malformed leaves the app exactly as
-   * it shipped. A kill switch that bricks the app when the config service has a
-   * bad day is worse than the problem it solves.
-   */
-  const checkGate = React.useCallback(() => {
-    refreshRemoteConfig(appVersion())
-      .then((remote) => setGate(remote.gate))
-      .catch(() => setGate({ state: 'open' }));
-  }, []);
-
-  useEffect(checkGate, [checkGate]);
 
   // Locale is resolved once, before the first screen renders, rather than as an
   // import side effect — that is what made switching direction need a reload.
@@ -83,40 +66,70 @@ export default function RootLayout() {
     );
   }
 
-  // Maintenance and forced update sit outside the providers: they are about
-  // whether this build may run at all, not about what a reader has done.
-  if (gate.state !== 'open') {
-    return (
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AppGateScreen
-          gate={gate}
-          onRecheck={checkGate}
-          onOpenGarden={() => setGate({ state: 'open' })}
-        />
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <ErrorBoundary>
-        <SessionProvider>
-          <CatalogProvider>
-            <AuthProvider>
-              <AnimatedSplashOverlay />
-              <View
-                className={`w-full flex-1 bg-canvas ${
-                  Platform.OS === 'web'
-                    ? 'md:mx-auto md:max-w-[480px] md:border-x md:border-hairline'
-                    : ''
-                }`}>
-                <RootNavigator />
-              </View>
-            </AuthProvider>
-          </CatalogProvider>
-        </SessionProvider>
+        <RemoteConfigProvider>
+          <AppGate>
+            <SessionProvider>
+              <CatalogProvider>
+                <AuthProvider>
+                  <AnimatedSplashOverlay />
+                  <View
+                    className={`w-full flex-1 bg-canvas ${
+                      Platform.OS === 'web'
+                        ? 'md:mx-auto md:max-w-[480px] md:border-x md:border-hairline'
+                        : ''
+                    }`}>
+                    <RootNavigator />
+                  </View>
+                </AuthProvider>
+              </CatalogProvider>
+            </SessionProvider>
+          </AppGate>
+        </RemoteConfigProvider>
       </ErrorBoundary>
     </ThemeProvider>
+  );
+}
+
+/**
+ * Whether this build may run at all.
+ *
+ * Above the session and the catalogue, because it is not about what a reader
+ * has done. Two states, and they are not symmetric:
+ *
+ *  - **maintenance** can be carried past, into a narrowly scoped shell where
+ *    the backend-dependent flags are off and what is already on the device
+ *    keeps working. The gate itself stays `maintenance` — it is not declared
+ *    open, which is what the previous version did.
+ *  - **update required** cannot. There was a way past it, the same action the
+ *    maintenance state offers, which let a build the server has refused run
+ *    the whole app.
+ */
+function AppGate({ children }: { children: React.ReactNode }) {
+  const { gate, isReady, isMaintenanceAcknowledged, acknowledgeMaintenance, refresh } =
+    useRemoteConfig();
+
+  /**
+   * Nothing mounts until the config settles.
+   *
+   * Rendering children first — to avoid a flash — meant the catalogue started
+   * a remote refresh under the *shipped* flags, so a maintenance switch that
+   * turns remote content off was still beaten to it by a fetch. The splash is
+   * already up, and the fetch is bounded by `CONFIG_TIMEOUT_MS`, so waiting
+   * costs nothing visible and cannot hang.
+   */
+  if (!isReady) return null;
+  if (gate.state === 'open') return <>{children}</>;
+  if (gate.state === 'maintenance' && isMaintenanceAcknowledged) return <>{children}</>;
+
+  return (
+    <AppGateScreen
+      gate={gate}
+      onRecheck={() => void refresh()}
+      onContinueOffline={acknowledgeMaintenance}
+    />
   );
 }
 

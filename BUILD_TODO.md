@@ -182,6 +182,23 @@ the safe one.*
       and the AI tutor stays off — **now actually enforced**: a remote boolean
       may go `true → false`, never the reverse. It previously could switch a
       shipped-off feature on
+- [x] **The flags reach the features** (ADR 20). `isEnabled`/`getFlags` had zero
+      callers, so every kill switch was decoration. `RemoteConfigContext` is the
+      single runtime source; `platform/config` mirrors it for code outside the
+      tree
+- [x] A disabled feature is unreachable, not merely unadvertised: route
+      requirements, notification-payload checks, and a `FeatureGate` that makes
+      the screen refuse for itself when the flag flips while it is open
+- [x] Nothing mounts until the first config fetch settles — the catalogue was
+      starting a remote refresh under the shipped flags and beating maintenance
+      to it (six Storage requests before, zero after), bounded by a timeout so
+      a slow config service cannot stop the app opening
+- [x] **A forced update has no way past it.** Both gate states offered "go to
+      the garden", and the handler declared the gate open — so a build the
+      server had refused could open the whole app with one press
+- [x] Maintenance is a scoped exception expressed as flags, not an open gate
+- [x] `seed:emulator --gate=maintenance|update-required --off=<flags>` makes
+      both states reachable locally instead of by hand-editing Firestore
 - [x] **Remote config is live**: `appConfig/public` drives maintenance, minimum
       version and flags, and every path fails open
 - [x] **Maintenance and forced-update states** exist and can be triggered — the

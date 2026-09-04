@@ -484,5 +484,10 @@
     "currentLabel": "This build",
     "minimumLabel": "Minimum required",
     "cta": "Get the new version"
+  },
+  "featureOff": {
+    "title": "This part is unavailable right now",
+    "body": "It will be back shortly. The rest of the app, and the seeds on your device, work as usual.",
+    "back": "Go back"
   }
 }

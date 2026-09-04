@@ -117,18 +117,49 @@ const [editor, , adminUser] = await Promise.all(PEOPLE.map(ensureUser));
 // ------------------------------------------------------------- app config
 
 /**
- * The gate is open and the flags are the shipped defaults.
+ * The app gate, in whichever state was asked for.
  *
- * `minimumVersion` is deliberately `0.0.0`: a local environment that locks out
- * the build sitting next to it is a local environment nobody can use.
+ * `npm run seed:emulator -- --gate=maintenance` and `--gate=update-required`
+ * put the local environment into the two states that are otherwise only
+ * reachable by hand-editing Firestore — which is how they went untested.
+ *
+ * The default is open, with `minimumVersion` `0.0.0`: a local environment that
+ * locks out the build sitting next to it is one nobody can use.
  */
+const gateArg = process.argv.find((arg) => arg.startsWith('--gate='))?.split('=')[1] ?? 'open';
+const GATES = {
+  open: { maintenance: false, minimumVersion: '0.0.0' },
+  maintenance: {
+    maintenance: true,
+    maintenanceMessage: 'به‌روزرسانی محتوا',
+    maintenanceUntil: '۱۵:۰۰',
+    minimumVersion: '0.0.0',
+  },
+  'update-required': { maintenance: false, minimumVersion: '99.0.0' },
+};
+
+if (!GATES[gateArg]) {
+  console.error(`Unknown gate "${gateArg}". One of: ${Object.keys(GATES).join(', ')}`);
+  process.exit(1);
+}
+
+/**
+ * Flags may be turned off from the command line too, to check that a kill
+ * switch reaches the feature it names:
+ *   npm run seed:emulator -- --off=reviewEnabled,downloadsEnabled
+ */
+const off = new Set(
+  (process.argv.find((arg) => arg.startsWith('--off='))?.split('=')[1] ?? '')
+    .split(',')
+    .filter(Boolean)
+);
+
 await db.collection('appConfig').doc('public').set({
-  maintenance: false,
-  minimumVersion: '0.0.0',
+  ...GATES[gateArg],
   flags: {
-    downloadsEnabled: true,
-    reviewEnabled: true,
-    remindersEnabled: true,
+    downloadsEnabled: !off.has('downloadsEnabled'),
+    reviewEnabled: !off.has('reviewEnabled'),
+    remindersEnabled: !off.has('remindersEnabled'),
     aiTutorEnabled: false,
   },
   updatedAt: new Date().toISOString(),
@@ -212,7 +243,9 @@ for (const person of PEOPLE) {
   const role = Object.keys(person.claims)[0] ?? 'reader';
   console.log(`  ${person.email} / ${PASSWORD}  (${role})`);
 }
-console.log(`  appConfig/public — gate open, minimumVersion 0.0.0`);
+console.log(
+  `  appConfig/public — gate ${gateArg}${off.size ? `, off: ${[...off].join(', ')}` : ''}`
+);
 console.log(`  published: ${published.join(', ')}`);
 console.log(`  topics: ${TOPICS.length}, paths: ${PATHS.length}`);
 console.log(
