@@ -10,7 +10,7 @@ import {
   type OutboxItem,
   type SendOutcome,
 } from '@/lib/outbox';
-import { outcomeFor } from '@/lib/outbox-ack';
+import { outcomeFor, ThrottledError } from '@/lib/outbox-ack';
 
 /**
  * The queue's contract with the transport.
@@ -192,5 +192,82 @@ describe('reading a batch answer', () => {
   it('refuses to treat an unrecognised answer as delivery', () => {
     expect(() => outcomeFor(item, {})).toThrow('no-acknowledgement');
     expect(() => outcomeFor(item, { applied: 0, duplicates: 0, rejected: [] })).toThrow();
+  });
+});
+
+describe('a server that says "not yet"', () => {
+  const throttle = async () => {
+    throw new ThrottledError(30);
+  };
+
+  const NOW = new Date('2026-09-05T12:00:00.000Z');
+
+  /**
+   * The failure this prevents is data loss, not a retry storm. The queue
+   * dead-letters after MAX_ATTEMPTS, so if a throttle counted as a failure, a
+   * device that hit the rate limit eight times would delete a reader's
+   * completed seed — having been told the send failed when the server had said
+   * "wait".
+   */
+  it('spends no part of the retry budget', async () => {
+    await anEvent('event-0001');
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS + 2; attempt += 1) {
+      await flush(throttle, true, NOW);
+    }
+
+    const [item] = await listOutbox();
+    expect(item.attempts).toBe(0);
+    expect(await deadLetters()).toHaveLength(0);
+  });
+
+  it('waits exactly as long as the server asked', async () => {
+    await anEvent('event-0001');
+    await flush(throttle, true, NOW);
+
+    const [item] = await listOutbox();
+    expect(item.nextAttemptAt).toBe(new Date(NOW.getTime() + 30_000).toISOString());
+  });
+
+  it('reports the deferral rather than counting it as sent or failed', async () => {
+    await anEvent('event-0001');
+    const result = await flush(throttle, true, NOW);
+
+    expect(result).toMatchObject({ throttled: 1, sent: 0, failed: 0, rejected: 0, remaining: 1 });
+  });
+
+  /** Everything behind it would be refused too; each try costs a round trip. */
+  it('stops the flush instead of walking the rest of the queue', async () => {
+    await anEvent('event-0001');
+    await anEvent('event-0002');
+    await anEvent('event-0003');
+
+    let attempted = 0;
+    await flush(async () => {
+      attempted += 1;
+      throw new ThrottledError(30);
+    }, true, NOW);
+
+    expect(attempted).toBe(1);
+  });
+
+  it('sends everything once the wait is over', async () => {
+    await anEvent('event-0001');
+    await flush(throttle, true, NOW);
+
+    const later = new Date(NOW.getTime() + 31_000);
+    const result = await flush(async (): Promise<SendOutcome> => ({ status: 'applied' }), true, later);
+
+    expect(result).toMatchObject({ sent: 1, remaining: 0 });
+  });
+
+  /** An ordinary network error must still burn an attempt and eventually die. */
+  it('does not change what an ordinary failure costs', async () => {
+    await anEvent('event-0001');
+    await flush(async () => {
+      throw new Error('offline');
+    }, true, NOW);
+
+    expect((await listOutbox())[0].attempts).toBe(1);
   });
 });

@@ -12,6 +12,8 @@ import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase
 import { connectStorageEmulator, getStorage, type FirebaseStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
+import { ensureAppCheck } from '@/data/remote/app-check';
+
 /**
  * The only place Firebase is constructed.
  *
@@ -76,6 +78,11 @@ function getApp(): FirebaseApp {
               }
             : config
         );
+
+    // Fire and forget. Enforcement is off, so a build that cannot attest is
+    // counted as unverified rather than stopped — and the emulator is never
+    // asked to, because a demo project has nothing to attest against.
+    if (!usingEmulator) void ensureAppCheck(app);
   }
   return app;
 }

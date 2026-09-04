@@ -20,11 +20,45 @@ import {
 } from './publish/drafts';
 import { publishSeed, rollbackSeed, PublishError } from './publish/publish-seed';
 import { defaultDeps } from './shared/deps';
+import { guard, GuardError } from './shared/guard';
 
 // One region for now; latency for real users decides the final choice.
 setGlobalOptions({ region: 'europe-west1', maxInstances: 10 });
 
 const deps = () => defaultDeps();
+
+/**
+ * The size, batch, rate and App Check checks, run before a handler.
+ *
+ * A `CallableRequest` is narrowed to what the guard needs so the guard itself
+ * stays testable without the functions runtime. `request.app` is set only when
+ * a *verified* App Check token arrived — enforcement is off, so an unverified
+ * call proceeds and is counted.
+ */
+async function checked(
+  request: { data?: unknown; app?: unknown },
+  options: { name: string; key: string; items?: number }
+) {
+  try {
+    await guard(deps(), {
+      ...options,
+      data: request.data,
+      appCheckVerified: request.app != null,
+    });
+  } catch (error) {
+    if (error instanceof GuardError) {
+      throw new HttpsError(
+        error.code === 'rate-limited' ? 'resource-exhausted' : 'invalid-argument',
+        error.code,
+        // The client defers rather than failing the item, so it needs to know
+        // for how long. Without this it would guess, and a guess that is short
+        // spends the caller's retry budget on being throttled again.
+        error.retryAfterSeconds ? { retryAfterSeconds: error.retryAfterSeconds } : undefined
+      );
+    }
+    throw error;
+  }
+}
 
 function requireStaff(auth: { token?: Record<string, unknown> } | undefined, roles: string[]) {
   const token = auth?.token ?? {};
@@ -41,6 +75,7 @@ function requireStaff(auth: { token?: Record<string, unknown> } | undefined, rol
  */
 export const publish = onCall(async (request) => {
   requireStaff(request.auth, ['admin', 'editor']);
+  await checked(request, { name: 'publish', key: request.auth!.uid });
 
   try {
     return await publishSeed(deps(), {
@@ -85,6 +120,7 @@ function workflowCall<T>(handler: () => Promise<T>) {
  */
 export const createContentDraft = onCall(async (request) => {
   requireStaff(request.auth, ['admin', 'editor']);
+  await checked(request, { name: 'createContentDraft', key: request.auth!.uid });
   return workflowCall(() =>
     createDraft(deps(), {
       actorUid: request.auth!.uid,
@@ -97,6 +133,7 @@ export const createContentDraft = onCall(async (request) => {
 /** Starts a correction at the next revision, derived rather than typed. */
 export const startCorrection = onCall(async (request) => {
   requireStaff(request.auth, ['admin', 'editor']);
+  await checked(request, { name: 'startCorrection', key: request.auth!.uid });
   return workflowCall(() =>
     duplicateForCorrection(deps(), {
       actorUid: request.auth!.uid,
@@ -107,6 +144,7 @@ export const startCorrection = onCall(async (request) => {
 
 export const submitForReview = onCall(async (request) => {
   requireStaff(request.auth, ['admin', 'editor']);
+  await checked(request, { name: 'submitForReview', key: request.auth!.uid });
   return workflowCall(() =>
     submitDraft(deps(), { draftId: request.data?.draftId, actorUid: request.auth!.uid })
   );
@@ -114,6 +152,7 @@ export const submitForReview = onCall(async (request) => {
 
 export const review = onCall(async (request) => {
   requireStaff(request.auth, ['admin', 'reviewer']);
+  await checked(request, { name: 'review', key: request.auth!.uid });
   return workflowCall(() =>
     reviewDraft(deps(), {
       draftId: request.data?.draftId,
@@ -126,6 +165,7 @@ export const review = onCall(async (request) => {
 
 export const publishApproved = onCall(async (request) => {
   requireStaff(request.auth, ['admin', 'editor']);
+  await checked(request, { name: 'publishApproved', key: request.auth!.uid });
   return workflowCall(() =>
     publishDraft(deps(), { draftId: request.data?.draftId, actorUid: request.auth!.uid })
   );
@@ -133,6 +173,7 @@ export const publishApproved = onCall(async (request) => {
 
 export const rollback = onCall(async (request) => {
   requireStaff(request.auth, ['admin']);
+  await checked(request, { name: 'rollback', key: request.auth!.uid });
 
   try {
     return await rollbackSeed(deps(), {
@@ -156,7 +197,11 @@ export const ingestProgress = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'sign-in-required');
 
   const events = Array.isArray(request.data?.events) ? request.data.events : [];
-  if (events.length > 200) throw new HttpsError('invalid-argument', 'too-many-events');
+  await checked(request, {
+    name: 'ingestProgress',
+    key: request.auth.uid,
+    items: events.length,
+  });
 
   return ingestProgressEvents(deps(), { uid: request.auth.uid, events });
 });
@@ -172,7 +217,7 @@ export const submitReport = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'sign-in-required');
 
   const reports = Array.isArray(request.data?.reports) ? request.data.reports : [];
-  if (reports.length > 50) throw new HttpsError('invalid-argument', 'too-many-reports');
+  await checked(request, { name: 'submitReport', key: request.auth.uid, items: reports.length });
 
   return submitReports(deps(), { uid: request.auth.uid, reports });
 });
@@ -191,6 +236,7 @@ export const submitReport = onCall(async (request) => {
  */
 export const deleteMyAccount = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'sign-in-required');
+  await checked(request, { name: 'deleteMyAccount', key: request.auth.uid });
 
   try {
     return await deleteAccount(deps(), {
@@ -219,6 +265,7 @@ export const deleteMyAccount = onCall(async (request) => {
  */
 export const beginDeleteMyAccount = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'sign-in-required');
+  await checked(request, { name: 'beginDeleteMyAccount', key: request.auth.uid });
 
   try {
     return await beginAccountDeletion(deps(), {
@@ -248,6 +295,11 @@ export const resumeDeleteMyAccount = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'receipt-required');
   }
 
+  // Keyed by the uid being claimed rather than by a session, because there is
+  // no session left by this point. It is what makes guessing a receipt
+  // impractical: ten attempts a minute against a 256-bit secret.
+  await checked(request, { name: 'resumeDeleteMyAccount', key: uid });
+
   try {
     return await deleteAccount(deps(), { uid, receipt });
   } catch (error) {
@@ -270,6 +322,8 @@ export const myAccountDeletionStatus = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'receipt-required');
   }
 
+  await checked(request, { name: 'myAccountDeletionStatus', key: uid });
+
   const status = await accountDeletionStatus(deps(), { uid, receipt });
   if (!status) throw new HttpsError('not-found', 'unknown-receipt');
   return status;
@@ -288,9 +342,11 @@ export const recordTelemetryBatch = onCall(async (request) => {
 
   const events = Array.isArray(request.data?.events) ? request.data.events : [];
   const crashes = Array.isArray(request.data?.crashes) ? request.data.crashes : [];
-  if (events.length + crashes.length > 100) {
-    throw new HttpsError('invalid-argument', 'too-many-items');
-  }
+  await checked(request, {
+    name: 'recordTelemetryBatch',
+    key: request.auth.uid,
+    items: events.length + crashes.length,
+  });
 
   return recordTelemetry(deps(), { uid: request.auth.uid, events, crashes });
 });

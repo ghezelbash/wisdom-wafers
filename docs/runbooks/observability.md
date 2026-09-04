@@ -7,7 +7,7 @@
 | Analytics events | `recordTelemetryBatch` → `telemetryEvents`, through the outbox | Firebase Analytics, native |
 | Crash reports | `recordTelemetryBatch` → `crashReports`, through the outbox | Crashlytics, with native stacks |
 | Performance | — | Performance Monitoring, native traces |
-| App Check | not enforced | Play Integrity, monitor → enforce |
+| App Check | **measured**, not enforced; web attests, native cannot | Play Integrity, monitor → enforce |
 | Feature flags, maintenance, minimum version | `appConfig/public`, live | unchanged |
 
 The seams are `AnalyticsSink` and `CrashSink`. Replacing the implementation is
@@ -93,16 +93,58 @@ npx firebase firestore:update appConfig/public \
 Readers see the maintenance state; downloaded seeds still open, which is why the
 garden is offered rather than a dead end.
 
-## App Check, when it lands
+## The callable guard
 
-Order matters, and skipping a step locks real readers out:
+Every public callable runs `guard()` (`functions/src/shared/guard.ts`) before
+its handler: body bytes, batch length, then a per-caller rate limit. The limits
+are one table, and a callable with no row gets the strict fallback rather than
+none. ADR 22 has the reasoning; what matters operationally:
+
+- A refusal is `INVALID_ARGUMENT` (`payload-too-large`, `too-many-items`) or
+  `RESOURCE_EXHAUSTED` (`rate-limited`, with `retryAfterSeconds` in the error
+  details).
+- **A throttled client loses nothing.** The queue defers the item to the time
+  the server named without spending a retry attempt. If you ever see throttling
+  reported as `failed` rather than `throttled` in a flush result, that is a
+  regression worth stopping for — eight of them would dead-letter a reader's
+  completed seed.
+- Counters live in `rateLimits/{callable}__{key}`, server-only, carrying
+  `expiresAt` so a TTL policy can sweep them. A caller can neither read nor
+  write its own counter.
+
+To change a limit, change the table — not a call site.
+
+## App Check: what is measured now
+
+Enforcement is off. What exists is the number the decision needs:
+
+```
+appCheckCoverage/{YYYY-MM-DD}/shards/{0..9}   → { verified, unverified, byCallable }
+```
+
+Ten shards so a daily total is not one contended document; sum them with
+`appCheckCoverageFor(deps, day)`. Admin-readable, written only by the server.
+The write is fire-and-forget — a metric must never be the reason a reader's
+completion fails to record.
+
+**The native blocker, stated plainly.** The Firebase *JS* SDK attests with
+reCAPTCHA, which needs a DOM. Android and iOS attest with Play Integrity and
+DeviceCheck, which are native modules the JS SDK cannot reach. So today the web
+build produces real tokens and the mobile builds cannot — `ensureAppCheck`
+reports `unsupported-platform` rather than pretending. Enforcing now would
+refuse every mobile request regardless of build age.
+
+Turning it on therefore needs native attestation first (RNFirebase, or a config
+plugin around the native App Check SDK), and then:
 
 1. **Monitor** in staging. Register Play Integrity, leave enforcement off, and
-   watch the verified/unverified split for at least a week.
-2. **Enforce in staging** once verified requests are steady.
+   watch the verified/unverified split in `appCheckCoverage` for at least a week.
+2. **Enforce in staging** once verified requests are steady — set
+   `enforceAppCheck: true` on the `onCall` options in `functions/src/index.ts`.
 3. **Production, monitor**, then enforce per service — Firestore first, Storage
    and Functions after.
 
 Sideloaded APKs and emulators are unverified by definition, so an enforced
 production project will refuse the internal beta build. Register a debug token
-for each test device before enforcing anything.
+for each test device (`EXPO_PUBLIC_APP_CHECK_DEBUG_TOKEN`) before enforcing
+anything.

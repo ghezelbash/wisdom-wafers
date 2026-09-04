@@ -265,6 +265,19 @@ export async function markSent(driver: SqlDriver, eventId: string) {
 }
 
 /**
+ * Delays an item without counting it as an attempt.
+ *
+ * Used when the server throttles: the item is owed, the send did not fail, and
+ * spending attempts on it would eventually dead-letter data the reader created.
+ */
+export async function deferItem(driver: SqlDriver, eventId: string, until: Date) {
+  await driver.run('UPDATE outbox SET next_attempt_at = ? WHERE event_id = ?', [
+    until.toISOString(),
+    eventId,
+  ]);
+}
+
+/**
  * Records a failure and schedules the retry — or gives up, keeping the item so
  * the failure can be seen rather than guessed at.
  */

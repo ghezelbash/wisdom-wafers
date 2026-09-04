@@ -53,9 +53,19 @@ the safe one.*
 - [x] `firebase.json`, project aliases, emulator suite, JDK via Homebrew
 - [x] Firestore + Storage rules (blueprint §15), deny by default
 - [x] Composite indexes for the feed and catalogue queries
-- [x] 31 allow/deny rules tests against the emulator — they caught a real bug
+- [x] 48 allow/deny rules tests against the emulator — they caught a real bug
       (reading through a null `resource` on create is an evaluation error, not a
       false)
+- [x] **Tightened for release goal 7** (ADR 22): `appConfig` is public for the
+      one `public` document rather than across the collection; device/push-token
+      documents carry a key allow-list with types and sizes instead of
+      `read, write: if owner`; profile *values* are validated, not only their key
+      names; and an editor must own a draft to edit it, with an admin override
+      that is written down
+- [x] **Progress has one writer.** Client writes to `users/{uid}/progress` are
+      refused — every change already goes through `ingestProgress`, which derives
+      the percent, the resume position and the schedule; a second writer could
+      only contradict it
 
 ## B · Identity — done
 
@@ -230,9 +240,22 @@ the safe one.*
       `recordTelemetryBatch`; a crash that killed the app offline still arrives
 - [x] The PII guard runs on the client *and* the server; a crash message is
       redacted rather than refused, because a refused crash is an invisible one
-- [ ] Crashlytics, Performance Monitoring and App Check need native modules and
-      land with the RNFirebase migration — `docs/runbooks/observability.md` has
-      the App Check monitor → enforce order
+- [x] **Public callables are guarded** (ADR 22): one table of per-callable body,
+      batch and rate limits, checked before the handler in cost order. The rate
+      limit is a Firestore transaction, so two simultaneous requests cannot both
+      pass a read-then-write
+- [x] **A throttle costs a reader nothing.** `resource-exhausted` carries
+      `retryAfterSeconds`, the transport raises `ThrottledError`, and the queue
+      defers the item without spending an attempt — otherwise eight throttles
+      would have dead-lettered a completed seed
+- [x] **App Check coverage is measured** while enforcement stays off: a sharded
+      daily counter of verified vs unverified calls, so the rollout is a decision
+      with a number behind it
+- [ ] Crashlytics, Performance Monitoring and App Check *enforcement* need native
+      modules and land with the RNFirebase migration. The JS SDK attests with
+      reCAPTCHA, which has no DOM on device — `src/data/remote/app-check.ts`
+      wires web and reports `unsupported-platform` on native rather than
+      pretending. `docs/runbooks/observability.md` has the monitor → enforce order
 
 ## H · Recommendation v1 — done
 

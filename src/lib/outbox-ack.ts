@@ -14,6 +14,22 @@ export interface BatchResult {
 }
 
 /**
+ * The server asked the client to wait.
+ *
+ * Distinct from a failure on purpose. The queue dead-letters an item after
+ * `MAX_ATTEMPTS`, so if being throttled counted as a failed attempt, a device
+ * that hit the rate limit repeatedly would *delete* a reader's completed seed —
+ * having been told the send failed when the server had actually said "not yet".
+ * A throttled item is deferred and keeps its whole retry budget.
+ */
+export class ThrottledError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super('throttled');
+    this.name = 'ThrottledError';
+  }
+}
+
+/**
  * An answer that names neither an application nor a rejection is not treated as
  * success — the item stays queued and is tried again, because deleting it on an
  * unrecognised response is exactly how a completion goes missing.

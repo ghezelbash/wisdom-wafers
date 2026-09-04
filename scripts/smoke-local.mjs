@@ -176,6 +176,18 @@ const callable = async (name, data) => {
   return payload.result;
 };
 
+/** The same call, but the refusal is what is being looked for. */
+const callableError = async (name, data) => {
+  const response = await fetch(`http://${FUNCTIONS}/${PROJECT}/${REGION}/${name}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ data }),
+  });
+
+  const payload = await response.json().catch(() => undefined);
+  return payload?.error ?? null;
+};
+
 const stamp = Date.now();
 
 await step('a progress event reaches ingestProgress and is persisted', async () => {
@@ -220,6 +232,42 @@ await step('the same event a second time counts once', async () => {
   return 'idempotent on event id';
 });
 
+// ------------------------------------------------------- the callable guard
+
+/**
+ * A fixed window is per minute, and these checks deliberately exhaust one. Two
+ * runs inside the same minute would otherwise throttle the *successful* report
+ * below and read as a regression, so the run starts from an empty counter.
+ */
+await step('the run starts with the rate-limit counters cleared', async () => {
+  const counters = await db.collection('rateLimits').get();
+  await Promise.all(counters.docs.map((document) => document.ref.delete()));
+  return `${counters.size} cleared`;
+});
+
+await step('an oversized request is refused before any work is done', async () => {
+  const error = await callableError('submitReport', {
+    reports: [{ id: `smoke-huge-${stamp}`, detail: 'ب'.repeat(200_000) }],
+  });
+
+  assert(error, 'an oversized body was accepted');
+  assert(
+    error.message === 'payload-too-large',
+    () => `refused as ${brief(error.message)}, not payload-too-large`
+  );
+  return 'payload-too-large';
+});
+
+await step('a batch over the callable limit is refused', async () => {
+  const error = await callableError('submitReport', {
+    reports: Array.from({ length: 60 }, (_, index) => ({ id: `smoke-many-${stamp}-${index}` })),
+  });
+
+  assert(error, 'a 60-item batch was accepted where the limit is 50');
+  assert(error.message === 'too-many-items', () => `refused as ${brief(error.message)}`);
+  return 'too-many-items';
+});
+
 await step('a content report reaches submitReport and lands in Firestore', async () => {
   const id = `smoke-report-${stamp}`;
   const result = await callable('submitReport', {
@@ -243,6 +291,60 @@ await step('a content report reaches submitReport and lands in Firestore', async
   assert(report.data().status === 'open', () => `status is ${report.data().status}`);
   return 'report triaged as open';
 });
+
+/**
+ * The evidence that the limit is real: the eleventh call in a minute is
+ * refused, and the refusal carries how long to wait — which is what lets the
+ * outbox defer the item instead of spending an attempt on it.
+ */
+await step('the eleventh report in a minute is throttled, with a retry-after', async () => {
+  let refusal = null;
+
+  for (let call = 0; call < 12 && !refusal; call += 1) {
+    refusal = await callableError('submitReport', {
+      reports: [
+        {
+          id: `smoke-rate-${stamp}-${call}`,
+          uid,
+          seedId: manifest.seedId,
+          revision: manifest.revision,
+          category: 'factual',
+          detail: 'گزارش آزمایشی',
+          occurredAtDevice: new Date().toISOString(),
+          appVersion: '1.0.0',
+        },
+      ],
+    });
+  }
+
+  assert(refusal, 'twelve calls in one window were all accepted');
+  assert(refusal.status === 'RESOURCE_EXHAUSTED', () => `status ${brief(refusal.status)}`);
+  assert(refusal.message === 'rate-limited', () => `message ${brief(refusal.message)}`);
+
+  const seconds = refusal.details?.retryAfterSeconds;
+  assert(typeof seconds === 'number' && seconds > 0, () => `retryAfterSeconds ${brief(seconds)}`);
+  return `RESOURCE_EXHAUSTED, retry after ${seconds}s`;
+});
+
+await step('App Check coverage is counted while enforcement stays off', async () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const shards = await db.collection(`appCheckCoverage/${day}/shards`).get();
+
+  let verified = 0;
+  let unverified = 0;
+  for (const document of shards.docs) {
+    verified += document.data().verified ?? 0;
+    unverified += document.data().unverified ?? 0;
+  }
+
+  // Unverified, because the smoke calls carry no App Check token — and they
+  // succeeded, which is the point: enforcement is off and the number is being
+  // gathered for the decision to turn it on.
+  assert(unverified > 0, 'no unverified calls were counted');
+  assert(verified === 0, () => `${verified} calls claimed a token that was never sent`);
+  return `${unverified} unverified calls counted`;
+});
+
 
 await step('telemetry reaches recordTelemetryBatch', async () => {
   const result = await callable('recordTelemetryBatch', {

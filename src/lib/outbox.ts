@@ -1,3 +1,4 @@
+import { ThrottledError } from '@/lib/outbox-ack';
 import {
   openOutbox,
   type OutboxItem,
@@ -16,7 +17,8 @@ import {
  *
  *  - `applied` / `duplicate` — the server counted it. Remove it.
  *  - `rejected` — the server never will. Keep it, dead, with the reason.
- *  - a thrown error — the network, not the content. Retry with backoff.
+ *  - `ThrottledError` — the server said *not yet*. Defer, spending no attempt.
+ *  - any other thrown error — the network, not the content. Retry with backoff.
  *
  * The old queue treated every outcome as success and deleted the item, so a
  * malformed completion and a lost report both looked delivered.
@@ -70,6 +72,8 @@ export interface FlushResult {
   duplicates: number;
   rejected: number;
   failed: number;
+  /** Deferred by the server, still owed, with their retry budget intact. */
+  throttled: number;
   remaining: number;
 }
 
@@ -86,7 +90,7 @@ export async function flush(
   now = new Date()
 ): Promise<FlushResult> {
   const queue = await store();
-  const empty = { sent: 0, duplicates: 0, rejected: 0, failed: 0 };
+  const empty = { sent: 0, duplicates: 0, rejected: 0, failed: 0, throttled: 0 };
 
   if (!isOnline) {
     return { ...empty, remaining: (await queue.all()).length };
@@ -109,6 +113,15 @@ export async function flush(
       if (outcome.status === 'duplicate') result.duplicates += 1;
       else result.sent += 1;
     } catch (error) {
+      if (error instanceof ThrottledError) {
+        const until = new Date(now.getTime() + error.retryAfterSeconds * 1000);
+        await queue.defer(item.id, until);
+        result.throttled += 1;
+        // Everything behind it would be throttled too, and each attempt costs a
+        // round trip the server has already refused. Stop and come back.
+        break;
+      }
+
       await queue.recordFailure(
         item.id,
         error instanceof Error ? error.message : String(error),
