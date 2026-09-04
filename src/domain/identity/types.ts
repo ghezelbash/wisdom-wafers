@@ -41,6 +41,15 @@ export type AuthErrorCode =
   | 'invalidCredential'
   | 'tooManyRequests'
   | 'network'
+  /**
+   * There is no backend for this build to talk to at all.
+   *
+   * Distinct from `network` on purpose. A development build does not reach a
+   * real project unless told to, so "we could not connect" is not what
+   * happened and sends whoever reads it to check their wifi. The cause is
+   * configuration, and only the person running the build can fix it.
+   */
+  | 'notConfigured'
   | 'notAllowed'
   | 'requiresRecentLogin'
   | 'unknown';

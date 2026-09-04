@@ -463,6 +463,7 @@
     "invalidCredential": "That email or password isn't right.",
     "tooManyRequests": "Too many attempts in a row. Wait a moment and try again.",
     "network": "We can't reach the network. The seeds on this device still work.",
+    "notConfigured": "Signing in is not available in this build. Carry on as a guest — everything you read stays on this device.",
     "notAllowed": "That sign-in method isn't available right now.",
     "requiresRecentLogin": "Sign in again to do that.",
     "unknown": "Something didn't go through. Try again."
