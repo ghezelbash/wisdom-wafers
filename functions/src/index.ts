@@ -1,7 +1,12 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2/options';
 
-import { deleteAccount, DeletionError } from './account/delete';
+import {
+  accountDeletionStatus,
+  beginAccountDeletion,
+  deleteAccount,
+  DeletionError,
+} from './account/delete';
 import { ingestProgressEvents } from './progress/ingest';
 import { submitReports } from './reports/submit';
 import { recordTelemetry } from './telemetry/record';
@@ -156,6 +161,7 @@ export const deleteMyAccount = onCall(async (request) => {
     return await deleteAccount(deps(), {
       uid: request.auth.uid,
       authTimeSeconds: request.auth.token?.auth_time as number | undefined,
+      receipt: typeof request.data?.receipt === 'string' ? request.data.receipt : undefined,
     });
   } catch (error) {
     if (error instanceof DeletionError) {
@@ -167,6 +173,71 @@ export const deleteMyAccount = onCall(async (request) => {
     }
     throw error;
   }
+});
+
+/**
+ * Step one of deleting an account: prove who you are, and take a receipt.
+ *
+ * Nothing is destroyed. The receipt is what lets a device ask what happened
+ * after the Auth record — deleted last — is gone, at which point there is no
+ * session left to ask with.
+ */
+export const beginDeleteMyAccount = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'sign-in-required');
+
+  try {
+    return await beginAccountDeletion(deps(), {
+      uid: request.auth.uid,
+      authTimeSeconds: request.auth.token?.auth_time as number | undefined,
+    });
+  } catch (error) {
+    if (error instanceof DeletionError) {
+      throw new HttpsError('failed-precondition', error.code);
+    }
+    throw error;
+  }
+});
+
+/**
+ * Resumes or finishes a deletion using its receipt.
+ *
+ * Deliberately not requiring a session: by the time this is needed the account
+ * may already be gone. The receipt is a high-entropy capability minted by an
+ * authenticated, recently-signed-in request, and it can do exactly two things,
+ * both idempotent — finish this one deletion, and report on it.
+ */
+export const resumeDeleteMyAccount = onCall(async (request) => {
+  const uid = request.data?.uid;
+  const receipt = request.data?.receipt;
+  if (typeof uid !== 'string' || typeof receipt !== 'string' || receipt.length < 16) {
+    throw new HttpsError('invalid-argument', 'receipt-required');
+  }
+
+  try {
+    return await deleteAccount(deps(), { uid, receipt });
+  } catch (error) {
+    if (error instanceof DeletionError) {
+      throw new HttpsError(
+        error.code === 'requires-recent-login' ? 'permission-denied' : 'internal',
+        error.code,
+        { step: error.step }
+      );
+    }
+    throw error;
+  }
+});
+
+/** What happened to a deletion, for a device that can no longer authenticate. */
+export const myAccountDeletionStatus = onCall(async (request) => {
+  const uid = request.data?.uid;
+  const receipt = request.data?.receipt;
+  if (typeof uid !== 'string' || typeof receipt !== 'string') {
+    throw new HttpsError('invalid-argument', 'receipt-required');
+  }
+
+  const status = await accountDeletionStatus(deps(), { uid, receipt });
+  if (!status) throw new HttpsError('not-found', 'unknown-receipt');
+  return status;
 });
 
 /**

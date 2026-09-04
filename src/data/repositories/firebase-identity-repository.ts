@@ -3,6 +3,7 @@ import {
   EmailAuthProvider,
   linkWithCredential,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInAnonymously,
@@ -102,6 +103,33 @@ export class FirebaseIdentityRepository implements IdentityRepository {
 
       const created = await createUserWithEmailAndPassword(auth, email, password);
       return toIdentity(created.user);
+    } catch (error) {
+      throw toAuthError(error);
+    }
+  }
+
+  /**
+   * Refreshes the sign-in without leaving the screen.
+   *
+   * Firebase decides "recent" from the token's `auth_time`, so this is what
+   * makes the deletion flow able to ask for a password in place rather than
+   * sending the reader away to sign out and back in.
+   */
+  async reauthenticate(password: string): Promise<void> {
+    const auth = getFirebaseAuth();
+    await auth.authStateReady();
+    const user = auth.currentUser;
+
+    if (!user?.email) throw new AuthError('requiresRecentLogin');
+
+    try {
+      await reauthenticateWithCredential(
+        user,
+        EmailAuthProvider.credential(user.email, password)
+      );
+      // The check reads `auth_time` off the token, which only changes once the
+      // new one has actually been issued.
+      await user.getIdToken(true);
     } catch (error) {
       throw toAuthError(error);
     }

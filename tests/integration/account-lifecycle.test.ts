@@ -2,9 +2,12 @@ import { deleteApp, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 import {
+  accountDeletionStatus,
+  beginAccountDeletion,
   deleteAccount,
   DeletionError,
   isRecentLogin,
+  mintReceipt,
   RECENT_LOGIN_WINDOW_SECONDS,
   USER_SUBCOLLECTIONS,
 } from '../../functions/src/account/delete';
@@ -253,5 +256,126 @@ describe('a deletion that dies halfway', () => {
     const second = await deleteAccount(deps, { uid: UID, authTimeSeconds: recentAuth });
     expect(second.state).toBe('done');
     expect((await db.doc(`deletionJobs/${UID}`).get()).data()?.state).toBe('done');
+  });
+});
+
+/**
+ * The window after the Auth record is gone.
+ *
+ * Auth is deleted last, so a response lost after that step leaves a device that
+ * can no longer authenticate — and without a receipt it could neither finish
+ * the job nor find out whether it had finished. It would have to guess whether
+ * its data still existed, and every possible guess is wrong some of the time.
+ */
+describe('a deletion whose response went missing', () => {
+  it('mints a receipt before destroying anything', async () => {
+    await seedAccount();
+
+    const begun = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    expect(begun.receipt.length).toBeGreaterThanOrEqual(16);
+    expect(begun.state).toBe('requested');
+    // Nothing is gone yet: this step only proves who is asking.
+    expect((await db.doc(`users/${UID}`).get()).exists).toBe(true);
+    expect(await remaining(`users/${UID}/progress`)).toBe(1);
+  });
+
+  it('keeps the first receipt when the request is made twice', async () => {
+    await seedAccount();
+
+    const first = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+    const again = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    // The device may already have stored it; a new one would strand exactly
+    // the case the receipt exists for.
+    expect(again.receipt).toBe(first.receipt);
+  });
+
+  it('finishes with the receipt after the session is gone', async () => {
+    await seedAccount();
+    const { receipt } = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    // No `authTimeSeconds` at all — the account it belonged to no longer
+    // exists, which is the state this has to work in.
+    const result = await deleteAccount(deps, { uid: UID, receipt });
+
+    expect(result.state).toBe('done');
+    expect((await db.doc(`users/${UID}`).get()).exists).toBe(false);
+    expect(deletedUsers).toEqual([UID]);
+  });
+
+  it('answers what happened, for a device that cannot authenticate', async () => {
+    await seedAccount();
+    const { receipt } = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+    await deleteAccount(deps, { uid: UID, receipt });
+
+    const status = await accountDeletionStatus(deps, { uid: UID, receipt });
+    expect(status?.state).toBe('done');
+    expect(status?.completed).toEqual(expect.arrayContaining(['auth']));
+  });
+
+  it('says nothing at all to a wrong receipt', async () => {
+    await seedAccount();
+    await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    expect(await accountDeletionStatus(deps, { uid: UID, receipt: mintReceipt() })).toBeNull();
+    expect(await accountDeletionStatus(deps, { uid: 'someone-else', receipt: 'x' })).toBeNull();
+  });
+
+  it('refuses to delete for a receipt that does not match', async () => {
+    await seedAccount();
+    await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    await expect(
+      deleteAccount(deps, { uid: UID, receipt: mintReceipt() })
+    ).rejects.toMatchObject({ code: 'requires-recent-login' });
+
+    // And nothing was touched on the way to refusing.
+    expect((await db.doc(`users/${UID}`).get()).exists).toBe(true);
+  });
+
+  /** A resumed run after a mid-flight failure must not double-delete. */
+  it('resumes with the receipt after a failure partway', async () => {
+    await seedAccount();
+    const { receipt } = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    const failing: Deps = {
+      ...deps,
+      async deleteObjects() {
+        throw new Error('bucket unreachable');
+      },
+    };
+
+    await expect(deleteAccount(failing, { uid: UID, receipt })).rejects.toMatchObject({
+      step: 'storage',
+    });
+    // Still signed-in-able, which is what lets the reader retry.
+    expect(deletedUsers).toEqual([]);
+
+    const result = await deleteAccount(deps, { uid: UID, receipt });
+    expect(result.state).toBe('done');
+    expect(deletedUsers).toEqual([UID]);
+  });
+
+  it('is safe to run again with the receipt once it is done', async () => {
+    await seedAccount();
+    const { receipt } = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    await deleteAccount(deps, { uid: UID, receipt });
+    const second = await deleteAccount(deps, { uid: UID, receipt });
+
+    expect(second.state).toBe('done');
+    expect((await db.doc(`deletionJobs/${UID}`).get()).data()?.state).toBe('done');
+  });
+
+  it('still refuses a stale sign-in when there is no receipt', async () => {
+    await seedAccount();
+
+    await expect(
+      deleteAccount(deps, { uid: UID, authTimeSeconds: NOW.getTime() / 1000 - 3600 })
+    ).rejects.toMatchObject({ code: 'requires-recent-login' });
+    await expect(
+      beginAccountDeletion(deps, { uid: UID, authTimeSeconds: NOW.getTime() / 1000 - 3600 })
+    ).rejects.toBeInstanceOf(DeletionError);
   });
 });

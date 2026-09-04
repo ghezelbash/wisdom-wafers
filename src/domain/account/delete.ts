@@ -28,8 +28,19 @@ export interface DeletionOutcome {
 }
 
 export interface DeleteAccountPorts {
-  /** Calls the server job. Throws on anything but a completed deletion. */
-  requestServerDeletion(): Promise<DeletionOutcome>;
+  /** The uid being deleted, captured before anything can change it. */
+  uid: string;
+  /** Step one: proves identity and returns a receipt. Destroys nothing. */
+  beginServerDeletion(): Promise<string>;
+  /** Remembers the receipt before the first destructive step. */
+  storeReceipt(receipt: string): Promise<void>;
+  clearReceipt(): Promise<void>;
+  /** Step two, while a session still exists. */
+  requestServerDeletion(receipt: string): Promise<DeletionOutcome>;
+  /** Step two again, once it does not. */
+  resumeServerDeletion(uid: string, receipt: string): Promise<DeletionOutcome>;
+  /** What happened, for a device whose response went missing. */
+  serverDeletionStatus(uid: string, receipt: string): Promise<{ state: string } | null>;
   /** Erases progress, the queue, the catalogue, downloads and the session. */
   wipeDevice(): Promise<void>;
   /** Starts over: a fresh anonymous reader, not a signed-out dead end. */
@@ -39,21 +50,79 @@ export interface DeleteAccountPorts {
 /**
  * The whole operation.
  *
- * Retrying after a failure is safe: the server job is idempotent and resumes
- * from where it stopped, and the device wipe only ever runs once the server has
- * finished.
+ * The order carries the design. A receipt is minted and written to the device
+ * *before* anything is destroyed, because the Auth record goes last: a response
+ * lost after that step leaves a device that can no longer authenticate, and
+ * without the receipt it could neither finish the job nor find out whether it
+ * had finished. It would have to guess whether the data was gone — and every
+ * possible guess is wrong some of the time.
+ *
+ * With the receipt there is no unverifiable state. A lost response is resumed
+ * without a session; a job already `done` is confirmed; and the device is wiped
+ * only on a terminal `done`.
  */
 export async function deleteAccountEverywhere(
   ports: DeleteAccountPorts
 ): Promise<DeletionOutcome> {
-  const outcome = await ports.requestServerDeletion();
+  const receipt = await ports.beginServerDeletion();
+  await ports.storeReceipt(receipt);
+
+  let outcome: DeletionOutcome;
+  try {
+    outcome = await ports.requestServerDeletion(receipt);
+  } catch (error) {
+    // The session may be gone precisely because the deletion got far enough to
+    // remove it. Ask, then finish the job with the receipt.
+    const status = await ports.serverDeletionStatus(ports.uid, receipt);
+
+    if (status?.state === 'done') {
+      outcome = { completed: [], documentsDeleted: 0, objectsDeleted: 0 };
+    } else {
+      // Resumable and idempotent: it skips what already finished.
+      outcome = await ports.resumeServerDeletion(ports.uid, receipt).catch(() => {
+        throw error instanceof AccountDeletionError ? error : toDeleteFailure(error);
+      });
+    }
+  }
 
   // The server is done. From here a failure costs the reader a local wipe they
   // can retry, never their belief that data is gone when it is not.
   await ports.wipeDevice();
+  await ports.clearReceipt();
   await ports.startFreshIdentity();
 
   return outcome;
+}
+
+/**
+ * Finishes a deletion a previous session could not.
+ *
+ * Called at startup when a receipt is still on the device: either the response
+ * was lost, or the app was killed between the server finishing and the wipe.
+ * Returns whether anything was resolved.
+ */
+export async function resumeInterruptedDeletion(
+  ports: Pick<
+    DeleteAccountPorts,
+    'uid' | 'resumeServerDeletion' | 'serverDeletionStatus' | 'wipeDevice' | 'clearReceipt' | 'startFreshIdentity'
+  >,
+  receipt: string
+): Promise<boolean> {
+  const status = await ports.serverDeletionStatus(ports.uid, receipt);
+
+  if (status?.state !== 'done') {
+    try {
+      await ports.resumeServerDeletion(ports.uid, receipt);
+    } catch {
+      // Still unfinished. The receipt stays; the next launch tries again.
+      return false;
+    }
+  }
+
+  await ports.wipeDevice();
+  await ports.clearReceipt();
+  await ports.startFreshIdentity();
+  return true;
 }
 
 /** Maps a callable's failure onto something a screen can say out loud. */

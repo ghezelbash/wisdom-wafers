@@ -83,6 +83,19 @@ the safe one.*
       and the Auth record; reports anonymised rather than destroyed; the device
       wipes only after the server reports `done`, then starts a fresh anonymous
       reader
+- [x] **A receipt closes the window after Auth deletion** (release goal 5).
+      Auth goes last, so a lost response left a device that could neither
+      resume nor ask — it had to guess whether its data was gone. The receipt
+      is minted before anything is destroyed and outlives the account
+- [x] Reauthentication happens **in the flow**: the reader types their password
+      on the delete screen instead of being sent away to sign out and back in
+- [x] An interrupted deletion is resumed at launch
+- [x] A fresh anonymous identity afterwards, falling back to a device-local one
+      if sign-in fails — likely right after a deletion
+- [x] Export covers the account as well as the device, so it matches what
+      deletion is about to destroy
+- [x] `deletionJobs` is unreadable by everyone including admins: it holds the
+      receipt, which is a capability
 - [x] **Preferences and bookmarks are pushed on change** (ADR 19). Both had a
       transport and no caller, so a second device restored progress and then
       showed the default pace and an empty garden

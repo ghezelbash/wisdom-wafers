@@ -53,6 +53,11 @@ interface IdentityContextValue {
    * nothing on the device has been touched.
    */
   deleteAccount: () => Promise<void>;
+  /**
+   * Proves the account holder is present, without sending them away to sign
+   * out and back in.
+   */
+  reauthenticate: (password: string) => Promise<void>;
 }
 
 const IdentityContext = createContext<IdentityContextValue | null>(null);
@@ -380,27 +385,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * local reset and a navigation — which told the reader their data was gone
    * while all of it was still on the server.
    */
-  const deleteAccount = useCallback(async () => {
-    const [{ deleteAccountEverywhere }, { requestServerDeletion }, { wipeDevice }] =
-      await Promise.all([
-        import('@/domain/account/delete'),
-        import('@/data/remote/account-deletion'),
-        import('@/data/local/device-wipe'),
-      ]);
+  /**
+   * A fresh reader after a deletion, whatever the network is doing.
+   *
+   * Anonymous sign-in can fail — and right after a deletion is a likely moment
+   * for it to, because the request that just succeeded may have been the last
+   * one to get through. Falling back to a device-local identity keeps the app
+   * usable, and `recoverFromLocalOnly` upgrades it when a connection returns.
+   */
+  const startFreshIdentity = useCallback(async () => {
+    const next = remoteRepository
+      ? await remoteRepository.ensureSignedIn().catch(() => null)
+      : null;
 
-    await deleteAccountEverywhere({
-      requestServerDeletion,
+    if (next) {
+      setIsLocalOnly(false);
+      apply(next);
+      return;
+    }
+
+    setIsLocalOnly(true);
+    apply(await localRepository.ensureSignedIn().catch(() => null));
+  }, [apply]);
+
+  const deletionPorts = useCallback(async (uid: string) => {
+    const [remote, { wipeDevice }, receipts] = await Promise.all([
+      import('@/data/remote/account-deletion'),
+      import('@/data/local/device-wipe'),
+      import('@/data/local/deletion-receipt'),
+    ]);
+
+    return {
+      uid,
+      beginServerDeletion: remote.beginServerDeletion,
+      storeReceipt: (receipt: string) =>
+        receipts.storeDeletionReceipt({ uid, receipt, requestedAt: new Date().toISOString() }),
+      clearReceipt: receipts.clearDeletionReceipt,
+      requestServerDeletion: remote.requestServerDeletion,
+      resumeServerDeletion: remote.resumeServerDeletion,
+      serverDeletionStatus: remote.serverDeletionStatus,
       wipeDevice: async () => {
         await wipeDevice();
       },
-      startFreshIdentity: async () => {
-        // Not a signed-out dead end: the reader lands back in the app as a new
-        // anonymous one, which is what guest-first means after a deletion too.
-        const repository = remoteRepository ?? localRepository;
-        apply(await repository.ensureSignedIn().catch(() => null));
-      },
-    });
-  }, [apply]);
+      startFreshIdentity,
+    };
+  }, [startFreshIdentity]);
+
+  const deleteAccount = useCallback(async () => {
+    const uid = identityRef.current?.uid;
+    if (!uid) throw new Error('no-identity');
+
+    const { deleteAccountEverywhere } = await import('@/domain/account/delete');
+    await deleteAccountEverywhere(await deletionPorts(uid));
+  }, [deletionPorts]);
+
+  const reauthenticate = useCallback(
+    async (password: string) => {
+      const repository = await credentialRepository();
+      await repository.reauthenticate(password);
+    },
+    [credentialRepository]
+  );
+
+  /**
+   * Finishes a deletion a previous session could not.
+   *
+   * A receipt still on the device means either the response was lost or the app
+   * was killed between the server finishing and the wipe. Both leave a reader
+   * who asked for deletion still holding their data.
+   */
+  useEffect(() => {
+    if (!isReady || !isOnline) return;
+
+    void (async () => {
+      const { readDeletionReceipt } = await import('@/data/local/deletion-receipt');
+      const pending = await readDeletionReceipt();
+      if (!pending) return;
+
+      const { resumeInterruptedDeletion } = await import('@/domain/account/delete');
+      await resumeInterruptedDeletion(
+        await deletionPorts(pending.uid),
+        pending.receipt
+      ).catch(() => false);
+    })();
+  }, [isReady, isOnline, deletionPorts]);
 
   const value = useMemo(
     () => ({
@@ -415,6 +483,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendPasswordReset,
       recoverFromLocalOnly,
       deleteAccount,
+      reauthenticate,
     }),
     [
       identity,
@@ -427,6 +496,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendPasswordReset,
       recoverFromLocalOnly,
       deleteAccount,
+      reauthenticate,
     ]
   );
 

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, Share, View } from 'react-native';
+import { Pressable, ScrollView, Share, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,11 +24,15 @@ const DESTROYED = ['account', 'progress', 'reflections', 'downloads'] as const;
 export default function DeleteAccountScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { identity, deleteAccount } = useIdentity();
+  const { identity, deleteAccount, reauthenticate } = useIdentity();
   const { reset } = useSession();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  // Asked for in place rather than by sending the reader away to sign out and
+  // back in, which loses their place and reads as the app being broken.
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [password, setPassword] = useState('');
 
   /**
    * The server goes first, always.
@@ -47,6 +51,15 @@ export default function DeleteAccountScreen() {
       router.replace('/(tabs)');
     } catch (err) {
       const reason = err instanceof AccountDeletionError ? err.reason : 'unknown';
+
+      // Not a failure so much as a question: the account holder has to prove
+      // they are present, and they can do it right here.
+      if (reason === 'requiresRecentLogin' && identity?.email) {
+        setNeedsPassword(true);
+        setDeleting(false);
+        return;
+      }
+
       setError(
         t(
           {
@@ -63,10 +76,59 @@ export default function DeleteAccountScreen() {
     }
   };
 
+  const confirmPassword = async () => {
+    setDeleting(true);
+    setError('');
+
+    try {
+      await reauthenticate(password);
+      setNeedsPassword(false);
+      setPassword('');
+      await confirmDelete();
+    } catch {
+      setError(t('deleteAccount.reauthWrong'));
+      setDeleting(false);
+    }
+  };
+
+  /**
+   * Everything the app holds about this reader, not only what is on the phone.
+   *
+   * The device half is always there; the account half is fetched when there is
+   * an account, so the export matches what deletion is about to destroy. A copy
+   * that silently omitted the server side would understate both.
+   */
   const exportData = async () => {
     const progress = await listProgress();
+    let account: unknown = null;
+
+    if (identity && identity.source === 'account') {
+      account = await (async () => {
+        try {
+          const [{ AccountSync }, { getDb }] = await Promise.all([
+            import('@/data/remote/account-sync'),
+            import('@/data/remote/firebase-app'),
+          ]);
+          return await new AccountSync(getDb()).pull(identity.uid);
+        } catch {
+          // Unreachable: the device half is still worth exporting, and saying
+          // so is better than pretending the account half is empty.
+          return { unavailable: true };
+        }
+      })();
+    }
+
     await Share.share({
-      message: JSON.stringify({ email: identity?.email ?? null, progress }, null, 2),
+      message: JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          account: { email: identity?.email ?? null, uid: identity?.uid ?? null },
+          device: { progress },
+          server: account,
+        },
+        null,
+        2
+      ),
     }).catch(() => {
       // A dismissed share sheet is not an error.
     });
@@ -112,6 +174,9 @@ export default function DeleteAccountScreen() {
           <Text variant="caption" color="secondary" className="mb-3">
             {t('deleteAccount.exportBody')}
           </Text>
+          <Text variant="caption" color="secondary" className="mb-3">
+            {t('deleteAccount.exportIncludes')}
+          </Text>
           <Button variant="secondary" label={t('deleteAccount.exportCta')} onPress={exportData} />
         </View>
 
@@ -126,7 +191,40 @@ export default function DeleteAccountScreen() {
           </View>
         ) : null}
 
-        {confirming ? (
+        {needsPassword ? (
+          <View className="rounded-card border border-hairline bg-card p-4">
+            <Text variant="label" className="mb-1">
+              {t('deleteAccount.reauthTitle')}
+            </Text>
+            <Text variant="bodySm" color="secondary" className="mb-3">
+              {t('deleteAccount.reauthBody')}
+            </Text>
+            <TextInput
+              className="mb-3 rounded-input border border-hairline bg-canvas px-4 py-3"
+              style={{ minHeight: MinTouchTarget, writingDirection: 'ltr', textAlign: 'left' }}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+            />
+            <Button
+              label={t('deleteAccount.reauthCta')}
+              loading={deleting}
+              disabled={!password || deleting}
+              onPress={confirmPassword}
+              className="mb-2"
+            />
+            <Button
+              variant="secondary"
+              label={t('deleteAccount.cancel')}
+              onPress={() => {
+                setNeedsPassword(false);
+                setConfirming(false);
+                setPassword('');
+              }}
+            />
+          </View>
+        ) : confirming ? (
           <View className="rounded-card border border-error bg-error-tint p-4">
             <Text variant="bodySm" weight="bold" color="error" className="mb-3">
               {t('deleteAccount.confirmTitle')}

@@ -71,6 +71,14 @@ export interface IdentityRepository {
   ensureSignedIn(): Promise<Identity>;
   /** Upgrades the current anonymous identity in place, keeping its uid. */
   linkEmailPassword(email: string, password: string): Promise<Identity>;
+  /**
+   * Proves the person at the keyboard is the account holder, right now.
+   *
+   * Deleting everything is exactly the operation a borrowed unlocked phone must
+   * not perform, and the alternative — telling a reader to sign out and back in
+   * — loses their place and reads as the app being broken.
+   */
+  reauthenticate(password: string): Promise<void>;
   signIn(email: string, password: string): Promise<Identity>;
   signOut(): Promise<void>;
   sendVerificationEmail(): Promise<void>;

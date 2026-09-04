@@ -454,7 +454,12 @@
     "failedNetwork": "We could not reach the server. Nothing was deleted — try again.",
     "failedPartial": "The deletion did not finish, and nothing on your device was erased. Try again; it resumes where it stopped.",
     "failedUnknown": "The deletion did not run. No data was erased.",
-    "done": "Your account and data are gone. You are continuing as a new guest."
+    "done": "Your account and data are gone. You are continuing as a new guest.",
+    "reauthTitle": "Enter your password again",
+    "reauthBody": "Deleting an account needs proof it is you. This does not take you anywhere else.",
+    "reauthCta": "Confirm and continue",
+    "reauthWrong": "That password is not right.",
+    "exportIncludes": "Includes progress on this device; if you have an account, its data is added too."
   },
   "authError": {
     "invalidEmail": "That email doesn't look right.",

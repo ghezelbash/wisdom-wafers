@@ -268,6 +268,30 @@ describe('review state', () => {
   });
 });
 
+describe('deletion jobs', () => {
+  /**
+   * The document holds the receipt, which is a capability that can finish a
+   * deletion without a session. Nobody reads it — a reader asks about their
+   * own job through `myAccountDeletionStatus`, which requires the receipt they
+   * were handed and answers with a state and nothing else.
+   */
+  it('are unreadable and unwritable by everyone, owner and admin alike', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `deletionJobs/${UID}`), {
+        uid: UID,
+        state: 'requested',
+        receipt: 'a'.repeat(32),
+        completed: [],
+      });
+    });
+
+    await assertFails(getDoc(doc(reader(env), `deletionJobs/${UID}`)));
+    await assertFails(getDoc(doc(staff(env, 'admin'), `deletionJobs/${UID}`)));
+    await assertFails(setDoc(doc(reader(env), `deletionJobs/${UID}`), { state: 'done' }));
+    await assertFails(deleteDoc(doc(staff(env, 'admin'), `deletionJobs/${UID}`)));
+  });
+});
+
 describe('server-authoritative aggregates', () => {
   it('are readable by their owner and writable by nobody', async () => {
     await assertSucceeds(getDoc(doc(reader(env), `userStats/${UID}`)));

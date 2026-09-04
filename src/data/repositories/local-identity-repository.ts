@@ -74,6 +74,10 @@ export class LocalIdentityRepository implements IdentityRepository {
     throw new AuthError('notConfigured');
   }
 
+  async reauthenticate(): Promise<void> {
+    throw new AuthError('notConfigured');
+  }
+
   async signOut(): Promise<void> {
     this.identity = null;
     this.emit();

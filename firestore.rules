@@ -163,12 +163,16 @@ service cloud.firestore {
     }
 
     /**
-     * Deletion jobs. Written by the Function only; the owner can watch their
-     * own, which is what lets a resumed deletion report where it got to.
+     * Deletion jobs. Written by the Function only.
+     *
+     * Not readable even by the owner: the document carries the receipt, which
+     * is a capability that can finish the deletion without a session. A reader
+     * asks about their own job through `myAccountDeletionStatus`, which
+     * requires the receipt they were handed and answers with a state and
+     * nothing else. Admins are excluded for the same reason.
      */
     match /deletionJobs/{uid} {
-      allow read: if owner(uid) || staff('admin');
-      allow write: if false;
+      allow read, write: if false;
     }
 
     match /userStats/{uid} {
