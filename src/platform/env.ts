@@ -45,14 +45,31 @@ export const EnvironmentError = rules.EnvironmentError as unknown as new (
 ) => Error & { issues: EnvIssue[] };
 
 /**
- * The environment this running binary was built with.
+ * What is wrong with the configuration baked into *this running binary*.
  *
- * Read from `process.env` because Expo inlines `EXPO_PUBLIC_*` at build time —
- * these are the values that were present when the binary was made, which is
- * exactly what should be checked.
+ * Two things it deliberately does not do:
+ *
+ *  - **It does not run in a dev server.** `__DEV__` is the one reliable signal
+ *    for that, and a dev build with no backend is the guest-first promise
+ *    working, not a misconfiguration.
+ *  - **It does not re-check the variant against `APP_VARIANT`.** That variable
+ *    is not `EXPO_PUBLIC_`, so it never reaches the bundle; the runtime check
+ *    would be comparing against a value it cannot see. It was, and it reported
+ *    every dev server as a production build carrying development config — which
+ *    replaced the whole app with the misconfiguration screen.
+ *
+ * The cross-check lives at build time, in `app.config.ts`, where `APP_VARIANT`
+ * and the EAS environment are both present and authoritative. What is left here
+ * is the half that still matters on a device: is the Firebase configuration
+ * this binary was built with actually complete?
  */
 export function currentEnvironmentIssues(variant: Variant): EnvIssue[] {
+  // A Metro dev server is not a shipped binary.
+  if (typeof __DEV__ !== 'undefined' && __DEV__) return [];
+
   return validateEnvironment({
+    // The environment this bundle declares. It was checked against
+    // `APP_VARIANT` when the build was made.
     variant,
     env: {
       EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -62,7 +79,10 @@ export function currentEnvironmentIssues(variant: Variant): EnvIssue[] {
       EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:
         process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       EXPO_PUBLIC_FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-      EXPO_PUBLIC_ENV_NAME: process.env.EXPO_PUBLIC_ENV_NAME,
+      // Set to the variant being validated, not read: comparing a value
+      // against itself is the point here. The build already proved the two
+      // agree; this only asks whether the configuration is complete.
+      [ENV_NAME_KEY]: variant,
     },
     usingEmulator: process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === '1',
   });

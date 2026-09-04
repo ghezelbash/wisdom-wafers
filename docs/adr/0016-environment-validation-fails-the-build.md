@@ -32,9 +32,27 @@ the typed façade the app uses. One implementation, two callers:
 
 - **build time**: `app.config.ts` calls `assertEnvironment`, so the build stops
   before Metro starts, with the full list of what is wrong;
-- **startup**: the root layout replaces the app with `MisconfiguredEnvironment`,
-  which names the variables. Unlocalised and technical on purpose — the only
-  person who can see it is whoever assembled the binary.
+- **startup**: in a *shipped* binary only, the root layout replaces the app with
+  `MisconfiguredEnvironment`, which names the variables. Unlocalised and
+  technical on purpose — the only person who can see it is whoever assembled
+  the binary.
+
+**The cross-check is build-time only, and that is a correction.** It first ran
+at startup as well, re-deriving the variant from `Constants.expoConfig.extra`.
+That is empty at runtime on web, so `appVariant()` fell back to `production`,
+disagreed with `EXPO_PUBLIC_ENV_NAME=development`, and replaced every dev server
+with the misconfiguration screen — `npm run web` showed nothing else.
+
+The mistake underneath it: `APP_VARIANT` is not an `EXPO_PUBLIC_` variable, so
+it never reaches the bundle. The runtime check was comparing against a value it
+cannot see. A check whose failure mode is "replace the whole app" must not
+depend on something that can simply be absent.
+
+So the runtime check now asks only what it can actually answer — is the Firebase
+configuration baked into this bundle complete, and is it not a demo project —
+and it does not run under `__DEV__` at all. `appVariant()` reads
+`EXPO_PUBLIC_ENV_NAME`, which Expo inlines at build time and which is therefore
+always present if it was present when the build was made.
 
 `EXPO_PUBLIC_ENV_NAME` must equal `APP_VARIANT`. This is the check that stops a
 staging build carrying production's Firebase project. It is a separate variable

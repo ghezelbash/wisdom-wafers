@@ -2,10 +2,12 @@ import {
   ENV_NAME_KEY,
   REQUIRED_FIREBASE_KEYS,
   assertEnvironment,
+  currentEnvironmentIssues,
   describeIssues,
   readVariant,
   validateEnvironment,
 } from '@/platform/env';
+import { appVariant } from '@/platform/app-info';
 
 /**
  * A build has to be the build it says it is.
@@ -144,5 +146,54 @@ describe('what it says when it refuses', () => {
       /not configured for the environment/
     );
     expect(() => assertEnvironment({ variant: 'staging', env: complete })).not.toThrow();
+  });
+});
+
+/**
+ * The runtime half, which bricked `npm run web`.
+ *
+ * `APP_VARIANT` is not an `EXPO_PUBLIC_` variable, so it never reaches the
+ * bundle. The startup check was re-deriving the variant from
+ * `Constants.expoConfig.extra`, which is empty at runtime on web — so every dev
+ * server looked like a *production* build carrying development configuration,
+ * and the whole app was replaced by the misconfiguration screen.
+ *
+ * The cross-check belongs at build time, where both values exist. What is left
+ * here only asks whether the configuration is complete.
+ */
+describe('the check that runs inside the app', () => {
+  it('says nothing in a dev server, whatever the environment looks like', () => {
+    // `__DEV__` is true under the test runner, which is the same signal a Metro
+    // dev server gives — and the case that regressed.
+    expect(currentEnvironmentIssues('production')).toEqual([]);
+    expect(currentEnvironmentIssues('development')).toEqual([]);
+    expect(currentEnvironmentIssues('staging')).toEqual([]);
+  });
+
+  it('never reports a variant mismatch, because it cannot see APP_VARIANT', () => {
+    for (const variant of ['development', 'staging', 'production'] as const) {
+      const issues = currentEnvironmentIssues(variant);
+      expect(issues.map((issue) => issue.problem)).not.toContain('variant-mismatch');
+    }
+  });
+
+  it('reads the environment from a variable that survives into the bundle', () => {
+    // Only `EXPO_PUBLIC_*` is inlined at build time. Reading the variant from
+    // anywhere else is how the original bug happened.
+    const previous = process.env.EXPO_PUBLIC_ENV_NAME;
+    try {
+      process.env.EXPO_PUBLIC_ENV_NAME = 'staging';
+      expect(appVariant()).toBe('staging');
+
+      process.env.EXPO_PUBLIC_ENV_NAME = 'development';
+      expect(appVariant()).toBe('development');
+
+      delete process.env.EXPO_PUBLIC_ENV_NAME;
+      // The safe default when nothing declares it.
+      expect(appVariant()).toBe('production');
+    } finally {
+      if (previous === undefined) delete process.env.EXPO_PUBLIC_ENV_NAME;
+      else process.env.EXPO_PUBLIC_ENV_NAME = previous;
+    }
   });
 });
