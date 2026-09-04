@@ -12,7 +12,7 @@ import React, {
 import { FirebaseIdentityRepository } from '@/data/repositories/firebase-identity-repository';
 import { LocalIdentityRepository } from '@/data/repositories/local-identity-repository';
 import { isFirebaseConfigured } from '@/data/remote/firebase-app';
-import { migrateIdentity } from '@/domain/identity/migration';
+import { setSessionSyncIdentity } from '@/context/SessionContext';
 import {
   AuthError,
   isGuest as identityIsGuest,
@@ -29,6 +29,14 @@ interface IdentityContextValue {
   isGuest: boolean;
   /** True when sync is unavailable and the reader is on a device-only uid. */
   isLocalOnly: boolean;
+  /**
+   * True when work created under a previous uid has not been handed over yet.
+   *
+   * The reader is signed in and nothing is lost — the handover is recorded and
+   * retried — but until it finishes, what they did as a guest is still
+   * addressed to the old owner.
+   */
+  hasPendingMigration: boolean;
   createAccount: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -76,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLocalOnly, setIsLocalOnly] = useState(!isFirebaseConfigured);
   const identityRef = useRef<Identity | null>(null);
   const recovering = useRef<Promise<boolean> | null>(null);
+  const [hasPendingMigration, setHasPendingMigration] = useState(false);
 
   const networkState = Network.useNetworkState();
   const isOnline = networkState.isInternetReachable ?? networkState.isConnected ?? true;
@@ -83,6 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const apply = useCallback((next: Identity | null) => {
     identityRef.current = next;
     setIdentity(next);
+    // `SessionProvider` sits above this one and cannot call `useIdentity`, so
+    // the target for preference sync is handed down rather than read up.
+    setSessionSyncIdentity(next?.uid ?? null, next?.source === 'account');
   }, []);
 
   useEffect(() => {
@@ -125,6 +137,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [apply]);
 
   /**
+   * Hands work from one uid to another, and records it if that fails.
+   *
+   * The reader is signed in either way — refusing to sign them in because a
+   * background handover failed would be worse than the problem. What must not
+   * happen is the failure disappearing: it is written down, surfaced as
+   * `hasPendingMigration`, and retried.
+   */
+  const runMigration = useCallback(
+    async (from: string, to: string, announce: boolean): Promise<boolean> => {
+      const [{ migrateIdentity: migrate }, pending] = await Promise.all([
+        import('@/domain/identity/migration'),
+        import('@/data/local/pending-migration'),
+      ]);
+
+      try {
+        await migrate(from, to, { announce });
+        await pending.clearPendingMigration();
+        setHasPendingMigration(false);
+        return true;
+      } catch (error) {
+        await pending.recordPendingMigration({ from, to, announce }, error);
+        setHasPendingMigration(true);
+        return false;
+      }
+    },
+    []
+  );
+
+  /** Finishes anything a previous session could not. */
+  const retryPendingMigration = useCallback(async () => {
+    const { readPendingMigration } = await import('@/data/local/pending-migration');
+    const pending = await readPendingMigration();
+    if (!pending) return;
+
+    // Only meaningful while the reader is still the owner it was handed to.
+    if (identityRef.current?.uid !== pending.to) {
+      setHasPendingMigration(true);
+      return;
+    }
+    await runMigration(pending.from, pending.to, pending.announce);
+  }, [runMigration]);
+
+  /**
    * Climbs out of the device-only identity.
    *
    * The queue moves with the reader: envelopes built under the `local-…` uid
@@ -145,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Recovery, not a change of owner: the queue already holds everything
         // the server has not seen, so nothing is re-announced.
         if (previous && isLocalUid(previous)) {
-          await migrateIdentity(previous, next.uid).catch(() => undefined);
+          await runMigration(previous, next.uid, false);
         }
 
         setIsLocalOnly(false);
@@ -160,13 +215,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     recovering.current = attempt;
     return attempt;
-  }, [apply, isLocalOnly]);
+  }, [apply, isLocalOnly, runMigration]);
 
   // A connection appearing is the signal to try again.
   useEffect(() => {
     if (!isReady || !isOnline || !isLocalOnly) return;
     void recoverFromLocalOnly();
   }, [isReady, isOnline, isLocalOnly, recoverFromLocalOnly]);
+
+  // An unfinished handover is retried on the same signal, and once at startup.
+  useEffect(() => {
+    if (!isReady || !isOnline) return;
+    void retryPendingMigration();
+  }, [isReady, isOnline, identity?.uid, retryPendingMigration]);
 
   /**
    * Picks the repository for a credential action.
@@ -196,11 +257,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Only reachable when there was no anonymous session to link, so this
         // really is a new owner and the account has never been told what this
         // device holds.
-        await migrateIdentity(previous, next.uid, { announce: true }).catch(() => undefined);
+        await runMigration(previous, next.uid, true);
       }
       apply(next);
     },
-    [apply, credentialRepository]
+    [apply, credentialRepository, runMigration]
   );
 
   /**
@@ -235,6 +296,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             reviewInterval: item.reviewInterval,
             reviewCount: item.reviewCount,
           })),
+        // A bookmark's timestamp is the progress row's: it is the last time
+        // anything about that seed changed on this device, which is the best
+        // statement available about when the bookmark was decided.
+        readLocalSaved: async () =>
+          (await progressStore.listProgress()).map((item) => ({
+            seedId: item.seedId,
+            saved: !!item.saved,
+            updatedAt: item.updatedAt,
+          })),
+        pushSaved: (entries) => sync.pushSaved(uid, entries),
         writeLocal: async (merged) => {
           for (const item of merged) {
             const existing = await progressStore.loadProgress(item.seedId, item.revision);
@@ -277,7 +348,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // already finished here is announced, with ids derived from the facts so
       // signing in twice cannot count anything twice.
       if (previous && previous !== next.uid) {
-        await migrateIdentity(previous, next.uid, { announce: true }).catch(() => undefined);
+        await runMigration(previous, next.uid, true);
       }
       apply(next);
 
@@ -285,7 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // a second device shows the reader's garden rather than an empty one.
       await restoreFromAccount(next.uid);
     },
-    [apply, credentialRepository, restoreFromAccount]
+    [apply, credentialRepository, restoreFromAccount, runMigration]
   );
 
   const signOut = useCallback(async () => {
@@ -337,6 +408,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isReady,
       isGuest: identityIsGuest(identity),
       isLocalOnly,
+      hasPendingMigration,
       createAccount,
       signIn,
       signOut,
@@ -348,6 +420,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       identity,
       isReady,
       isLocalOnly,
+      hasPendingMigration,
       createAccount,
       signIn,
       signOut,

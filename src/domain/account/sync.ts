@@ -1,3 +1,5 @@
+import type { SavedDoc } from '@dananeh/content-schema';
+
 import { mergeProgress, type MergeableProgress } from '@/data/local/conflict';
 
 /**
@@ -32,11 +34,20 @@ export interface AccountPreferences {
   updatedAt: string;
 }
 
+export interface AccountReview {
+  seedId: string;
+  reviewedAt: string;
+  interval: number;
+  dueAt?: string;
+  count: number;
+}
+
 export interface AccountSnapshot {
   preferences: AccountPreferences | null;
   progress: SyncableProgress[];
-  saved: string[];
-  reviews: { seedId: string; reviewedAt: string; interval: number; count: number }[];
+  /** Bookmarks *and* their removals — see `SavedDocSchema`. */
+  saved: SavedDoc[];
+  reviews: AccountReview[];
 }
 
 /**
@@ -80,15 +91,52 @@ export function mergeProgressLists(
 /**
  * A bookmark is an intent, and two devices can disagree about it.
  *
- * The union is wrong — un-saving on one device would never stick. Last write
- * wins per seed, which is why the set is compared against when each side last
- * changed rather than merged blindly.
+ * Per seed, not per set: the newest statement about *that* seed wins, whether
+ * it was a save or an un-save. Taking whole sets by timestamp would let a
+ * device that bookmarked something an hour ago undo an un-save made a minute
+ * ago on another.
  */
-export function mergeSaved(
-  local: { saved: string[]; updatedAt: string },
-  remote: { saved: string[]; updatedAt: string }
-): string[] {
-  return [...(local.updatedAt >= remote.updatedAt ? local.saved : remote.saved)].sort();
+export function mergeSaved(local: SavedDoc[], remote: SavedDoc[]): SavedDoc[] {
+  const byId = new Map<string, SavedDoc>();
+
+  for (const entry of [...local, ...remote]) {
+    const existing = byId.get(entry.seedId);
+    if (!existing || entry.updatedAt > existing.updatedAt) byId.set(entry.seedId, entry);
+  }
+
+  return [...byId.values()].sort((a, b) => a.seedId.localeCompare(b.seedId));
+}
+
+/** The seeds a merged set says are bookmarked right now. */
+export const savedSeedIds = (entries: SavedDoc[]): string[] =>
+  entries.filter((entry) => entry.saved).map((entry) => entry.seedId);
+
+/**
+ * Review state from the account, applied over what the device holds.
+ *
+ * The schedule is server-derived, so the account's `reviewedAt` and `interval`
+ * are authoritative when they are newer. The count is the larger of the two —
+ * every review happened, on whichever device.
+ */
+export function mergeReviews(
+  local: SyncableProgress[],
+  reviews: AccountReview[]
+): SyncableProgress[] {
+  const byId = new Map(reviews.map((review) => [review.seedId, review]));
+
+  return local.map((item) => {
+    const review = byId.get(item.seedId);
+    if (!review) return item;
+
+    const remoteIsNewer = !item.reviewedAt || review.reviewedAt > item.reviewedAt;
+
+    return {
+      ...item,
+      reviewedAt: remoteIsNewer ? review.reviewedAt : item.reviewedAt,
+      reviewInterval: remoteIsNewer ? review.interval : item.reviewInterval,
+      reviewCount: Math.max(item.reviewCount ?? 0, review.count),
+    };
+  });
 }
 
 /**

@@ -12,7 +12,8 @@ import { useCatalog } from '@/context/CatalogContext';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { loadProgress, saveProgress, type SeedProgress } from '@/lib/progress-store';
 import { useIdentity } from '@/context/AuthContext';
-import { recordCompletion, recordContentReport } from '@/domain/progress/events';
+import { recordCompletion, recordContentReport, recordPosition } from '@/domain/progress/events';
+import { pushSaved, savedEntry } from '@/domain/account/push';
 import { setAnalyticsContext, track } from '@/platform/analytics';
 import { ASSESSED_TYPES, isKnownBlock, type AnyBlock, type SeedBlock } from '@/models/seed';
 
@@ -232,7 +233,21 @@ export default function SeedPlayerScreen() {
       router.replace(`/seed/${seed.id}/complete`);
       return;
     }
-    persist({ ...progress, blockIndex: index + 1 });
+    const next = index + 1;
+    persist({ ...progress, blockIndex: next });
+
+    // Only when this is further than the reader has been: moving back and forth
+    // inside a seed says nothing new about where they got to, and the queue
+    // should carry facts rather than navigation.
+    if (identity && next > (progress.blockIndex ?? 0)) {
+      void recordPosition({
+        uid: identity.uid,
+        seedId: seed.id,
+        revision: seed.revision,
+        blockIndex: next,
+      });
+    }
+
     setDraft({});
     animateToBlock();
   };
@@ -262,7 +277,15 @@ export default function SeedPlayerScreen() {
         blockCount={seed.blocks.length}
         saved={!!progress.saved}
         onClose={() => router.replace('/(tabs)')}
-        onToggleSave={() => persist({ ...progress, saved: !progress.saved })}
+        onToggleSave={() => {
+          const saved = !progress.saved;
+          persist({ ...progress, saved });
+          // Local first; the account hears about it if there is one.
+          void pushSaved(
+            { uid: identity?.uid ?? null, isAccount: identity?.source === 'account' },
+            [savedEntry(seed.id, saved)]
+          );
+        }}
         onMore={() => setSheet('sources')}
       />
 

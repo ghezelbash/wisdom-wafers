@@ -90,6 +90,13 @@ service cloud.firestore {
       // and push tokens, none of which a client delete would touch.
       allow delete: if false;
 
+      /**
+       * Progress is server-authoritative, derived from events.
+       *
+       * The client writes are kept for now and tightened in goal 7, but the
+       * position and the schedule already come from the server — a client that
+       * could write `blockIndex` could also move another device's reader.
+       */
       match /progress/{seedId} {
         allow read: if owner(uid);
         allow create, update: if owner(uid)
@@ -110,19 +117,34 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      /**
+       * Bookmarks, and the removals that have to travel.
+       *
+       * A removal is `saved: false`, not a deleted document — an absent row
+       * says nothing to a device that never saw it exist. Deleting is therefore
+       * refused: it would lose the statement.
+       */
       match /saved/{seedId} {
-        allow read, write: if owner(uid)
-          && (request.method == 'delete' || request.resource.data.seedId == seedId);
+        allow read: if owner(uid);
+        allow create, update: if owner(uid)
+          && request.resource.data.keys().hasOnly(['seedId', 'saved', 'updatedAt'])
+          && request.resource.data.seedId == seedId
+          && request.resource.data.saved is bool
+          && request.resource.data.updatedAt is string
+          && request.resource.data.updatedAt.size() <= 32;
+        allow delete: if false;
       }
 
-      match /reviews/{reviewId} {
+      /**
+       * Review state is derived by `ingestProgress` from a `reviewed` event.
+       *
+       * Client-writable before, which let a device invent its own due date —
+       * and a client that can write its own schedule can decide never to be
+       * asked again. The attempt is still recorded by the reader, as an event.
+       */
+      match /reviews/{seedId} {
         allow read: if owner(uid);
-        // Intervals are computed server-side; a client may record the attempt
-        // but not invent its own schedule.
-        allow create, update: if owner(uid)
-          && request.resource.data.seedId is string
-          && request.resource.data.confidence in ['easy', 'good', 'hard', 'again'];
-        allow delete: if false;
+        allow write: if false;
       }
 
       match /devices/{deviceId} {

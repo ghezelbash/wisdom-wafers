@@ -5,3 +5,4 @@ export * from './manifest';
 export * from './parse';
 export * from './progress';
 export * from './seed';
+export * from './sync';

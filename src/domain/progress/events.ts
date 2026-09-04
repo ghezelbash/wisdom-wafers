@@ -67,6 +67,8 @@ export interface EventInput {
   revision: number;
   type: ProgressEvent['type'];
   blockId?: string;
+  /** The reader's position, so another device can resume where this one is. */
+  blockIndex?: number;
   answer?: string | number | boolean | string[];
   correct?: boolean;
   confidence?: ProgressEvent['confidence'];
@@ -82,6 +84,7 @@ export function progressEvent(input: EventInput, id = eventId()): ProgressEvent 
     revision: input.revision,
     type: input.type,
     ...(input.blockId ? { blockId: input.blockId } : {}),
+    ...(input.blockIndex !== undefined ? { blockIndex: input.blockIndex } : {}),
     ...(input.answer !== undefined ? { answer: input.answer } : {}),
     ...(input.correct !== undefined ? { correct: input.correct } : {}),
     ...(input.confidence ? { confidence: input.confidence } : {}),
@@ -125,6 +128,16 @@ export const recordCompletion = (input: Omit<EventInput, 'type'>) =>
 
 export const recordReviewed = (input: Omit<EventInput, 'type'>) =>
   recordProgressEvent({ ...input, type: 'reviewed' });
+
+/**
+ * The reader reached a block they had not reached before.
+ *
+ * Queued once per furthest position rather than on every navigation — moving
+ * back and forth within a seed is normal and says nothing new about where they
+ * got to. Bounded by the number of blocks in a seed.
+ */
+export const recordPosition = (input: Omit<EventInput, 'type'> & { blockIndex: number }) =>
+  recordProgressEvent({ ...input, type: 'block_viewed' });
 
 /**
  * Queues a content report.

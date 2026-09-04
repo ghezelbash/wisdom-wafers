@@ -16,6 +16,7 @@ import { addDays, formatNumericDate } from '@/lib/date';
 import { localizeDigits } from '@/lib/format';
 import { listProgress, loadProgress, saveProgress, type SeedProgress } from '@/lib/progress-store';
 import { ASSESSED_TYPES, type SummaryBlock } from '@/models/seed';
+import { pushSaved, savedEntry } from '@/domain/account/push';
 
 /** Days until the scheduler asks the summary points back. */
 const FIRST_REVIEW_IN_DAYS = 3;
@@ -31,7 +32,7 @@ export default function SeedCompleteScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { session } = useSession();
-  const { isGuest } = useIdentity();
+  const { isGuest, identity } = useIdentity();
 
   const seed = useMemo(() => content.getSeed(id), [id]);
   const [progress, setProgress] = useState<SeedProgress | null>(null);
@@ -73,6 +74,11 @@ export default function SeedCompleteScreen() {
     const updated = { ...progress, saved: !progress.saved };
     setProgress(updated);
     saveProgress(updated);
+    // Local first; the account hears about it if there is one.
+    void pushSaved(
+      { uid: identity?.uid ?? null, isAccount: identity?.source === 'account' },
+      [savedEntry(updated.seedId, !!updated.saved)]
+    );
   };
 
   return (

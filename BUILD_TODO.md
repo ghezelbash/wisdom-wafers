@@ -83,8 +83,18 @@ the safe one.*
       and the Auth record; reports anonymised rather than destroyed; the device
       wipes only after the server reports `done`, then starts a fresh anonymous
       reader
-- [ ] Preferences are not pushed on change yet — the shape and the transport
-      exist, `SessionContext` does not call them
+- [x] **Preferences and bookmarks are pushed on change** (ADR 19). Both had a
+      transport and no caller, so a second device restored progress and then
+      showed the default pace and an empty garden
+- [x] Review state is derived server-side from the `reviewed` event, using the
+      same interval table the app states on the button — and
+      `users/{uid}/reviews` is now `write: if false`
+- [x] The resume position rides on `block_viewed`, queued once per *furthest*
+      block, and only ever advances within a revision
+- [x] An un-save is a document (`saved: false`), not a deletion — an absent row
+      says nothing to a device that never saw it exist, and delete is refused
+- [x] A failed identity migration is recorded durably and retried on relaunch
+      and reconnect instead of being swallowed before the uid switches
 
 ## D · Content pipeline — done
 

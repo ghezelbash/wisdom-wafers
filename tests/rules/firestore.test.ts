@@ -173,6 +173,101 @@ describe('progress', () => {
   });
 });
 
+describe('bookmarks', () => {
+  it('accepts a well-formed save and un-save from their owner', async () => {
+    const db = reader(env);
+    await assertSucceeds(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: true,
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      })
+    );
+    // The removal is a document, not an absence.
+    await assertSucceeds(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: false,
+        updatedAt: '2026-09-05T13:00:00.000Z',
+      })
+    );
+  });
+
+  it('rejects an unknown field, a mismatched id, or a wrong type', async () => {
+    const db = reader(env);
+    const base = { seedId: 'published-seed', saved: true, updatedAt: '2026-09-05T12:00:00.000Z' };
+
+    await assertFails(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), { ...base, note: 'anything' })
+    );
+    await assertFails(setDoc(doc(db, `users/${UID}/saved/other-seed`), base));
+    await assertFails(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), { ...base, saved: 'yes' })
+    );
+    await assertFails(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), { ...base, updatedAt: 12345 })
+    );
+  });
+
+  /** Deleting would lose the statement that the bookmark was taken away. */
+  it('refuses a delete, because a removal has to be a document', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `users/${UID}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: true,
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      });
+    });
+
+    await assertFails(deleteDoc(doc(reader(env), `users/${UID}/saved/published-seed`)));
+  });
+
+  it('keeps one reader out of another reader\'s bookmarks', async () => {
+    await assertFails(
+      setDoc(doc(reader(env), `users/${OTHER}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: true,
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      })
+    );
+  });
+});
+
+describe('review state', () => {
+  /**
+   * A client that can write its own schedule can decide never to be asked
+   * again. The attempt is recorded as an event; the due date is derived.
+   */
+  it('is readable by its owner and writable by nobody', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `users/${UID}/reviews/published-seed`), {
+        seedId: 'published-seed',
+        reviewedAt: '2026-09-05T12:00:00.000Z',
+        interval: 14,
+        dueAt: '2026-09-19T12:00:00.000Z',
+        count: 1,
+        confidence: 'easy',
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      });
+    });
+
+    await assertSucceeds(getDoc(doc(reader(env), `users/${UID}/reviews/published-seed`)));
+    await assertFails(
+      setDoc(doc(reader(env), `users/${UID}/reviews/published-seed`), {
+        seedId: 'published-seed',
+        interval: 365,
+        dueAt: '2099-01-01T00:00:00.000Z',
+        confidence: 'easy',
+      })
+    );
+    await assertFails(deleteDoc(doc(reader(env), `users/${UID}/reviews/published-seed`)));
+  });
+
+  it('is not readable by anyone else', async () => {
+    await assertFails(getDoc(doc(reader(env), `users/${OTHER}/reviews/published-seed`)));
+  });
+});
+
 describe('server-authoritative aggregates', () => {
   it('are readable by their owner and writable by nobody', async () => {
     await assertSucceeds(getDoc(doc(reader(env), `userStats/${UID}`)));

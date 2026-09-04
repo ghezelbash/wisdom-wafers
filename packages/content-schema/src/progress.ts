@@ -13,6 +13,14 @@ export const ProgressEventSchema = z.object({
   revision: z.number().int().positive(),
   type: z.enum(['started', 'block_viewed', 'answered', 'completed', 'reviewed']),
   blockId: z.string().optional(),
+  /**
+   * The reader's position when this happened.
+   *
+   * Carried on the event rather than written to the document by the client,
+   * because progress is server-authoritative. It is what lets a second device
+   * open a seed where the first one left off.
+   */
+  blockIndex: z.number().int().min(0).max(500).optional(),
   /** Never free text from the reader: reflections stay on the device. */
   answer: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).optional(),
   correct: z.boolean().optional(),
@@ -24,7 +32,10 @@ export const ProgressEventSchema = z.object({
 
 export type ProgressEvent = z.infer<typeof ProgressEventSchema>;
 
-/** What the client may write directly; everything else is server-authoritative. */
+/**
+ * @deprecated The progress document is server-authoritative — see
+ * `ProgressDocSchema` in `sync.ts`. Kept only until the last reference goes.
+ */
 export const SeedProgressDocSchema = z.object({
   seedId: z.string().min(1),
   revision: z.number().int().positive(),

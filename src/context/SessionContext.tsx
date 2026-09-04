@@ -48,6 +48,21 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+/**
+ * Who to push preferences for.
+ *
+ * A module-level ref rather than a hook dependency: `SessionProvider` sits
+ * above `AuthProvider` in the tree, so it cannot call `useIdentity`. Identity
+ * sets this whenever it changes, and a session change reads whatever is
+ * current — which is exactly the semantics wanted, because a push under a uid
+ * that has since changed would strand the data.
+ */
+const identityRef = { current: { uid: null as string | null, isAccount: false } };
+
+export function setSessionSyncIdentity(uid: string | null, isAccount: boolean) {
+  identityRef.current = { uid, isAccount };
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<GuestSession>(EMPTY_SESSION);
   const [isReady, setIsReady] = useState(false);
@@ -92,6 +107,48 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeOnboarding = useCallback(() => update({ onboarded: true }), [update]);
+
+  /**
+   * The reader's choices, sent to their account.
+   *
+   * Local first, always: the write above has already happened, so a failed
+   * push costs a round trip rather than the choice. Guests push nothing —
+   * there is no account, and writing under a uid that is about to change would
+   * strand the data.
+   *
+   * Debounced, because onboarding sets interests one tap at a time and the
+   * account only needs the answer.
+   */
+  useEffect(() => {
+    if (!isReady || !session.onboarded) return;
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const [{ pushPreferences }, { preferencesFromSession }, i18n] = await Promise.all([
+            import('@/domain/account/push'),
+            import('@/domain/account/preferences'),
+            import('@/i18n'),
+          ]);
+
+          const locale = i18n.default.language === 'en' ? 'en' : 'fa-IR';
+
+          await pushPreferences(
+            { uid: identityRef.current.uid, isAccount: identityRef.current.isAccount },
+            preferencesFromSession(
+              session,
+              locale,
+              Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+            )
+          );
+        } catch {
+          // Reported inside `pushPreferences`; never surfaced to the reader.
+        }
+      })();
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [session, isReady]);
 
   const reset = useCallback(() => persist(EMPTY_SESSION), [persist]);
 
