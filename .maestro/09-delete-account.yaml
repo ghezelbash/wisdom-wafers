@@ -1,18 +1,65 @@
-# Delete account, for real.
+# Delete account, for real, against the backend.
 #
-# Last, because it destroys the state the other flows built. The server has to
-# finish before anything local is touched, so a failure here must leave the
-# reader signed in rather than looking at an empty app.
+# Last, because it destroys what the other flows built. Deletion is server-side
+# and ordered: subcollections, Storage, push tokens, then the Auth record — so a
+# failure must leave the reader signed in rather than looking at an empty app.
+#
+# It deletes the account **flow 05 created**, with the same credentials from the
+# runner. Before this, the flow assumed an account existed and pressed buttons
+# by label; if nothing was signed in it walked past the whole thing.
 appId: com.dananeh.app.staging
+env:
+  EMAIL: ${DANANEH_E2E_EMAIL}
+  PASSWORD: ${DANANEH_E2E_PASSWORD}
 ---
 - launchApp
-- tapOn: "پروفایل"
-- tapOn: "حذف حساب"
+- tapOn:
+    id: "tab-profile"
+
+# The account this is about to delete. Not optional: deleting nothing is not a
+# passing test.
+- assertVisible: "${EMAIL}"
+
+- tapOn:
+    id: "profile-delete-account"
+
+# The export is offered before the destruction, not after it.
 - assertVisible: "خروجی گرفتن"
-- tapOn: "حذف حساب کاربری"
-- tapOn: "بله، حذف کن"
+
+- tapOn:
+    id: "delete-start"
+- tapOn:
+    id: "delete-confirm"
+
+# Deleting everything is exactly what a borrowed unlocked phone must not be
+# able to do, so a recent sign-in is required. Whether the sheet appears depends
+# on how long ago flow 05 signed in.
+- runFlow:
+    when:
+      visible:
+        id: "delete-password"
+    commands:
+      - tapOn:
+          id: "delete-password"
+      - inputText: "${PASSWORD}"
+      - hideKeyboard
+      - tapOn:
+          id: "delete-reauth"
 
 - extendedWaitUntil:
-    visible: "پنج دقیقه،|دانه‌ی پیشنهادی امروز"
-    timeout: 30000
+    visible: "دانه‌ی پیشنهادی امروز|پنج دقیقه،"
+    timeout: 45000
+
+# Signed out, with nothing left of the account on the device.
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "profile-create-account"
+- assertNotVisible: "${EMAIL}"
+
+- tapOn:
+    id: "tab-garden"
+- tapOn:
+    id: "garden-segment-completed"
+- assertNotVisible: "چرا آسمان شب کاملاً تاریک است؟"
 - takeScreenshot: after-deletion

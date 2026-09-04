@@ -1,23 +1,77 @@
 # Guest → account, keeping everything.
 #
-# The uid is linked rather than replaced, so what the guest read comes with
-# them. Asserted here by the garden still showing it afterwards.
+# `linkWithCredential` keeps the anonymous uid, so what the guest read is still
+# theirs afterwards. This asserts that by name: the seed completed in flow 03 is
+# still in the garden once the account exists.
+#
+# What this flow used to do, and why none of it worked:
+#
+#  - built the address from Maestro's copied-text variable with nothing ever
+#    copied, so it was neither unique nor deterministic;
+#  - tapped «قبلاً حساب ساخته‌ای؟ وارد شو», which switches to **sign-in**, and
+#    then tapped «ساختن حساب» — two modes, one flow;
+#  - never entered a password at all;
+#  - marked the email field `optional`, so a missing field passed;
+#  - asserted «رسیده», a segment label that is on screen whether or not
+#    anything survived.
+#
+# The address comes from the runner as `DANANEH_E2E_EMAIL`: one value per run,
+# recorded in the output, and the same value flow 09 deletes.
 appId: com.dananeh.app.staging
+env:
+  EMAIL: ${DANANEH_E2E_EMAIL}
+  PASSWORD: ${DANANEH_E2E_PASSWORD}
+  SEED_TITLE: "چرا آسمان شب کاملاً تاریک است؟"
 ---
 - launchApp
-- tapOn: "پروفایل"
+
+# The guest's own record, before there is an account. If this is not here the
+# flow has nothing to prove and must fail rather than continue.
 - tapOn:
-    text: "حساب|ورود|ساختن حساب"
+    id: "tab-garden"
+- tapOn:
+    id: "garden-segment-completed"
+- assertVisible: "${SEED_TITLE}"
+
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-create-account"
+
+# The offer states the carry-over before the action, not after it.
 - assertVisible: "آنچه روی این دستگاه خوانده‌ای به حسابت اضافه می‌شود."
 
-- tapOn: "قبلاً حساب ساخته‌ای؟ وارد شو"
-- tapOn:
-    id: "email"
-    optional: true
-- inputText: "beta-${maestro.copiedText}@example.com"
-- tapOn: "ساختن حساب"
+# Create-account mode. The screen opens in it; this asserts rather than assumes,
+# because the sign-in label appearing here means the mode is wrong.
+- assertVisible: "قبلاً حساب ساخته‌ای؟ وارد شو"
 
+- tapOn:
+    id: "auth-email"
+- inputText: "${EMAIL}"
+- tapOn:
+    id: "auth-password"
+- inputText: "${PASSWORD}"
+- hideKeyboard
+- tapOn:
+    id: "auth-submit"
+
+- extendedWaitUntil:
+    notVisible:
+      id: "auth-submit"
+    timeout: 20000
 - assertNotVisible: "چیزی درست پیش نرفت"
-- tapOn: "باغ"
-- assertVisible: "رسیده"
+
+# The uid was linked, not replaced: the same completion is still there.
+- tapOn:
+    id: "tab-garden"
+- tapOn:
+    id: "garden-segment-completed"
+- assertVisible: "${SEED_TITLE}"
 - takeScreenshot: after-signup
+
+# And the account is real — the profile no longer offers to create one.
+- tapOn:
+    id: "tab-profile"
+- assertNotVisible:
+    id: "profile-create-account"
+- assertVisible: "${EMAIL}"

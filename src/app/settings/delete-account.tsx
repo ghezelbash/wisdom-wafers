@@ -200,6 +200,7 @@ export default function DeleteAccountScreen() {
               {t('deleteAccount.reauthBody')}
             </Text>
             <TextInput
+              testID="delete-password"
               className="mb-3 rounded-input border border-hairline bg-canvas px-4 py-3"
               style={{ minHeight: MinTouchTarget, writingDirection: 'ltr', textAlign: 'left' }}
               secureTextEntry
@@ -208,6 +209,7 @@ export default function DeleteAccountScreen() {
               placeholder="••••••••"
             />
             <Button
+              testID="delete-reauth"
               label={t('deleteAccount.reauthCta')}
               loading={deleting}
               disabled={!password || deleting}
@@ -230,6 +232,7 @@ export default function DeleteAccountScreen() {
               {t('deleteAccount.confirmTitle')}
             </Text>
             <Button
+              testID="delete-confirm"
               variant="destructive"
               label={deleting ? t('deleteAccount.deleting') : t('deleteAccount.confirmCta')}
               loading={deleting}
@@ -244,6 +247,7 @@ export default function DeleteAccountScreen() {
           </View>
         ) : (
           <Button
+            testID="delete-start"
             variant="destructive"
             label={t('deleteAccount.startCta')}
             onPress={() => setConfirming(true)}

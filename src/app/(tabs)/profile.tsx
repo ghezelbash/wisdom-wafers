@@ -82,6 +82,7 @@ export default function ProfileScreen() {
         {isGuest ? (
           <Pressable
             accessibilityRole="button"
+            testID="profile-create-account"
             onPress={() => router.push('/auth')}
             className="mb-5 flex-row items-center gap-[13px] rounded-[20px] bg-brand-tint p-4">
             <BrandMark size={40} />
@@ -135,6 +136,7 @@ export default function ProfileScreen() {
             />
             <Pressable
               accessibilityRole="button"
+              testID="profile-delete-account"
               onPress={() => router.push('/settings/delete-account')}
               className="mt-3 items-center justify-center"
               style={{ minHeight: MinTouchTarget }}>

@@ -36,6 +36,7 @@ export function DownloadButton({ seedId }: { seedId: string }) {
             ? t('download.start')
             : t('download.startWithSize', { size: formatMegabytes(bytes, i18n.language) })
         }
+        testID={`download-${seedId}`}
         onPress={() => download(seedId)}
         className="flex-row items-center gap-2 rounded-chip px-2"
         style={{ minHeight: MinTouchTarget }}>

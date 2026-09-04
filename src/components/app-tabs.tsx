@@ -42,6 +42,7 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={label}
+            testID={`tab-${route.name}`}
             className="flex-1 items-center gap-[5px]"
             // The icon, the gap and an 11pt label come to 42 — two short of the
             // floor. The bar has 65pt of room above the inset, so the target

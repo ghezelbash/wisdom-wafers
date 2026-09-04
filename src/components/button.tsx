@@ -8,6 +8,8 @@ import { useTheme } from '@/hooks/use-theme';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
+  /** Names the control for the end-to-end flows, in any language. */
+  testID?: string;
   label: string;
   variant?: Variant;
   loading?: boolean;

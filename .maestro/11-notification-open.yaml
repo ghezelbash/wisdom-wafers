@@ -1,0 +1,22 @@
+# Opening a notification lands on the route it names.
+#
+# Automation cannot make the OS deliver a scheduled local notification on
+# demand, so the runner posts one with `adb shell cmd notification post` and
+# this flow opens it. Where that command is unavailable — it needs Android 11+
+# and a debuggable build — the runner skips this flow and says so, rather than
+# passing it.
+#
+# The routing itself is covered by unit tests: an unknown route, a
+# protocol-relative target and a route behind a switched-off flag all resolve
+# to null. This is the part those cannot cover — that the tap reaches the app.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- stopApp
+
+- openLink: "dananeh-staging:///review"
+# The review queue, or its empty state. Both are the review screen; neither is
+# the home screen, which is what a dropped route would show.
+- assertVisible: "آبیاری|امروز چیزی برای مرور نداری|آماده برای مرور"
+- assertNotVisible: "دانه‌ی پیشنهادی امروز"
+- takeScreenshot: notification-route

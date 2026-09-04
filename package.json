@@ -80,7 +80,8 @@
     "diagnose": "npm run build:functions && node scripts/diagnose.mjs",
     "docs:events": "node scripts/event-coverage.mjs",
     "check:events": "node scripts/event-coverage.mjs --check",
-    "ux:audit": "node scripts/ux-audit.mjs"
+    "ux:audit": "node scripts/ux-audit.mjs",
+    "check:e2e": "node scripts/check-maestro.mjs"
   },
   "private": true,
   "workspaces": [

@@ -7,6 +7,12 @@ appId: com.dananeh.app.staging
 - launchApp
 - stopApp
 - launchApp
-- tapOn: "باغ"
-- assertVisible: "رسیده"
+- tapOn:
+    id: "tab-garden"
+- tapOn:
+    id: "garden-segment-completed"
+
+# The seed itself, by name. This used to assert «رسیده» — the label on the
+# segment button, which is on screen whether or not anything survived.
+- assertVisible: "چرا آسمان شب کاملاً تاریک است؟"
 - takeScreenshot: garden-after-restart

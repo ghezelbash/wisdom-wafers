@@ -4,10 +4,17 @@
 appId: com.dananeh.app.staging
 ---
 - launchApp
-- tapOn: "شروع دانه"
+- tapOn:
+    id: "hero-start-seed"
 
 # Walk the seed to the end. The player is a mix of reading and answering, so
 # this taps whichever primary action is on screen until the completion appears.
+#
+# The two `optional` taps below are the only ones left in the suite, and they
+# are optional for a real reason: each block type puts a different CTA on
+# screen, so at any step one of the two matches and the other cannot. What
+# keeps the flow honest is the assertion *after* the loop — if the seed never
+# reaches its end, thirty taps of nothing still fail.
 - repeat:
     times: 30
     commands:

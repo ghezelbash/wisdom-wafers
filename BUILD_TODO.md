@@ -367,6 +367,38 @@ the safe one.*
       reminder that actually fires — no Android SDK in this environment, so
       they are owner actions, listed in `docs/runbooks/native-qa.md`
 
+### End-to-end flows — repaired (release goal 10)
+
+- [x] **The suite could not fail.** It addressed `id: "email"` when the app had
+      **no `testID` anywhere at all**, with the tap marked optional — so the step
+      passed by not happening. A device run would have gone green
+- [x] Fifteen `testID`s added; every flow addresses controls by id rather than
+      by Persian label
+- [x] Signup repaired: a deterministic unique address minted per run by the
+      runner and shared with the deletion flow, both fields filled, create-account
+      mode asserted rather than assumed (it used to tap "already have an
+      account?", switching to sign-in, then tap "create account"), and the
+      linked guest completion asserted **by the seed's title**
+- [x] Offline proves a *downloaded* seed: fetched from Storage online, then
+      opened after a force-stop with the radio off, asserting the corrupt and
+      missing-asset states are absent. Two halves, because Maestro cannot toggle
+      airplane mode
+- [x] Deep links are asserted in the app, not by shell output — `am start`
+      reports delivery, which a refused link and an opened one both produce.
+      One allowed, four refused
+- [x] Notification routing covered; the OS permission sheet is no longer optional
+- [x] Deletion creates and deletes its own account, re-authenticates when asked,
+      and verifies what is left
+- [x] Optional taps confined to the player walk, where each block type puts a
+      different CTA on screen — and the assertion after the loop is what fails
+- [x] `npm run check:e2e` is a CI gate: every id exists in the source, every
+      flow asserts something, and the seven required behaviours are covered
+- [x] The runner records Maestro's version, the device model and the Android
+      release into `docs/qa/e2e-<stamp>/README.md` beside the results
+- [ ] **The run itself.** No Android SDK in this environment — `adb` and
+      `maestro` are absent, so the suite has never been executed. Owner action,
+      on a clean emulator and one real device, before beta sign-off
+
 ## K · CI/CD and release — done
 
 - [x] GitHub Actions: static checks, unit tests, emulator suite on a JDK, a web

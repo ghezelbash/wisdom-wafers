@@ -6,9 +6,9 @@ appId: com.dananeh.app.staging
 ---
 - launchApp
 - tapOn: "باغ"
+# Not optional: no way into the review session is a failure, not a skip.
 - tapOn:
-    text: "آبیاری|شروع مرور"
-    optional: true
+    id: "garden-segment-due"
 - runFlow:
     when:
       visible: "نشانم بده"

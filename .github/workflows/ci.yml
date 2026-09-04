@@ -27,6 +27,14 @@ jobs:
       # not configured for the environment it claims **fails** rather than
       # falling back to a device-local identity.
       - run: npm run check:config
+      # The declared taxonomy is entirely wired, and the coverage table that is
+      # offered as evidence still matches the source.
+      - run: npm run check:events
+      # The end-to-end flows *could fail*: every id they address exists, every
+      # flow asserts something, and optional taps stay where they belong. A
+      # device run cannot answer this — the old suite passed on a device while
+      # addressing a testID the app did not have.
+      - run: npm run check:e2e
 
   unit:
     name: Unit and component tests

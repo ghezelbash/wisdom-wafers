@@ -312,6 +312,7 @@ export function SeedCard(props: SeedCardProps) {
           accessibilityRole="button"
           accessibilityState={{ disabled: unavailableOffline }}
           disabled={unavailableOffline}
+          testID="hero-start-seed"
           onPress={props.onPress}
           className="items-center justify-center rounded-card bg-brand"
           style={{ minHeight: 52, opacity: unavailableOffline ? 0.5 : 1 }}>

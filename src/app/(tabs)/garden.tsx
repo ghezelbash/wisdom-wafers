@@ -101,6 +101,7 @@ export default function GardenScreen() {
             key={id}
             accessibilityRole="button"
             accessibilityState={{ selected: segment === id }}
+            testID={`garden-segment-${id}`}
             onPress={() => setSegment(id)}
             // A caption line plus `py-2` comes to 40; the floor is 44.
             style={{ minHeight: MinTouchTarget, minWidth: MinTouchTarget }}

@@ -174,6 +174,7 @@ export default function AuthScreen() {
             {t('auth.email')}
           </Text>
           <TextInput
+            testID="auth-email"
             className="mb-4 rounded-input border border-hairline bg-card px-5 py-4"
             style={fieldStyle}
             placeholder="you@example.com"
@@ -189,6 +190,7 @@ export default function AuthScreen() {
             {t('auth.password')}
           </Text>
           <TextInput
+            testID="auth-password"
             className="mb-6 rounded-input border border-hairline bg-card px-5 py-4"
             style={fieldStyle}
             placeholder="••••••••"
@@ -199,12 +201,14 @@ export default function AuthScreen() {
           />
 
           <Button
+            testID="auth-submit"
             label={isSignIn ? t('auth.signIn') : t('auth.signUp')}
             loading={loading}
             onPress={() => handleAuth()}
             className="mb-3"
           />
           <Button
+            testID="auth-switch-mode"
             variant="ghost"
             label={isSignIn ? t('auth.switchToSignUp') : t('auth.switchToSignIn')}
             onPress={() => setIsSignIn((current) => !current)}
