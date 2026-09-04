@@ -77,7 +77,10 @@
     "test:emulator": "./scripts/firebase-emulators.sh emulators:exec --only auth,firestore,storage \"jest -c jest.emulator.config.js --runInBand\"",
     "test:watch": "jest --watch",
     "typecheck": "npm run build:schema && tsc --noEmit && tsc --noEmit -p tests/tsconfig.json && tsc --noEmit -p packages/content-schema/tsconfig.json && tsc --noEmit -p functions/tsconfig.json && tsc --noEmit -p admin/tsconfig.json",
-    "web": "APP_VARIANT=development expo start --web"
+    "web": "APP_VARIANT=development expo start --web",
+    "diagnose": "npm run build:functions && node scripts/diagnose.mjs",
+    "docs:events": "node scripts/event-coverage.mjs",
+    "check:events": "node scripts/event-coverage.mjs --check"
   },
   "private": true,
   "workspaces": [

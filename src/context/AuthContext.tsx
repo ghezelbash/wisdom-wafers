@@ -13,6 +13,7 @@ import { FirebaseIdentityRepository } from '@/data/repositories/firebase-identit
 import { LocalIdentityRepository } from '@/data/repositories/local-identity-repository';
 import { isFirebaseConfigured } from '@/data/remote/firebase-app';
 import { setSessionSyncIdentity } from '@/context/SessionContext';
+import { track } from '@/platform/analytics';
 import {
   AuthError,
   isGuest as identityIsGuest,
@@ -258,12 +259,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // survives the upgrade, so the uid below is normally the same one.
       const next = await repository.linkEmailPassword(email.trim(), password);
 
-      if (previous && previous !== next.uid) {
+      const kept = !previous || previous === next.uid;
+
+      if (!kept) {
         // Only reachable when there was no anonymous session to link, so this
         // really is a new owner and the account has never been told what this
         // device holds.
         await runMigration(previous, next.uid, true);
       }
+
+      // `anonymous` means the uid survived — the link worked, and the guest's
+      // record is still theirs. `local` means it did not, which is the case
+      // worth being able to count.
+      track('account_linked', { from: kept ? 'anonymous' : 'local' });
       apply(next);
     },
     [apply, credentialRepository, runMigration]

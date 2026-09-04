@@ -162,7 +162,7 @@ export default function GardenScreen() {
           </View>
         ) : (
           <View className="gap-3">
-            {ids.map((seedId) => {
+            {ids.map((seedId, position) => {
               const seed = content.getSeed(seedId);
               if (!seed) return null;
               const stored = progress.find((item) => item.seedId === seedId);
@@ -186,6 +186,8 @@ export default function GardenScreen() {
                   key={seedId}
                   variant={segment === 'due' ? 'review' : 'list'}
                   seed={seed}
+                  placement="garden"
+                  rank={position + 1}
                   completed={!!stored?.completedAt}
                   intervalDays={stored?.reviewInterval ?? 3}
                   dueLabel={

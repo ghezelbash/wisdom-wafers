@@ -238,6 +238,28 @@ the safe one.*
       handoff wrote the copy and nothing could reach it before
 - [x] Analytics and crash reports ship through the outbox to
       `recordTelemetryBatch`; a crash that killed the app offline still arrives
+- [x] **Every declared event is actually sent** (ADR 23, release goal 8). Nine of
+      sixteen had no call site — impressions, all three download events, review
+      completion, both notification events, `onboarding_started` and
+      `account_linked`. Each would have read as a confident zero on a dashboard.
+      `docs/event-coverage.md` is generated, and `tests/static/event-coverage.test.ts`
+      fails when a declared event has no caller
+- [x] `onboarding_completed.duration_ms` was hard-coded to zero; the start
+      instant is stored with the session, so it survives a restart
+- [x] **Correlation**: a session id ties a crash to the events around it, an
+      install id answers "one device or many". Neither is the uid, and both are
+      wiped with the device's data on account deletion
+- [x] **Analytics may wait; progress may not.** The flush is per endpoint, so a
+      throttled or failing telemetry batch no longer holds up the completions
+      queued behind it
+- [x] **Firestore is the crash trail, so it is operated like one**: retention
+      (30 days events / 90 crashes, swept nightly in bounded batches), a daily
+      `opsDigest/{day}` computed from `occurredAt` not `receivedAt`, and
+      `npm run diagnose` — sign-in, a callable answering, a callable still
+      *refusing*, content with an artifact and checksum, and a synthetic crash
+      read back with its version, route and environment, then deleted
+- [x] Dashboards, thresholds, retention and incident ownership written down in
+      `docs/runbooks/observability.md`
 - [x] The PII guard runs on the client *and* the server; a crash message is
       redacted rather than refused, because a refused crash is an invisible one
 - [x] **Public callables are guarded** (ADR 22): one table of per-callable body,

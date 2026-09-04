@@ -105,6 +105,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    /**
+     * The daily operating figure. Admin-readable so an operator can look
+     * without a console query; written only by the scheduled function.
+     */
+    match /opsDigest/{day} {
+      allow read: if staff('admin');
+      allow write: if false;
+    }
+
     match /appCheckCoverage/{day}/shards/{shard} {
       allow read: if staff('admin');
       allow write: if false;

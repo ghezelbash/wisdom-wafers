@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import { track } from '@/platform/analytics';
 import { getFlags } from '@/platform/config';
 import { routeFromNotificationData } from '@/platform/deep-links';
 
@@ -33,7 +34,12 @@ export function useNotificationRouting(enabled: boolean) {
         // was switched off must open nothing, not a screen that no longer
         // exists.
         const route = routeFromNotificationData(data, getFlags());
-        if (route) router.push(route as never);
+        if (!route) return;
+
+        // Only a route that was actually opened. A reminder for a feature since
+        // switched off opens nothing, and must not be counted as an open.
+        track('notification_opened', { route });
+        router.push(route as never);
       };
 
       // A tap that launched the app: the response is waiting, not emitted.

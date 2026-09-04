@@ -22,6 +22,15 @@ export interface GuestSession {
   reminderTime: string | null;
   /** The account offer is made once after a completion; Profile keeps it available. */
   accountOfferSeen: boolean;
+  /**
+   * When the reader first opened the app, as an ISO instant.
+   *
+   * Stored rather than held in memory because onboarding survives a restart:
+   * a duration measured from a module-level variable would report a few
+   * seconds for a reader who came back the next morning. Null for a session
+   * that predates this field.
+   */
+  onboardingStartedAt: string | null;
 }
 
 const EMPTY_SESSION: GuestSession = {
@@ -33,6 +42,7 @@ const EMPTY_SESSION: GuestSession = {
   notificationsEnabled: false,
   reminderTime: null,
   accountOfferSeen: false,
+  onboardingStartedAt: null,
 };
 
 const STORAGE_KEY = 'dananeh.session.v1';

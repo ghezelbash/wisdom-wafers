@@ -16,12 +16,85 @@ moves. Crashlytics, Performance and App Check all need native modules, so they
 land with the development-build migration (`docs/runbooks/native-migration.md`),
 not before. **Nothing here pretends they are already on.**
 
+## The decision for the staging APK
+
+**Crashlytics is not in the staging build.** It needs React Native Firebase,
+which needs the native migration, and shipping the internal beta is not the
+moment to do that. The staging APK reports crashes into Firestore through
+`recordTelemetryBatch`, and that path is treated as a real system rather than a
+placeholder — because for the duration of the beta it *is* the crash trail.
+
+That means three things exist that a placeholder would not have:
+
+| | where | tested by |
+|---|---|---|
+| Retention | `sweepTelemetry`, nightly 02:00 Tehran | `tests/integration/telemetry-retention.test.ts` |
+| A daily figure | `dailyOpsDigest` → `opsDigest/{day}` | same |
+| A regression check | `npm run diagnose` | run before and after each release |
+
+Events are kept **30 days** and crash reports **90** (`RETENTION_DAYS`). A
+collection nobody deletes grows without limit and turns a modest privacy promise
+into a permanent record of what every reader did.
+
+## Event coverage
+
+`docs/event-coverage.md` maps every declared event to the file that sends it,
+and is generated (`npm run docs:events`) rather than maintained. Nine of the
+sixteen events were previously declared and never called — impressions, all
+three download events, review completion, both notification events and the
+account link — so any dashboard reading them would have shown a confident zero.
+`event-coverage.test.ts` now fails if a declared event has no call site.
+
+Every event and every crash also carries a **session id** and an **install id**
+(`src/platform/analytics/correlation.ts`) alongside the version and environment.
+The session id is what ties a crash to the events that led to it; the install id
+answers "one device or many", which is the difference between a crash worth
+stopping a release for and one that is not. Neither is the uid, and both are
+destroyed with the rest of the device's data on account deletion.
+
+## Dashboards, thresholds, and who is called
+
+The dashboard is `opsDigest/{day}`, one document per day, admin-readable. Read
+it with the Firebase console or `npm run diagnose`.
+
+| signal | field | look into it at | stop the rollout at |
+|---|---|---|---|
+| Fatal crashes | `fatalCrashes` | ≥ 1 on a staging build | ≥ 3, or any fatal on ≥ 2 sessions |
+| Crash breadth | `affectedSessions` | ≥ 3 sessions in a day | ≥ 10, or > 5% of sessions |
+| One dominant crash | `topMessages[0].count` | ≥ 5 with one message | ≥ 20 |
+| Funnel collapse | `eventCounts.seed_started` | drops > 50% day over day | drops to 0 with events > 0 |
+| Delivery | `events` = 0 while testers are active | any day | two consecutive days |
+| Callable refusals | `rate-limited` in the function logs | any from a non-synthetic caller | sustained |
+
+These are beta thresholds for tens of testers, not production SLOs; they are
+counts because a rate over a handful of sessions is noise.
+
+**Ownership.** During the internal beta there is one operator — the repository
+owner — and the procedure is: run `npm run diagnose` against staging, read
+`opsDigest` for the day, and if a threshold is crossed, roll the content pointer
+back (`docs/runbooks/`), disable the feature with a flag in `appConfig/public`,
+or pull the build. A crash that cannot be reproduced from the digest is a
+request for a device log, not a guess.
+
+**Before every release**, and after: `npm run diagnose`. It signs in, calls a
+callable, checks that a callable still *refuses* what it should, verifies that
+published content has an artifact and a checksum, and sends a synthetic crash
+that it then reads back with its version, route and environment — then deletes
+it, so it is never mistaken for a real one. A green run means a later silence
+in `crashReports` is good news rather than a broken pipeline.
+
 ## Why telemetry goes through the outbox
 
 A crash that killed the app offline is the one most worth having. Queuing it
 means it is delivered when the connection returns, and the server's per-item
 acknowledgement decides whether it leaves the queue — the same contract as a
 completion.
+
+**Analytics may wait; a reader's progress may not.** They share the queue, so
+the flush is per endpoint: a throttled or failing telemetry batch defers only
+the items bound for `recordTelemetryBatch`, and completions behind it keep
+draining. This is asserted directly — see "keeps draining other endpoints while
+one is throttled" in `src/lib/__tests__/outbox.test.ts`.
 
 ## The PII guard, twice
 

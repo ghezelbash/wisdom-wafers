@@ -1,5 +1,6 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2/options';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 
 import {
   accountDeletionStatus,
@@ -10,6 +11,7 @@ import {
 import { ingestProgressEvents } from './progress/ingest';
 import { submitReports } from './reports/submit';
 import { recordTelemetry } from './telemetry/record';
+import { sweepExpired, writeOpsDigest, RETENTION_DAYS } from './telemetry/retention';
 import {
   createDraft,
   duplicateForCorrection,
@@ -350,3 +352,69 @@ export const recordTelemetryBatch = onCall(async (request) => {
 
   return recordTelemetry(deps(), { uid: request.auth.uid, events, crashes });
 });
+
+
+// ------------------------------------------------------- operating telemetry
+
+/**
+ * Yesterday, as one document.
+ *
+ * Until Crashlytics lands, `crashReports` in Firestore is the crash trail — and
+ * a thousand documents are not an alert. This is the figure the thresholds in
+ * `docs/runbooks/observability.md` are written against; the operator script
+ * reads the same document.
+ *
+ * Yesterday rather than today because an event that happened offline arrives
+ * late, and a digest of a day still in progress reports a dip that is only the
+ * clock. It runs again for the same day harmlessly — the write is a `set`.
+ */
+export const dailyOpsDigest = onSchedule(
+  { schedule: '30 1 * * *', timeZone: 'Asia/Tehran', region: 'europe-west1' },
+  async () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const digest = await writeOpsDigest(defaultDeps(), yesterday);
+
+    console.log(
+      JSON.stringify({
+        message: 'ops-digest',
+        day: digest.day,
+        crashes: digest.crashes,
+        fatalCrashes: digest.fatalCrashes,
+        affectedSessions: digest.affectedSessions,
+        events: digest.events,
+      })
+    );
+  }
+);
+
+/**
+ * Telemetry expires.
+ *
+ * A collection nobody deletes grows without limit and turns a modest privacy
+ * promise into a permanent record of what every reader did. Bounded per run:
+ * a partial sweep that runs again tomorrow beats a complete one that times out
+ * and deletes nothing.
+ */
+export const sweepTelemetry = onSchedule(
+  { schedule: '0 2 * * *', timeZone: 'Asia/Tehran', region: 'europe-west1' },
+  async () => {
+    const deps = defaultDeps();
+
+    for (const collection of Object.keys(RETENTION_DAYS) as (keyof typeof RETENTION_DAYS)[]) {
+      let deleted = 0;
+      let remaining = true;
+
+      // A few passes per night, not an unbounded loop: the rest keeps until
+      // tomorrow, and the function cannot run itself out of its own timeout.
+      for (let pass = 0; pass < 5 && remaining; pass += 1) {
+        const swept = await sweepExpired(deps, { collection });
+        deleted += swept.deleted;
+        remaining = swept.remaining;
+      }
+
+      console.log(
+        JSON.stringify({ message: 'telemetry-sweep', collection, deleted, remaining })
+      );
+    }
+  }
+);

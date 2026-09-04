@@ -15,6 +15,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { localizeDigits } from '@/lib/format';
 import { analyseQuery, buildIndex, highlightParts, searchIndex } from '@/lib/search';
 import { track } from '@/platform/analytics';
+import { recordImpression } from '@/platform/analytics/impression';
 import type { Seed } from '@/models/seed';
 
 type Filter = 'all' | 'short' | 'intro' | 'downloaded';
@@ -69,6 +70,28 @@ export default function SearchScreen() {
     }, 600);
     return () => clearTimeout(timer);
   }, [analysis.normalized, results.length, filter]);
+
+  /**
+   * The results that were shown, on the same debounce as the search itself.
+   *
+   * Debounced for the same reason: typing produces a result list per keystroke,
+   * and counting each one would say a seed was shown eight times for one query.
+   */
+  useEffect(() => {
+    if (!analysis.normalized) return;
+
+    const timer = setTimeout(() => {
+      results.forEach((seed, position) =>
+        recordImpression({
+          seedId: seed.id,
+          revision: seed.revision,
+          placement: 'search',
+          rank: position + 1,
+        })
+      );
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [analysis.normalized, results]);
 
   const open = (seed: Seed) => router.push(`/seed/${seed.id}`);
 

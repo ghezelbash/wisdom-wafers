@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { track } from './analytics';
 import { isEnabled } from './config';
 import { adjustForQuietHours, parseTime, type QuietHours } from './reminder-rules';
 
@@ -89,6 +90,10 @@ export async function requestPermission(): Promise<PermissionState> {
   await ensureNotificationChannel();
 
   const { status } = await notifications.requestPermissionsAsync();
+
+  // Recorded here rather than at the call site: this is the only place the ask
+  // happens, so the funnel cannot go missing when a second screen learns to ask.
+  track('notification_permission', { state: status });
   return status as PermissionState;
 }
 

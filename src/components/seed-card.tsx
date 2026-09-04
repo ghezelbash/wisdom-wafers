@@ -12,6 +12,7 @@ import { getTopic, topicLabel } from '@/data/topics';
 import type { ReasonCode } from '@/domain/recommendation/rank';
 import { formatMegabytes } from '@/lib/format-bytes';
 import { localizeDigits } from '@/lib/format';
+import { useImpression, type ImpressionPlacement } from '@/platform/analytics/impression';
 import type { Seed } from '@/models/seed';
 
 /**
@@ -77,11 +78,31 @@ export interface SeedCardProps {
   dueLabel?: string;
   /** Set on the list variant when the seed is finished. */
   completed?: boolean;
+  /**
+   * Where this card is being shown, and at what position. Given together: a
+   * rank without a placement compares nothing. Omitting them means the card is
+   * not counted — a skeleton, or a single card that is not part of a list.
+   */
+  placement?: ImpressionPlacement;
+  rank?: number;
 }
 
 export function SeedCard(props: SeedCardProps) {
   const { t, i18n } = useTranslation();
   const { isOnline, entryFor } = useCatalog();
+
+  // Before the skeleton's early return, so the hook count never changes.
+  useImpression(
+    props.seed && props.placement && props.rank
+      ? {
+          seedId: props.seed.id,
+          revision: props.seed.revision,
+          placement: props.placement,
+          rank: props.rank,
+          reasonCode: props.reason?.code,
+        }
+      : null
+  );
 
   if (props.variant === 'skeleton' || !props.seed) {
     // Mirrors the loaded geometry exactly, so nothing shifts on swap.

@@ -106,7 +106,7 @@ export default function TopicDetailScreen() {
           {t('topic.seedsHere')}
         </Text>
         <View className="gap-3">
-          {seeds.map((seed) => {
+          {seeds.map((seed, position) => {
             const entry = progress.find((item) => item.seedId === seed.id);
             const due = entry ? nextReviewFor(entry) : undefined;
             return (
@@ -114,6 +114,8 @@ export default function TopicDetailScreen() {
                 key={seed.id}
                 variant="list"
                 seed={seed}
+                placement="topic"
+                rank={position + 1}
                 completed={!!entry?.completedAt}
                 dueLabel={
                   due

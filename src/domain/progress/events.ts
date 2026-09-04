@@ -163,3 +163,19 @@ export async function recordContentReport(
   await enqueue('content-report', report.id, report as unknown as Record<string, unknown>);
   return report;
 }
+
+/**
+ * How long onboarding took, from the stored instant.
+ *
+ * Zero for a session that predates the field or one whose clock moved
+ * backwards — an impossible duration is worse than a missing one, because it
+ * silently skews an average nobody thinks to question.
+ */
+export function onboardingDurationMs(startedAt: string | null, now = new Date()): number {
+  if (!startedAt) return 0;
+
+  const started = Date.parse(startedAt);
+  if (Number.isNaN(started)) return 0;
+
+  return Math.max(0, now.getTime() - started);
+}

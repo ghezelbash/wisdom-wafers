@@ -89,6 +89,8 @@ function ReviewQueueScreen() {
                 key={item.seedId}
                 variant="review"
                 seed={seed}
+                placement="garden"
+                rank={index + 1}
                 intervalDays={stored?.reviewInterval ?? INTERVAL_DAYS.hard}
                 dueLabel={t('review.pass', {
                   count: localizeDigits((stored?.reviewCount ?? 0) + 1, i18n.language),

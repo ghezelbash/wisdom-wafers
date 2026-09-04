@@ -236,8 +236,8 @@ describe('a server that says "not yet"', () => {
     expect(result).toMatchObject({ throttled: 1, sent: 0, failed: 0, rejected: 0, remaining: 1 });
   });
 
-  /** Everything behind it would be refused too; each try costs a round trip. */
-  it('stops the flush instead of walking the rest of the queue', async () => {
+  /** Everything behind it on the *same* endpoint would be refused too. */
+  it('stops trying the endpoint that was throttled', async () => {
     await anEvent('event-0001');
     await anEvent('event-0002');
     await anEvent('event-0003');
@@ -248,7 +248,52 @@ describe('a server that says "not yet"', () => {
       throw new ThrottledError(30);
     }, true, NOW);
 
+    // One refusal, three items deferred: the rest never cost a round trip.
     expect(attempted).toBe(1);
+    expect((await listOutbox()).every((item) => item.attempts === 0)).toBe(true);
+  });
+
+  /**
+   * Analytics may wait; a reader's completed seed may not.
+   *
+   * Telemetry and progress share one queue, so a throttled telemetry batch
+   * sitting at the front used to hold up every completion behind it.
+   */
+  it('keeps draining other endpoints while one is throttled', async () => {
+    await enqueue('telemetry-event', 'telemetry-0001', { name: 'seed_impression' });
+    await anEvent('event-0002');
+
+    const attempted: string[] = [];
+    const result = await flush(
+      async (item) => {
+        attempted.push(item.id);
+        if (item.kind === 'telemetry-event') throw new ThrottledError(30);
+        return { status: 'applied' } as SendOutcome;
+      },
+      true,
+      NOW,
+      (item) => (item.kind === 'progress-event' ? 'ingestProgress' : 'recordTelemetryBatch')
+    );
+
+    expect(attempted).toEqual(['telemetry-0001', 'event-0002']);
+    expect(result).toMatchObject({ sent: 1, throttled: 1 });
+  });
+
+  /** The same, for an ordinary failure rather than a throttle. */
+  it('does not let a failing telemetry item stop a completion', async () => {
+    await enqueue('telemetry-crash', 'crash-0001', { message: 'boom' });
+    await anEvent('event-0002');
+
+    const result = await flush(
+      async (item) => {
+        if (item.kind === 'telemetry-crash') throw new Error('server down');
+        return { status: 'applied' } as SendOutcome;
+      },
+      true,
+      NOW
+    );
+
+    expect(result).toMatchObject({ sent: 1, failed: 1 });
   });
 
   it('sends everything once the wait is over', async () => {

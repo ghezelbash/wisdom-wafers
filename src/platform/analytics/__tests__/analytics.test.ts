@@ -90,3 +90,81 @@ describe('track', () => {
     expect(getAnalyticsContext()).toMatchObject({ seed_id: 'seed-1' });
   });
 });
+
+/**
+ * The shapes a leak actually arrives in.
+ *
+ * The guard walks the parameters a call site passes, and the failure that
+ * matters is not the obvious `{ email: '…' }` — it is a reflection nested one
+ * level down inside an object that looked structural, or an array of answers
+ * whose element type nobody checked.
+ */
+describe('the PII guard, on the shapes a leak arrives in', () => {
+  const persianProse =
+    'من امروز درباره‌ی این موضوع فکر کردم و به این نتیجه رسیدم که باید بیشتر بخوانم';
+
+  it('refuses a nested object outright rather than looking inside it', () => {
+    // Refused as a type, not inspected: an allow-list that recursed would have
+    // to decide what a *safe* nested shape is, and there is no such shape here.
+    const issues = validateParams({
+      seed_id: 'seed-anchoring',
+      answer: { reflection: persianProse },
+    });
+
+    expect(issues).toEqual([{ key: 'answer', reason: 'unsupported-type' }]);
+  });
+
+  it('refuses an array, however innocent its elements look', () => {
+    expect(validateParams({ ranks: [1, 2, 3] })).toEqual([
+      { key: 'ranks', reason: 'unsupported-type' },
+    ]);
+    expect(validateParams({ choices: ['a', 'b'] })).toEqual([
+      { key: 'choices', reason: 'unsupported-type' },
+    ]);
+  });
+
+  it('refuses a suspicious key whatever the value is', () => {
+    for (const key of [
+      'email',
+      'user_name',
+      'search_query',
+      'answer_text',
+      'reflection',
+      'seed_title',
+      'id_token',
+      'phone_number',
+      'home_address',
+    ]) {
+      expect(validateParams({ [key]: 1 })).toEqual([{ key, reason: 'forbidden-key' }]);
+    }
+  });
+
+  it('refuses Persian prose under a name that gives nothing away', () => {
+    // The value is what condemns it: four words of running text under `note`.
+    expect(validateParams({ note: persianProse })).toEqual([
+      { key: 'note', reason: 'looks-personal' },
+    ]);
+  });
+
+  it('still allows the Persian strings that are categories, not content', () => {
+    // ZWNJ and all: a topic label is content the app authored, not the reader's.
+    expect(validateParams({ topic: 'روان‌شناسی', family: 'علوم' })).toEqual([]);
+  });
+
+  it('refuses a long Persian identifier before it can become a payload', () => {
+    expect(validateParams({ label: 'ن'.repeat(65) })).toEqual([
+      { key: 'label', reason: 'looks-personal' },
+    ]);
+  });
+
+  it('names every offending key, not just the first', () => {
+    const issues = validateParams({
+      seed_id: 'seed-anchoring',
+      email: 'x',
+      note: persianProse,
+      payload: {},
+    });
+
+    expect(issues.map((issue) => issue.key).sort()).toEqual(['email', 'note', 'payload']);
+  });
+});

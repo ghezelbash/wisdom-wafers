@@ -14,6 +14,7 @@ import { localizeDigits } from '@/lib/format';
 import { listProgress, saveProgress, type SeedProgress } from '@/lib/progress-store';
 import { useIdentity } from '@/context/AuthContext';
 import { recordReviewed } from '@/domain/progress/events';
+import { track } from '@/platform/analytics';
 import { dueItems, growthCount, weeklyGrowth, INTERVAL_DAYS, type Confidence } from '@/lib/schedule';
 import type { Seed } from '@/models/seed';
 import { FeatureGate } from '@/components/feature-gate';
@@ -155,8 +156,17 @@ function ReviewSessionScreen() {
     const next = [...outcomes, { seed, confidence }];
     setOutcomes(next);
     setRevealed(false);
-    if (index + 1 >= queue.length) setFinished(true);
-    else setIndex(index + 1);
+
+    if (index + 1 >= queue.length) {
+      // The session, once, at its end — not once per card. `correct_count` is
+      // the ratings that bought an interval; `again` did not.
+      track('review_completed', {
+        item_count: next.length,
+        correct_count: next.filter((outcome) => outcome.confidence !== 'again').length,
+        interval_days: INTERVAL_DAYS[confidence],
+      });
+      setFinished(true);
+    } else setIndex(index + 1);
   };
 
   return (

@@ -21,6 +21,10 @@ import type { OutboxItem, SendOutcome } from '@/lib/outbox';
 /** Seconds to wait, taken from the server rather than guessed. */
 const DEFAULT_RETRY_AFTER_SECONDS = 30;
 
+/** The endpoint an item is bound for — two telemetry kinds share one. */
+export const outboxScope = (item: OutboxItem): string =>
+  ENDPOINT[item.kind]?.name ?? item.kind;
+
 function throttleFrom(error: unknown): ThrottledError | null {
   const code = (error as { code?: string })?.code;
   if (code !== 'functions/resource-exhausted' && code !== 'resource-exhausted') return null;

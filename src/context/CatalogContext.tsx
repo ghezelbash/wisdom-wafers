@@ -6,6 +6,7 @@ import { content } from '@/data/content-repository';
 import { useRemoteConfig } from '@/context/RemoteConfigContext';
 import { utf8Length } from '@/data/remote/bundle-storage';
 import type { DeviceCatalog, DownloadEntry } from '@/data/local/device-catalog';
+import { track } from '@/platform/analytics';
 import { type CacheEntry, type CatalogSnapshot } from '@/lib/catalog-store';
 import { flush, listOutbox, type OutboxItem } from '@/lib/outbox';
 import type { Seed } from '@/models/seed';
@@ -141,7 +142,17 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
         const { raw } = await storage.fetch(manifest.storagePath);
 
         putEntry(await catalog.saveDownload(manifest, raw));
-      } catch {
+        track('download_completed', { seed_id: manifest.seedId, bytes: manifest.bytes });
+      } catch (error) {
+        // The code, never the message: a Storage error can carry a signed URL.
+        track('download_failed', {
+          seed_id: manifest.seedId,
+          error_code:
+            (error as { code?: string })?.code ??
+            (error instanceof Error && error.message.includes('checksum')
+              ? 'checksum-mismatch'
+              : 'unreachable'),
+        });
         // Truncated, tampered or simply unreachable — all fixed the same way,
         // and the card offers exactly that.
         await catalog.markCorrupt(manifest);
@@ -179,6 +190,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
         }
 
         await catalog.markDownloading(manifest);
+        track('download_started', { seed_id: seedId, bytes: manifest.bytes, online: isOnline });
         putEntry({
           seedId,
           revision: manifest.revision,
@@ -191,7 +203,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
         await downloadForReal(catalog, manifest);
       })();
     },
-    [device, downloadForReal, putEntry, downloadsEnabled, contentSource]
+    [device, downloadForReal, putEntry, downloadsEnabled, contentSource, isOnline]
   );
 
   const remove = useCallback(
@@ -316,8 +328,8 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
     // Queued writes drain on the same trigger as a refresh. An item is removed
     // only when the server says it counted; a rejection is kept, dead, with its
     // reason, and a network failure is retried with backoff.
-    const { sendOutboxItem } = await import('@/data/remote/outbox-transport');
-    await flush(sendOutboxItem, isOnline);
+    const { outboxScope, sendOutboxItem } = await import('@/data/remote/outbox-transport');
+    await flush(sendOutboxItem, isOnline, new Date(), outboxScope);
     setOutbox(await listOutbox());
   }, [device, isOnline, contentSource]);
 

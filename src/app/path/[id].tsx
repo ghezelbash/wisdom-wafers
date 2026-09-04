@@ -63,11 +63,13 @@ export default function PathDetailScreen() {
         </Text>
 
         <View className="gap-3">
-          {seeds.map((seed) => (
+          {seeds.map((seed, position) => (
             <SeedCard
               key={seed.id}
               variant="list"
               seed={seed}
+              placement="path"
+              rank={position + 1}
               completed={progress.some((item) => item.seedId === seed.id && item.completedAt)}
               onPress={() => router.push(`/seed/${seed.id}`)}
             />
