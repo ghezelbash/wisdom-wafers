@@ -50,6 +50,20 @@ docs/adr/                 architecture decision records
 
 - `npm test` (jest-expo), `npm run typecheck`, `npm run lint` — all three must
   be green before a goal is done.
+- `npm run typecheck` builds `packages/content-schema` first. Cloud Functions
+  runs Node, so the functions project resolves `@dananeh/content-schema`
+  through its `exports` map to the **compiled** copy — on a clean checkout it
+  cannot typecheck until the package is built.
+- `APP_VARIANT` comes from the shell or the EAS profile, never from `.env`:
+  Expo exports only `EXPO_PUBLIC_*` into the environment `app.config.ts` is
+  evaluated in. Unset means production, which then fails the environment guard.
+  The npm scripts set it; anything invoking `expo` or Gradle directly must too,
+  including Gradle's own `:expo-constants:createExpoConfig` task.
+- **`APP_VARIANT` does not exist at runtime**, for the same reason — it is not
+  `EXPO_PUBLIC_`. Anything on the device that needs to know the environment
+  reads `EXPO_PUBLIC_ENV_NAME` (via `appVariant()`), never
+  `Constants.expoConfig.extra`, which is empty at runtime on web. The
+  variant/environment cross-check is build-time only; see ADR 16.
 - Suites live in `__tests__` beside the code. Pure logic — normalisation, the
   scheduler, grading, dates, schema parsing — is covered first because it is
   what silently breaks later.
