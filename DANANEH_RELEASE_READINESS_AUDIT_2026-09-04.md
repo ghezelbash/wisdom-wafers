@@ -93,6 +93,7 @@
 | **Release Goal 4** — unit / emulator tests | ۲۰ suite و ۲۸۱ تست · ۱۷ suite و ۱۸۶ تست |
 | **Release Goal 4** — flags و gate روی اپ در حال اجرا | kill switch مرور `/review` را غیرقابل‌دسترس کرد؛ maintenance صفر درخواست Storage داشت؛ forced update هیچ راه فراری نداشت؛ بازگرداندن config همه‌چیز را برگرداند |
 | **Release Goal 5** — unit / emulator tests | ۲۱ suite و ۲۸۵ تست · ۱۷ suite و ۱۹۶ تست، شامل هر مرز شکست حذف حساب |
+| **Release Goal 6** — unit / emulator tests | ۲۱ suite و ۲۸۵ تست · ۱۸ suite و ۲۱۳ تست، شامل `publish-concurrency.test.ts` |
 | Lint | بدون error؛ ۲ warning در `src/i18n.ts` |
 | Expo web export | Pass |
 | Expo Android JS export | Pass؛ این APK یا native build نیست |

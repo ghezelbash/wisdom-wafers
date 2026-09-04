@@ -112,8 +112,18 @@ the safe one.*
 ## D · Content pipeline — done
 
 - [x] `functions/` (2nd gen, TypeScript) sharing `@dananeh/content-schema`
-- [x] `publishSeed`: validate → compile → checksum → upload → transactional
-      pointer; a published revision is immutable, corrections are new revisions
+- [x] `publishSeed`: validate → compile → checksum → **reserve** → upload with a
+      no-overwrite precondition → transactional pointer (ADR 21). Immutability
+      now survives concurrency: the old check-then-write let two publishes both
+      pass and produced one artifact holding the loser's bytes under the
+      winner's checksum
+- [x] Rollback restores the whole catalogue summary, not only the pointer and
+      manifest — title, objective, topic, difficulty, duration and locale
+- [x] Editorial transitions and their audit entries commit as one operation;
+      publishing claims the draft (`approved → publishing → published`) so two
+      editors cannot both run the pipeline
+- [x] Drafts are created through `createContentDraft` / `startCorrection`
+      rather than by inserting a document into Firestore by hand
 - [x] `rollbackSeed`: the pointer moves, artifacts are never deleted
 - [x] `ingestProgressEvents`: idempotent on event id, monotonic completion,
       daily buckets in the reader's own timezone, aggregates written server-side

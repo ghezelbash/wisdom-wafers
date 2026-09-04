@@ -12,8 +12,20 @@ import { getStorage } from 'firebase-admin/storage';
  */
 export interface Deps {
   db: Firestore;
-  /** Writes a published artifact and returns the path it can be read from. */
-  putObject(path: string, body: string, contentType: string): Promise<string>;
+  /**
+   * Writes a published artifact and returns the path it can be read from.
+   *
+   * `ifAbsent` makes the write fail rather than overwrite when an object is
+   * already there. A published revision is immutable, so two publishes racing
+   * on the same revision must not silently produce one artifact with the
+   * loser's bytes and the winner's checksum.
+   */
+  putObject(
+    path: string,
+    body: string,
+    contentType: string,
+    options?: { ifAbsent?: boolean }
+  ): Promise<string>;
   /** Removes everything under a prefix; returns how many objects went. */
   deleteObjects(prefix: string): Promise<number>;
   /** Removes an Auth record. Tolerates one that is already gone. */
@@ -30,12 +42,15 @@ export function defaultDeps(bucketName?: string): Deps {
 
   return {
     db: getFirestore(app),
-    async putObject(path, body, contentType) {
+    async putObject(path, body, contentType, options) {
       await bucket.file(path).save(body, {
         contentType,
         // Published artifacts are immutable: one revision, one object, cached
         // hard. A correction is a new revision, never an overwrite.
         metadata: { cacheControl: 'public, max-age=31536000, immutable' },
+        // Generation 0 means "only if it does not exist". The storage layer
+        // refuses the write rather than trusting the caller to have checked.
+        ...(options?.ifAbsent ? { preconditionOpts: { ifGenerationMatch: 0 } } : {}),
       });
       return `${bucket.name}/${path}`;
     },

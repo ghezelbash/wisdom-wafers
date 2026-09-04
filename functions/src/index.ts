@@ -10,7 +10,14 @@ import {
 import { ingestProgressEvents } from './progress/ingest';
 import { submitReports } from './reports/submit';
 import { recordTelemetry } from './telemetry/record';
-import { publishDraft, reviewDraft, submitDraft, WorkflowError } from './publish/drafts';
+import {
+  createDraft,
+  duplicateForCorrection,
+  publishDraft,
+  reviewDraft,
+  submitDraft,
+  WorkflowError,
+} from './publish/drafts';
 import { publishSeed, rollbackSeed, PublishError } from './publish/publish-seed';
 import { defaultDeps } from './shared/deps';
 
@@ -69,6 +76,34 @@ function workflowCall<T>(handler: () => Promise<T>) {
     throw error;
   });
 }
+
+/**
+ * Creating content, through the pipeline.
+ *
+ * It was a manual Firestore insert, which is how a draft ends up with an author
+ * who did not write it or a state that skips review. Authorship is the caller.
+ */
+export const createContentDraft = onCall(async (request) => {
+  requireStaff(request.auth, ['admin', 'editor']);
+  return workflowCall(() =>
+    createDraft(deps(), {
+      actorUid: request.auth!.uid,
+      seed: request.data?.seed,
+      draftId: request.data?.draftId,
+    })
+  );
+});
+
+/** Starts a correction at the next revision, derived rather than typed. */
+export const startCorrection = onCall(async (request) => {
+  requireStaff(request.auth, ['admin', 'editor']);
+  return workflowCall(() =>
+    duplicateForCorrection(deps(), {
+      actorUid: request.auth!.uid,
+      seedId: request.data?.seedId,
+    })
+  );
+});
 
 export const submitForReview = onCall(async (request) => {
   requireStaff(request.auth, ['admin', 'editor']);

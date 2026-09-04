@@ -155,6 +155,27 @@ function Workbench({ user, roles }: { user: User; roles: string[] }) {
    * than failing with a permission error nobody can act on.
    */
   const isEditable = (state: DraftState) => state === 'draft' || state === 'changes_requested';
+
+  /**
+   * Starting a new draft.
+   *
+   * Through the Function, not a direct write: authorship and the starting state
+   * are decided server-side, which is what makes the self-approval rule mean
+   * something. Creating content by hand in Firestore was the only way before.
+   */
+  const createDraft = async () => {
+    if (!parsedSeed) {
+      setMessage('برای ساخت پیش‌نویس، ابتدا یک دانه‌ی معتبر در ویرایشگر بگذار.');
+      return;
+    }
+    await run('createContentDraft', { seed: parsedSeed });
+  };
+
+  /** A correction to something already published, at the next revision. */
+  const startCorrection = async () => {
+    if (!selected) return;
+    await run('startCorrection', { seedId: selected.seed?.id });
+  };
   const canReview = roles.includes('reviewer') || roles.includes('admin');
   const isAuthor = selected?.authorUid === user.uid;
 
@@ -250,6 +271,15 @@ function Workbench({ user, roles }: { user: User; roles: string[] }) {
                     : 'در این وضعیت، متن پیش‌نویس قابل ویرایش نیست.'
                 }>
                 ذخیره
+              </button>
+              <button onClick={createDraft} disabled={!canEdit || !parsedSeed || busy}>
+                پیش‌نویس تازه از این متن
+              </button>
+              <button
+                onClick={startCorrection}
+                disabled={!canEdit || busy}
+                title="یک نسخه‌ی تازه از همین دانه، با شماره‌ی revision بعدی">
+                اصلاح نسخه‌ی منتشرشده
               </button>
               <button
                 onClick={() => run('submitForReview', { draftId: selected.draftId })}
