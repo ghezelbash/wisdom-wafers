@@ -1,5 +1,4 @@
 import { deleteApp, initializeApp, type App } from 'firebase-admin/app';
-import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 import {
@@ -12,6 +11,7 @@ import {
 import { ingestProgressEvents } from '../../functions/src/progress/ingest';
 import { submitReports } from '../../functions/src/reports/submit';
 import type { Deps } from '../../functions/src/shared/deps';
+import { accountExists, createAccount, deleteAccount as deleteEmulatorAccount } from '../support/emulator-rest';
 
 /**
  * Account deletion, proved rather than promised.
@@ -22,6 +22,7 @@ import type { Deps } from '../../functions/src/shared/deps';
  * outcome.
  */
 
+const PROJECT = 'demo-dananeh';
 const UID = 'reader-to-delete';
 const NOW = new Date('2026-09-04T12:00:00.000Z');
 
@@ -34,11 +35,14 @@ let deps: Deps;
 beforeAll(() => {
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8181';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  app = initializeApp({ projectId: 'demo-dananeh' }, 'account-lifecycle');
+  app = initializeApp({ projectId: PROJECT }, 'account-lifecycle');
   db = getFirestore(app);
 });
 
 afterAll(async () => {
+  // The admin Firestore keeps a gRPC channel that `deleteApp` does not
+  // close, which leaves the process alive after the run finishes.
+  await db.terminate();
   await deleteApp(app);
 });
 
@@ -59,7 +63,10 @@ beforeEach(async () => {
     },
     async deleteAuthUser(uid) {
       deletedUsers.push(uid);
-      await getAdminAuth(app).deleteUser(uid).catch(() => undefined);
+      // Through the emulator's REST API rather than the admin SDK, whose
+      // keep-alive agent outlived the run. Tolerant of an account that is
+      // already gone, exactly like the production implementation.
+      await deleteEmulatorAccount(PROJECT, uid).catch(() => undefined);
     },
     now: () => NOW,
   };
@@ -167,6 +174,22 @@ describe('deleting everything', () => {
     expect(objects.has('content/seeds/other/1/bundle.json')).toBe(true);
 
     expect(deletedUsers).toEqual([UID]);
+  });
+
+  /**
+   * The Auth record itself, not just the request for it.
+   *
+   * `deletedUsers` proves the job asked; this proves the account is actually
+   * gone, which is the half a reader is promised.
+   */
+  it('removes the Auth account, verified against the emulator', async () => {
+    const email = `delete-me-${Date.now()}@example.com`;
+    const uid = await createAccount(PROJECT, email, 'seed-password-1405');
+    expect(await accountExists(PROJECT, uid)).toBe(true);
+
+    await deleteAccount(deps, { uid, authTimeSeconds: recentAuth });
+
+    expect(await accountExists(PROJECT, uid)).toBe(false);
   });
 
   /**

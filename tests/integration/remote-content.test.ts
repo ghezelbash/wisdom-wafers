@@ -1,7 +1,7 @@
 import { deleteApp as deleteAdminApp, initializeApp as initializeAdmin, type App } from 'firebase-admin/app';
 import { getFirestore as getAdminFirestore, type Firestore as AdminFirestore } from 'firebase-admin/firestore';
 import { deleteApp, initializeApp } from 'firebase/app';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import { connectFirestoreEmulator, getFirestore, terminate, type Firestore } from 'firebase/firestore';
 
 import { publishSeed } from '../../functions/src/publish/publish-seed';
 import type { Deps } from '../../functions/src/shared/deps';
@@ -30,6 +30,7 @@ let objects: Map<string, string>;
 let deps: Deps;
 let source: RemoteContentSource;
 let clientApp: ReturnType<typeof initializeApp>;
+let clientDb: Firestore;
 
 beforeAll(() => {
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8181';
@@ -37,7 +38,7 @@ beforeAll(() => {
   adminDb = getAdminFirestore(admin);
 
   clientApp = initializeApp({ apiKey: 'demo-key', projectId: 'demo-dananeh' }, 'remote-content-client');
-  const clientDb = getFirestore(clientApp);
+  clientDb = getFirestore(clientApp);
   connectFirestoreEmulator(clientDb, '127.0.0.1', 8181);
 
   objects = new Map();
@@ -58,6 +59,12 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
+  // The admin Firestore keeps a gRPC channel that `deleteApp` does not
+  // close, which leaves the process alive after the run finishes.
+  await adminDb.terminate();
+  // `deleteApp` alone leaves the Firestore gRPC channel open, which keeps the
+  // Jest worker alive after the run finishes.
+  await terminate(clientDb);
   await deleteAdminApp(admin);
   await deleteApp(clientApp);
 });

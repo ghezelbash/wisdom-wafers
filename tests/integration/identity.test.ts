@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import {
   connectFirestoreEmulator,
+  terminate,
   doc,
   getDoc,
   getFirestore,
@@ -44,6 +45,9 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
+  // `deleteApp` alone leaves the Firestore gRPC channel open, which keeps the
+  // Jest worker alive after the run finishes.
+  await terminate(db);
   await deleteApp(app);
 });
 

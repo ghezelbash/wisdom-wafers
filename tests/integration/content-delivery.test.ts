@@ -4,9 +4,8 @@ import { join } from 'node:path';
 
 import { deleteApp as deleteAdminApp, initializeApp as initializeAdmin, type App } from 'firebase-admin/app';
 import { getFirestore as getAdminFirestore, type Firestore as AdminFirestore } from 'firebase-admin/firestore';
-import { getStorage as getAdminStorage } from 'firebase-admin/storage';
 import { deleteApp, initializeApp, type FirebaseApp } from 'firebase/app';
-import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
+import { connectFirestoreEmulator, getFirestore, terminate, type Firestore } from 'firebase/firestore';
 import { connectStorageEmulator, getDownloadURL, getStorage, ref } from 'firebase/storage';
 
 import { publishSeed } from '../../functions/src/publish/publish-seed';
@@ -18,6 +17,7 @@ import type { SqlDriver } from '../../src/data/local/sql';
 import { FirebaseBundleStorage } from '../../src/data/remote/bundle-storage';
 import { RemoteContentSource } from '../../src/data/remote/remote-content-source';
 import { skyDarknessSeed } from '../../src/data/seeds/sky-darkness';
+import { putObject } from '../support/emulator-rest';
 import { nodeBundleFiles } from '../support/node-bundle-files';
 import { nodeSqliteDriver } from '../support/node-sqlite-driver';
 
@@ -69,7 +69,10 @@ beforeAll(() => {
   deps = {
     db: adminDb,
     async putObject(path, body, contentType) {
-      await getAdminStorage(admin).bucket(BUCKET).file(path).save(body, { contentType });
+      // Uploaded through the emulator's REST API rather than the admin SDK:
+      // the bytes are just as real, and the admin client's keep-alive agent
+      // kept the process alive after the run finished.
+      await putObject(BUCKET, path, body, contentType);
       return `${BUCKET}/${path}`;
     },
     async deleteObjects() {
@@ -81,6 +84,12 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
+  // The admin Firestore keeps a gRPC channel that `deleteApp` does not
+  // close, which leaves the process alive after the run finishes.
+  await adminDb.terminate();
+  // `deleteApp` alone leaves the Firestore gRPC channel open, which keeps the
+  // Jest worker alive after the run finishes.
+  await terminate(clientDb);
   await deleteAdminApp(admin);
   await deleteApp(clientApp);
 });

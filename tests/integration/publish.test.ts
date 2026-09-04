@@ -34,6 +34,9 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
+  // The admin Firestore keeps a gRPC channel that `deleteApp` does not
+  // close, which leaves the process alive after the run finishes.
+  await db.terminate();
   await deleteApp(app);
 });
 

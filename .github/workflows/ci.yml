@@ -114,7 +114,9 @@ jobs:
   doctor:
     name: Expo Doctor
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # No longer advisory. Doctor passes 21/21, and a dependency drifting away
+    # from what the SDK expects is exactly the class of problem that shows up
+    # first on a device, long after CI went green.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

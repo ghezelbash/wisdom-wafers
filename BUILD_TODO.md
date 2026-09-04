@@ -235,8 +235,17 @@ the safe one.*
       one-time human setup and exactly what is needed from the project owner
 - [x] Release, incident and backup/restore runbooks in `docs/runbooks/`
 - [x] `npm run check:config` and an Android prebuild + `assembleDebug` +
-      `check:android` are CI gates; Expo Doctor stays a warning pending the
-      AsyncStorage version decision
+      `check:android` are CI gates
+- [x] **Expo Doctor is a hard gate** (21/21). `expo install --fix` brought
+      AsyncStorage back to `2.2.0` and four other packages to the versions SDK
+      57 expects; nothing in CI is behind `continue-on-error` any more
+- [x] `lint` runs with `--max-warnings 0` — a warning that never fails a build
+      is a warning nobody fixes
+- [x] The Node suites map `expo/virtual/env`, which `babel-preset-expo` injects
+      for every `process.env.EXPO_PUBLIC_*` read; without it any app module
+      touching one failed to *parse* rather than fail an assertion
+- [x] Client Firestore instances are `terminate()`d in teardown. `deleteApp`
+      alone left the gRPC channel open and Jest never exited
 - [x] `docs/internal-beta.md`: release notes, known issues and a 20-step
       install-and-test checklist for a clean device
 - [ ] **The build itself.** Everything in the repository is done and green; EAS

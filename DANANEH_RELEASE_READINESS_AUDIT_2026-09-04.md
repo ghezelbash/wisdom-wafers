@@ -13,8 +13,10 @@
 >
 > | بررسی | قبل | حالا |
 > |---|---|---|
-> | Unit/component tests | ۱۲ suite · ۱۴۱ تست | **۱۹ suite · ۲۵۳ تست** |
-> | Emulator/integration tests | ۹ suite · ۹۶ تست | **۱۶ suite · ۱۶۷ تست** |
+> | Unit/component tests | ۱۲ suite · ۱۴۱ تست | **۱۹ suite · ۲۵۶ تست** |
+> | Emulator/integration tests | ۹ suite · ۹۶ تست | **۱۶ suite · ۱۶۸ تست** |
+> | Expo Doctor | Fail (AsyncStorage 3.1.1) | **21/21 pass**، و دیگر `continue-on-error` نیست |
+> | Lint | ۰ error · ۲ warning | **۰ error · ۰ warning**، با `--max-warnings 0` |
 > | Config validation | نداشت | **۱۲ بررسی** (`npm run check:config`) |
 > | Android native verification | نداشت | **۱۱ بررسی** (`npm run check:android`) |
 > | E2E | نداشت | **۹ flow در `.maestro/`** |
@@ -80,12 +82,16 @@
 | **پس از Goal 8** — `npm run check:android` | ۱۱ بررسی Pass روی prebuild واقعی؛ دو نقص واقعی (`POST_NOTIFICATIONS`، `allowBackup`) پیدا و رفع شد |
 | **پس از Goal 9** — unit tests | ۱۹ suite و ۲۵۳ تست Pass |
 | **پس از Goal 9** — emulator/integration tests | ۱۶ suite و ۱۶۷ تست Pass، شامل `telemetry.test.ts` (funnel و رد شدن PII) |
+| **Release Goal 1** — unit tests | ۱۹ suite و ۲۵۶ تست Pass |
+| **Release Goal 1** — emulator/integration tests | ۱۶ suite و ۱۶۹ تست Pass، بدون هشدار open-handle و با exit code صفر |
+| **Release Goal 1** — Expo Doctor | ۲۱ از ۲۱ Pass؛ AsyncStorage به ۲.۲.۰ و چهار پکیج دیگر به نسخه‌ی SDK 57 برگشتند |
+| **Release Goal 1** — lint | ۰ error و ۰ warning (`--max-warnings 0`) |
 | Lint | بدون error؛ ۲ warning در `src/i18n.ts` |
 | Expo web export | Pass |
 | Expo Android JS export | Pass؛ این APK یا native build نیست |
 | Expo prebuild اندروید در فضای موقت | Pass |
 | Gradle APK build محلی | اجرا نشد؛ روی این Mac، Java/Android toolchain نصب نیست |
-| Expo Doctor | Fail: نسخه‌ی AsyncStorage با نسخه‌ی توصیه‌شده‌ی Expo 57 سازگار نیست (`3.1.1` در برابر `2.2.0`) |
+| Expo Doctor | ~~Fail: نسخه‌ی AsyncStorage با نسخه‌ی توصیه‌شده‌ی Expo 57 سازگار نیست (`3.1.1` در برابر `2.2.0`)~~ — **رفع شد در Release Goal 1**؛ اکنون ۲۱ از ۲۱ Pass |
 | live Firebase probe | Fail: درخواست Auth پاسخ `API key not valid` داد؛ Firestore نیز HTTP 403 برگرداند |
 | visual smoke test در viewport موبایل 390×844 | onboarding، انتخاب علایق و seed player بدون crash و با RTL خوب اجرا شدند |
 | runtime console | چند warning برای route names در root Stack و warning مخصوص animation روی web |
@@ -304,7 +310,7 @@ asset pack نهایی دانانه اکنون ساخته شده، در `assets/b
 12. **حقوقی/پشتیبانی:** privacy policy، terms، support contact، data retention، account deletion URL و Data Safety answers وجود ندارند.
 13. ~~**Backup privacy**~~ — **fixed in Goal 8**: `android.allowBackup: false`, asserted by `check:android`. The trade — a reader changing phones loses on-device progress without an account — is recorded in ADR 17.
 14. **Audio/video:** هیچ schema/player/pipeline برای audio یا video وجود ندارد. یا باید صریحاً از MVP حذف شود، یا قبل از ادعای Nibble-like بودن اضافه شود.
-15. **Dependency health:** Expo Doctor باید gate شود و AsyncStorage به نسخه‌ی سازگار با Expo 57 برگردد/ارتقا داده شود. dependency vulnerability scan نیز به CI افزوده شود.
+15. ~~**Dependency health**~~ — **fixed in Release Goal 1**: `npx expo install --fix` brought AsyncStorage to `2.2.0` and four other packages to the versions SDK 57 expects; Doctor passes 21/21 and is a hard CI gate. A dependency vulnerability scan is still outstanding.
 
 ---
 

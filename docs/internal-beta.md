@@ -74,7 +74,7 @@ without a new build, and both fail open.
 | Data export is device-only | The pre-deletion export does not include server data | — |
 | `allowBackup` is off | Changing phones loses on-device progress unless you have an account | Deliberate: the alternative copies private reflections into Google backup |
 | No audio or video blocks | Not in this release | Explicitly out of MVP scope |
-| Expo Doctor warns on AsyncStorage | `3.1.1` vs the version Expo 57 pins | Decide before public beta |
+| ~~Expo Doctor warns on AsyncStorage~~ | Resolved | `expo install --fix` brought it to `2.2.0`; Doctor passes 21/21 and gates CI |
 
 ---
 

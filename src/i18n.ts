@@ -1,4 +1,6 @@
-import i18n from 'i18next';
+// `use` is aliased: imported bare, the React hooks rule reads it as React's
+// `use` hook and rejects the call site.
+import i18n, { changeLanguage, use as configure } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import en from './locales/en.json';
@@ -23,14 +25,14 @@ const resources = {
  */
 export function initI18n(locale: AppLocale) {
   if (!i18n.isInitialized) {
-    i18n.use(initReactI18next).init({
+    configure(initReactI18next).init({
       resources,
       lng: locale,
       fallbackLng: 'en',
       interpolation: { escapeValue: false },
     });
   } else if (i18n.language !== locale) {
-    i18n.changeLanguage(locale);
+    changeLanguage(locale);
   }
   return i18n;
 }
