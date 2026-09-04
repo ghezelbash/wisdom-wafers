@@ -32,6 +32,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
 
 # typescript
 *.tsbuildinfo
@@ -41,3 +42,18 @@ example
 # generated native folders
 /ios
 /android
+
+# Firebase
+*-debug.log
+.firebase/
+functions/lib/
+packages/content-schema/dist/
+admin/dist/
+
+# Working artifacts, not source.
+# The design brief zip and the concept logo are superseded by
+# `design_handoff_dananeh/` and `assets/brand/`; the screenshots are output
+# from `scripts/screenshot.js`. They stay on disk, out of the repository.
+Expo app design brief.zip
+Concept-Logo.jpeg
+scripts/screenshot-*.png

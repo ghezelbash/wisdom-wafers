@@ -1,0 +1,22 @@
+# Denying notifications costs nothing.
+#
+# The ask comes after a completion, from the screen that states the cap. A
+# denial must leave every other feature working and the setting honest about
+# what it can do.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- tapOn: "تنظیمات|یادآوری"
+- tapOn:
+    text: "یادآوری روزانه"
+    optional: true
+
+# The OS sheet. Denying is the point of this flow.
+- tapOn:
+    text: "Don't allow|Deny|اجازه نده"
+    optional: true
+
+- assertVisible: "یادآوری"
+- tapOn: "خانه"
+- assertVisible: "دانه‌ی پیشنهادی امروز"
+- takeScreenshot: notifications-denied

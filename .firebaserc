@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "demo-dananeh",
+    "dev": "dananeh-dev",
+    "staging": "dananeh-staging",
+    "prod": "dananeh-prod"
+  }
+}

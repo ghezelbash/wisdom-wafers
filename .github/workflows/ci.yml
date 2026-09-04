@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# One run per ref: a superseded push should stop burning minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Format, lint, typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Every variant resolves to the identity it should, and a build that is
+      # not configured for the environment it claims **fails** rather than
+      # falling back to a device-local identity.
+      - run: npm run check:config
+
+  unit:
+    name: Unit and component tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --ci --coverage
+
+  backend:
+    name: Rules, pipeline and local store
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # The emulator suite needs a JDK; rules are tested against denial, which
+      # is the failure mode that matters.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run test:emulator
+
+  build:
+    name: Web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Catches anything that typechecks but cannot be bundled — a Metro
+      # resolution failure never shows up in `tsc`. Built as development
+      # because this job is about bundling, not configuration; `check:config`
+      # is what asserts staging and production refuse an incomplete one.
+      - run: npm run export:web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: dist
+          retention-days: 7
+
+  android:
+    name: Android native build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      # A config-plugin or native-dependency change typechecks fine and then
+      # fails on a device. Prebuild + assembleDebug is the cheapest gate that
+      # catches it without EAS credentials.
+      - run: npx expo prebuild --platform android --no-install --clean
+        env:
+          APP_VARIANT: development
+      - run: ./gradlew assembleDebug --no-daemon
+        working-directory: android
+      # What the build actually contains: adaptive and monochrome icons, a
+      # light and a dark splash, RTL, POST_NOTIFICATIONS, and auto-backup off
+      # so private reflections do not reach cloud backup.
+      - run: node scripts/check-android-native.mjs android
+        env:
+          APP_VARIANT: development
+
+  doctor:
+    name: Expo Doctor
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx expo-doctor

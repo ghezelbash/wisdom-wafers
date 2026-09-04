@@ -1,0 +1,11 @@
+# Cold start, after onboarding.
+#
+# Not a relaunch from the background: the process is stopped, so this exercises
+# reading the session, the catalogue and the identity from disk.
+appId: com.dananeh.app.staging
+---
+- stopApp
+- launchApp
+- assertVisible: "رشد این هفته"
+- assertVisible: "دانه‌ی پیشنهادی امروز"
+- takeScreenshot: home-cold-start

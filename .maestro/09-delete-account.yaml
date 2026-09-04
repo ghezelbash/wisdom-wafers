@@ -1,0 +1,18 @@
+# Delete account, for real.
+#
+# Last, because it destroys the state the other flows built. The server has to
+# finish before anything local is touched, so a failure here must leave the
+# reader signed in rather than looking at an empty app.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- tapOn: "پروفایل"
+- tapOn: "حذف حساب"
+- assertVisible: "خروجی گرفتن"
+- tapOn: "حذف حساب کاربری"
+- tapOn: "بله، حذف کن"
+
+- extendedWaitUntil:
+    visible: "پنج دقیقه،|دانه‌ی پیشنهادی امروز"
+    timeout: 30000
+- takeScreenshot: after-deletion

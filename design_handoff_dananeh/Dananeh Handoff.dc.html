@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-ExtraBold.woff2') format('woff2');font-weight:800;font-display:swap}
+body{margin:0;background:#EFEBDD}
+[dir="rtl"]{font-family:'YekanBakh',system-ui,sans-serif}
+a{color:#2F6D4B}
+a:hover{color:#1F241E}
+</style>
+</helmet>
+
+<div style="background:#EFEBDD;font-family:system-ui,-apple-system,'Helvetica Neue',sans-serif;color:#1F241E;padding:0 0 110px">
+
+  <div style="padding:56px 48px 28px;border-bottom:1px solid rgba(31,36,30,.14)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" fill="none" stroke="#2F6D4B" stroke-width="1.5"></circle><circle cx="17" cy="17" r="10.5" fill="none" stroke="#65A96B" stroke-width="1.5"></circle><circle cx="17" cy="17" r="4.5" fill="#2F6D4B"></circle></svg>
+      <span style="font-size:14px;font-weight:700;font-family:'YekanBakh',system-ui,sans-serif">دانانه · Dananeh</span>
+      <span style="font-size:12px;color:#5D665B">IA, accessibility, redlines, handoff</span>
+    </div>
+    <h1 style="margin:0 0 12px;font-size:40px;line-height:1.12;font-weight:800">Architecture and handoff</h1>
+    <p style="margin:0;max-width:82ch;font-size:15.5px;line-height:1.75;color:#5D665B;text-wrap:pretty">Deliverables B, I, J and K. Written against the real repo: <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">wisdom-wafers</span> on Expo <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">~57.0.19</span> / RN <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">0.86.3</span> with NativeWind, i18next and Expo Router, so every note below maps to a file that exists today.</p>
+  </div>
+
+  <section style="padding:48px 48px 0">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">B · 01</span><h2 style="margin:0;font-size:24px;font-weight:800">Information architecture</h2></div>
+    <p style="margin:0 0 24px;max-width:82ch;font-size:15px;line-height:1.72;color:#5D665B;text-wrap:pretty">Four tabs, and exactly one full-screen flow outside them. Search is a pushed screen reachable from both Home and Explore, so it never becomes a fifth tab. The player is deliberately outside the tab bar: while you are in a seed, there is nowhere else to be.</p>
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;padding:30px 32px;overflow-x:auto">
+      <div style="display:flex;gap:18px;min-width:1020px">
+
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:24px;height:24px;border-radius:12px;background:rgba(47,109,75,.12);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle><circle cx="12" cy="12" r="3.4"></circle></svg></span><div><div dir="rtl" style="font-size:14.5px;font-weight:800">خانه</div><div style="font-size:11px;color:#5D665B">Home</div></div></div>
+          <div style="border-inline-start:2px solid rgba(31,36,30,.10);padding-inline-start:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:13px;line-height:1.55">Continue<div style="font-size:11.5px;color:#5D665B">resume card, top slot when unfinished</div></div>
+            <div style="font-size:13px;line-height:1.55">Growth + due strip<div style="font-size:11.5px;color:#5D665B">weekly ring, review count</div></div>
+            <div style="font-size:13px;line-height:1.55">Today's seed<div style="font-size:11.5px;color:#5D665B">one hero, one reason code</div></div>
+            <div style="font-size:13px;line-height:1.55">Four finite rails<div style="font-size:11.5px;color:#5D665B">under 5 min · continue path · new · for you</div></div>
+            <div style="font-size:13px;line-height:1.55;color:#8A6100;font-weight:700">→ Search (pushed)</div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:24px;height:24px;border-radius:12px;background:rgba(47,109,75,.12);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.9" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M16 16l4 4"></path></svg></span><div><div dir="rtl" style="font-size:14.5px;font-weight:800">کاوش</div><div style="font-size:11px;color:#5D665B">Explore</div></div></div>
+          <div style="border-inline-start:2px solid rgba(31,36,30,.10);padding-inline-start:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:13px;line-height:1.55">Search field<div style="font-size:11.5px;color:#5D665B">first-class, opens the pushed screen</div></div>
+            <div style="font-size:13px;line-height:1.55">Topic grid · 6<div style="font-size:11.5px;color:#5D665B">→ Topic detail → Path detail</div></div>
+            <div style="font-size:13px;line-height:1.55">Paths rail<div style="font-size:11.5px;color:#5D665B">ordered seed sequences (رویش)</div></div>
+            <div style="font-size:13px;line-height:1.55">Filters<div style="font-size:11.5px;color:#5D665B">duration · difficulty · downloaded</div></div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:24px;height:24px;border-radius:12px;background:rgba(47,109,75,.12);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle><circle cx="12" cy="12" r="5.5"></circle></svg></span><div><div dir="rtl" style="font-size:14.5px;font-weight:800">باغچه</div><div style="font-size:11px;color:#5D665B">Garden</div></div></div>
+          <div style="border-inline-start:2px solid rgba(31,36,30,.10);padding-inline-start:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:13px;line-height:1.55">Five segments, one screen<div style="font-size:11.5px;color:#5D665B">in progress · saved · downloaded · due · done</div></div>
+            <div style="font-size:13px;line-height:1.55">Weekly growth + grace<div style="font-size:11.5px;color:#5D665B">0–7 with one repair per week</div></div>
+            <div style="font-size:13px;line-height:1.55;color:#8A6100;font-weight:700">→ Review session (pushed)</div>
+            <div style="font-size:13px;line-height:1.55;color:#8A6100;font-weight:700">→ Storage manager (pushed)</div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:24px;height:24px;border-radius:12px;background:rgba(47,109,75,.12);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="8.5" r="4"></circle><path d="M4.5 20c1.6-4 4.2-6 7.5-6s5.9 2 7.5 6"></path></svg></span><div><div dir="rtl" style="font-size:14.5px;font-weight:800">من</div><div style="font-size:11px;color:#5D665B">Profile</div></div></div>
+          <div style="border-inline-start:2px solid rgba(31,36,30,.10);padding-inline-start:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:13px;line-height:1.55">Account offer<div style="font-size:11.5px;color:#5D665B">guest → linked, never a wall</div></div>
+            <div style="font-size:13px;line-height:1.55">Stats · 3 numbers<div style="font-size:11.5px;color:#5D665B">seeds · minutes · week</div></div>
+            <div style="font-size:13px;line-height:1.55">Settings<div style="font-size:11.5px;color:#5D665B">interests · pace · reminders · language · theme · data</div></div>
+            <div style="font-size:13px;line-height:1.55;color:#8A6100;font-weight:700">→ Auth, delete account (pushed)</div>
+          </div>
+        </div>
+
+        <div style="flex:none;width:2px;background:rgba(31,36,30,.10)"></div>
+
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px"><span style="width:24px;height:24px;border-radius:12px;background:rgba(233,169,40,.2);display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="#8A6100" aria-hidden="true"><path d="M8 5l11 7-11 7z"></path></svg></span><div><div style="font-size:14.5px;font-weight:800">Seed player</div><div style="font-size:11px;color:#5D665B">outside the tabs</div></div></div>
+          <div style="border-inline-start:2px solid rgba(233,169,40,.4);padding-inline-start:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:13px;line-height:1.55">11 block types<div style="font-size:11.5px;color:#5D665B">registry-based; unknown → fallback</div></div>
+            <div style="font-size:13px;line-height:1.55">Sources sheet · Report sheet<div style="font-size:11.5px;color:#5D665B">one tap from any block</div></div>
+            <div style="font-size:13px;line-height:1.55">Completion<div style="font-size:11.5px;color:#5D665B">→ notification ask → account offer</div></div>
+            <div style="font-size:13px;line-height:1.55;color:#5D665B">Entered from: Home hero, Continue, rail, search result, topic detail, path, deep link, notification</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:48px 48px 0">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">B · 02</span><h2 style="margin:0;font-size:24px;font-weight:800">User flows</h2></div>
+    <p style="margin:0 0 22px;max-width:82ch;font-size:15px;line-height:1.72;color:#5D665B;text-wrap:pretty">Solid boxes are screens or states, dashed boxes are decisions, green boxes are terminal states. Labels on the arrows are the actual button text where one exists, so a flow line can be traced to a control in <em>Dananeh Screens</em>.</p>
+    
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:24px 26px;margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px"><h3 style="margin:0;font-size:17px;font-weight:800">First run → first completion</h3></div>
+      <p style="margin:0 0 20px;max-width:88ch;font-size:13.5px;line-height:1.7;color:#5D665B">Four onboarding steps, none of them blocking, then straight into a bundled seed. The account and notification asks both sit after the first completion — the two things most apps ask for before delivering anything.</p>
+      <div style="overflow-x:auto"><div style="display:flex;flex-direction:column;gap:2px;width:max-content"><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Cold launch</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">anonymous uid created</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Brand promise</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">one claim, one out</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">شروع</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Interests</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">≥2, reversible</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Pace + time</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">sets daily goal</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">First seed handoff</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">bundled, works offline</div>
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:10.5px;color:#5D665B">شروع دانه</span>
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Player · 11 blocks</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">autosave per block</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Assessed block</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">answer → explanation</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">غلط</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Retry</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">same block, no penalty</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Summary</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">3 recallable points</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">Completion</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">review date set</div>
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:10.5px;color:#5D665B">after value is delivered</span>
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Notification ask</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">cap stated first</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">باشه / الان نه</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Account offer</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">guest data carries over</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">بعداً</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">Home</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">continue card present</div>
+  </div></div></div></div>
+    </div>
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:24px 26px;margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px"><h3 style="margin:0;font-size:17px;font-weight:800">Seed player — block loop and exits</h3></div>
+      <p style="margin:0 0 20px;max-width:88ch;font-size:13.5px;line-height:1.7;color:#5D665B">One meaningful block per viewport. Progress is written on every block change, so closing is free and resume is exact. An unrecognised block type degrades instead of blocking the seed.</p>
+      <div style="overflow-x:auto"><div style="display:flex;flex-direction:column;gap:2px;width:max-content"><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Open seed</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">revision pinned</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Resolve bundle</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">cache → SQLite → network</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">hit</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Render block</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">registry lookup</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">unknown type</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Fallback block</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">skip, log type</div>
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Block type?</div>
+    
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">read</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">richText · image · quote · callout</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">continue enabled</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">assessed</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">MC · MS · TF · order · match</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">submit gated on selection</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">submit</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Feedback + explanation</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">icon + label + text</div>
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:10.5px;color:#5D665B">every transition</span>
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Autosave</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">block id + revision + ts</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">online</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">Outbox flush</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">idempotent by event id</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">offline</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Queue locally</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">retry with backoff</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">close</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">Exit without dialog</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">resume point kept</div>
+  </div></div></div></div>
+    </div>
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:24px 26px;margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px"><h3 style="margin:0;font-size:17px;font-weight:800">Offline, download and sync</h3></div>
+      <p style="margin:0 0 20px;max-width:88ch;font-size:13.5px;line-height:1.7;color:#5D665B">Three cache levels, and a UI that distinguishes them: cached-and-complete, cached-but-stale, and not-on-device. A guaranteed download is the only state that promises the seed will open with no network.</p>
+      <div style="overflow-x:auto"><div style="display:flex;flex-direction:column;gap:2px;width:max-content"><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Seed requested</div>
+    
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Memory cache</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">current session</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">miss</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">SQLite catalog</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">metadata + manifest</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">miss</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Downloaded bundle</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">FileSystem + checksum</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">miss</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Network fetch</div>
+    
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Checksum valid?</div>
+    
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">yes</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">Open seed</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">offline badge if stale</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">no</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Corrupt state</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">re-download offered</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">no network</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">Offline-missing</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">names what still works</div>
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:10.5px;color:#5D665B">reconnect</span>
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Outbox drain</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">one sync per reconnect</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Conflict policy</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">max progress, monotonic completion</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">Synced toast</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">2s, auto-dismiss</div>
+  </div></div></div></div>
+    </div>
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:24px 26px;margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px"><h3 style="margin:0;font-size:17px;font-weight:800">Review scheduler</h3></div>
+      <p style="margin:0 0 20px;max-width:88ch;font-size:13.5px;line-height:1.7;color:#5D665B">Base intervals of 1, 3, 7 and 14 days, then adaptive. Confidence is stored separately from correctness, and each rating maps to a stated interval so the user can predict what happens next.</p>
+      <div style="overflow-x:auto"><div style="display:flex;flex-direction:column;gap:2px;width:max-content"><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Seed completed</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">reviewItems created</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">+1 day</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Due queue</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">grouped by day</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">open</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Recall prompt</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">answer covered</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">reveal</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:#FFFDF7;border:1.5px solid rgba(31,36,30,.16);border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#1F241E">Answer shown</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">no scoring yet</div>
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">Confidence?</div>
+    
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">کامل</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">+14 days</div>
+    
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">با کمی فکر</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">+7 days</div>
+    
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">نصفه‌نیمه</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">+3 days</div>
+    
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    <div style="font-size:10px;color:#5D665B;white-space:nowrap">یادم نبود</div>
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">+1 day</div>
+    
+  </div></div><div style="display:flex;align-items:center;gap:7px;padding:4px 0 4px 56px">
+    <svg width="10" height="24" viewBox="0 0 10 24" aria-hidden="true"><path d="M5 0v18M1.5 14.5L5 18l3.5-3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span style="font-size:10.5px;color:#5D665B">any time</span>
+  </div><div style="display:flex;align-items:center;gap:2px;flex-wrap:nowrap"><div style="flex:none;background:#FFFDF7;border:1.5px dashed #8A6100;border-radius:16px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#8A6100">«بعداً مرور می‌کنم»</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">defers the whole queue</div>
+  </div><div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px">
+    
+    <svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true"><path d="M0 5h20M16 1.5L20 5l-4 3.5" fill="none" stroke="#8C8778" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+  </div><div style="flex:none;background:rgba(47,109,75,.10);border:1.5px solid #2F6D4B;border-radius:14px;padding:11px 13px;min-width:126px;max-width:168px">
+    <div style="font-size:12.5px;font-weight:700;line-height:1.4;color:#2F6D4B">No penalty</div>
+    <div style="font-size:11px;line-height:1.5;color:#5D665B;margin-top:4px">no debt copy, no streak loss</div>
+  </div></div></div></div>
+    </div>
+  </section>
+
+  <section style="padding:48px 48px 0">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">I · 03</span><h2 style="margin:0;font-size:24px;font-weight:800">Accessibility annotations</h2></div>
+    <p style="margin:0 0 22px;max-width:82ch;font-size:15px;line-height:1.72;color:#5D665B;text-wrap:pretty">Focus order is annotated per screen inside <em>Dananeh Prototype</em> — change screens there and the ordered list on the right updates. Below are the screen-reader contract and the measured contrast results.</p>
+
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;overflow:hidden;margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;background:rgba(31,36,30,.04);font-size:11px;font-weight:700;letter-spacing:.06em;color:#5D665B">
+        <div style="padding:11px 14px">ELEMENT</div><div style="padding:11px 8px">ROLE</div><div style="padding:11px 14px">ANNOUNCED LABEL (fa)</div><div style="padding:11px 14px">RULE</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Close (player)</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">button</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">بستن دانه</div>
+        <div style="padding:11px 14px;color:#5D665B">Not «×». Hint: «پیشرفت شما ذخیره می‌شود» so leaving does not feel destructive.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Progress (player)</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">progressbar</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">بلوک ۵ از ۱۱</div>
+        <div style="padding:11px 14px;color:#5D665B">Value announced as blocks, never as a percentage — blocks are what the user can act on.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Answer option</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">radio / checkbox</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">یکدست روشن، مثل سطح یک ستاره</div>
+        <div style="padding:11px 14px;color:#5D665B">State appended after submit: «، پاسخ درست» / «، پاسخ نادرست» / «، جا افتاد». Never a colour word.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Feedback panel</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">—, aria-live=polite</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">درست است. تعداد ستاره‌ها…</div>
+        <div style="padding:11px 14px;color:#5D665B">Announced once on submit. Politeness is deliberate: assertive would cut off the option label mid-read.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Ordering arrows</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">button</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">یک پله بالاتر / پایین‌تر</div>
+        <div style="padding:11px 14px;color:#5D665B">Impossible direction is aria-disabled, not hidden, so the list length stays predictable.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Match pair</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">button</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">مفهوم: افق دید، بدون جفت</div>
+        <div style="padding:11px 14px;color:#5D665B">Tap-to-pair is the primary path; drag is an enhancement, never the only way.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Growth ring</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">image</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">۴ روز از ۷ روز این هفته</div>
+        <div style="padding:11px 14px;color:#5D665B">Decorative rings are aria-hidden. Only the one carrying data gets a label.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Weekly dots</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">—</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">۴ روز از ۷</div>
+        <div style="padding:11px 14px;color:#5D665B">The dot row itself is aria-hidden; the adjacent text carries the value.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Offline banner</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">status</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">آفلاین، آخرین به‌روزرسانی ۲ ساعت پیش</div>
+        <div style="padding:11px 14px;color:#5D665B">role=status so it is announced without stealing focus from what the user was reading.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Topic chip</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">button</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">موضوع اخترشناسی، انتخاب‌شده</div>
+        <div style="padding:11px 14px;color:#5D665B">Selection state in the label, because the accent colour is the only visual difference.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Download button</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">button</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">دانلود دانه، ۲٫۶ مگابایت</div>
+        <div style="padding:11px 14px;color:#5D665B">Size announced before the action — cellular users need it to decide.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Search field</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">searchbox</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">جست‌وجو در دانه‌ها و موضوع‌ها</div>
+        <div style="padding:11px 14px;color:#5D665B">Result count announced via the aria-live note, not by re-reading the whole list.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:196px 130px 1fr 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px;font-weight:700">Confidence option</div>
+        <div style="padding:11px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(31,36,30,.05);border-radius:5px;padding:3px 6px">radio</span></div>
+        <div dir="rtl" style="padding:11px 14px;font-family:'YekanBakh',system-ui,sans-serif">با کمی فکر، مرور بعدی ۷ روز دیگر</div>
+        <div style="padding:11px 14px;color:#5D665B">The consequence is part of the label, so the choice is informed without extra navigation.</div>
+      </div>
+    </div>
+
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;overflow:hidden;margin-bottom:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;background:rgba(31,36,30,.04);font-size:11px;font-weight:700;letter-spacing:.06em;color:#5D665B">
+        <div style="padding:11px 14px">FOREGROUND</div><div style="padding:11px 8px">MEASURED AGAINST</div><div style="padding:11px 8px">RATIO</div><div style="padding:11px 8px">RESULT</div><div style="padding:11px 14px">WHERE</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">text.primary #1F241E</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">canvas #F7F4EA</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">14.4:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">All body and title text, light</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">text.secondary #5D665B</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">canvas #F7F4EA</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">5.4:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Metadata, captions, helper text</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">brand.primary #2F6D4B</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">canvas #F7F4EA</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">5.6:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Links, inline actions, badges</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">#FFFDF7 on brand.primary</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">fill #2F6D4B</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">6.1:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Primary CTA label, light</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">brand.primary #2F6D4B</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">track #E4E0D2</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">4.7:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#8A6100;background:rgba(233,169,40,.2);border-radius:5px;padding:3px 7px">UI</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Progress fill vs track — 3:1 floor</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">feedback.errorInk #A03A33</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">error tint 9%</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">5.8:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">«پاسخ تو», «نادرست», destructive copy</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">accent.sunInk #8A6100</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">canvas #F7F4EA</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">5.0:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Partial-credit label, section kickers</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">ink #1F241E on accent.sun</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">fill #E9A928</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">7.7:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Sun is fill-only in light mode</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">accent.plum #6F5178</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">canvas #F7F4EA</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">6.1:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Humanities topic chips</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">border.strong #8C8778</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">card #FFFDF7</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">3.5:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#8A6100;background:rgba(233,169,40,.2);border-radius:5px;padding:3px 7px">UI</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Off switch track, state illustrations</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">#FFFDF7 knob</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">off track #8C8778</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">3.5:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#8A6100;background:rgba(233,169,40,.2);border-radius:5px;padding:3px 7px">UI</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Switch knob must be findable when off</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">text.primary #F4F3EB</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">dark canvas #171A17</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">15.8:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">All body and title text, dark</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">brand.primary #77B98A</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">dark canvas #171A17</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">7.6:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Dark CTA fill, links</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">ink #0F120F on #77B98A</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">fill #77B98A</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">8.2:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Dark CTA label — white would be 2.1:1</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 78px 74px 1.5fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:10px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">brand.sprout #8BCB94</span></div>
+        <div style="padding:10px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">dark canvas #171A17</span></div>
+        <div style="padding:10px 8px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">9.3:1</div>
+        <div style="padding:10px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">AA</span></div>
+        <div style="padding:10px 14px;color:#5D665B">Progress fill is safe in dark only</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:18px;padding:20px 22px"><div style="font-size:13px;font-weight:800;margin-bottom:9px">RTL focus order</div><div style="font-size:13px;line-height:1.7;color:#5D665B">Reading order drives focus order, so in RTL the traversal runs right-to-left, top-to-bottom. The player header is one exception: close is first regardless of side, because leaving must always be the first thing reachable.</div></div>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:18px;padding:20px 22px"><div style="font-size:13px;font-weight:800;margin-bottom:9px">200% type</div><div style="font-size:13px;line-height:1.7;color:#5D665B">Body scales fully; titles cap at 1.6× and clamp to three lines. Buttons grow in height and never shrink their label. Answer options become full-width blocks with the indicator top-aligned at the start edge. Nothing is hidden to make room.</div></div>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:18px;padding:20px 22px"><div style="font-size:13px;font-weight:800;margin-bottom:9px">Reduce Motion</div><div style="font-size:13px;line-height:1.7;color:#5D665B">Every entry in the motion spec has a cross-fade or instant equivalent. The completion ring fades in fully drawn rather than animating, and the skeleton pulse stops. Read at mount and re-read on foreground.</div></div>
+    </div>
+  </section>
+
+  <section style="padding:48px 48px 0">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">K · 04</span><h2 style="margin:0;font-size:24px;font-weight:800">Redlines — three widths and 200% text</h2></div>
+    <p style="margin:0 0 24px;max-width:82ch;font-size:15px;line-height:1.72;color:#5D665B;text-wrap:pretty">Same screen, four conditions. Only three things change across widths: the gutter, whether card metadata wraps, and the hero illustration height. Nothing is hidden and nothing reflows into a different layout — the design has one column at every phone size, by choice. The 200% frame is annotated with its scroll boundary rather than trimmed to fit: pretending a doubled type size costs no vertical space would make the redline useless.</p>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:9px">
+    <div style="font-size:12.5px;color:#5D665B"><strong style="color:#1F241E">320pt · iPhone SE</strong> — gutter 20, title clamps to 2 lines</div>
+    <div style="width:320px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">320pt</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+    <div dir="rtl" style="width:320px;height:600px;background:#F7F4EA;border:1px solid rgba(31,36,30,.16);border-radius:30px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+      <div style="flex:none;height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12.5px;font-weight:600"><span>۹:۴۱</span><span style="width:14px;height:8px;border:1px solid #1F241E;border-radius:2px"></span></div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:0 20px">
+        <div style="position:absolute;inset-block:0;inset-inline-start:0;width:20px;background:rgba(181,68,60,.07);border-inline-end:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="position:absolute;inset-block:0;inset-inline-end:0;width:20px;background:rgba(181,68,60,.07);border-inline-start:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="padding:6px 0 14px"><div style="font-size:20px;font-weight:800">عصر بخیر</div></div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <svg width="42" height="42" viewBox="0 0 42 42" style="flex:none" aria-hidden="true"><circle cx="21" cy="21" r="17" fill="none" stroke="#E4E0D2" stroke-width="4"></circle><circle cx="21" cy="21" r="17" fill="none" stroke="#2F6D4B" stroke-width="4" stroke-dasharray="106.8" stroke-dashoffset="64.1" transform="rotate(-90 21 21) scale(-1,1) translate(-42,0)"></circle></svg>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11.5px;font-weight:700;color:#5D665B;margin-bottom:3px">ادامه‌ی دانه</div>
+              <div style="font-size:15px;font-weight:700;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">اثر لنگر چگونه تصمیم…</div>
+            </div>
+            <span style="flex:none;width:44px;height:44px;border-radius:14px;background:#2F6D4B;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#FFFDF7" aria-hidden="true"><path d="M8 5l11 7-11 7z"></path></svg></span>
+          </div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;overflow:hidden">
+          <div style="height:96px;background:repeating-linear-gradient(135deg,#EDE8D8 0 9px,#F4F0E2 9px 18px)"></div>
+          <div style="padding:14px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap">
+              <span style="font-size:11.5px;font-weight:700;color:#2F6D4B;background:rgba(47,109,75,.10);border-radius:8px;padding:5px 9px">اخترشناسی</span>
+              <span style="font-size:12px;font-weight:600;color:#5D665B">۶ دقیقه<span aria-hidden="true" style="display:inline-block;width:4px;height:4px;border-radius:2px;background:currentColor;opacity:.42;vertical-align:middle;margin:0 7px"></span>مقدماتی</span>
+            </div>
+            <div style="font-size:18px;font-weight:800;line-height:1.45;margin-bottom:10px">چرا آسمان شب کاملاً تاریک است؟</div>
+            <div style="background:#2F6D4B;border-radius:16px;min-height:46px;display:flex;align-items:center;justify-content:center;color:#FFFDF7;font-size:15px;font-weight:700">شروع دانه</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;box-sizing:border-box;height:76px;background:#FFFDF7;border-top:1px solid rgba(31,36,30,.10);display:flex;align-items:flex-start;padding-top:10px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:700;color:#2F6D4B">خانه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">کاوش</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">باغچه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">من</span></div>
+      </div>
+    </div>
+    <div style="width:320px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">gutter 20 · content 280</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+  </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+    <div style="font-size:12.5px;color:#5D665B"><strong style="color:#1F241E">390pt · baseline</strong> — every spec is drawn here</div>
+    <div style="width:390px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">390pt</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+    <div dir="rtl" style="width:390px;height:600px;background:#F7F4EA;border:1px solid rgba(31,36,30,.16);border-radius:30px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+      <div style="flex:none;height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12.5px;font-weight:600"><span>۹:۴۱</span><span style="width:14px;height:8px;border:1px solid #1F241E;border-radius:2px"></span></div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:0 20px">
+        <div style="position:absolute;inset-block:0;inset-inline-start:0;width:20px;background:rgba(181,68,60,.07);border-inline-end:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="position:absolute;inset-block:0;inset-inline-end:0;width:20px;background:rgba(181,68,60,.07);border-inline-start:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="padding:6px 0 14px"><div style="font-size:20px;font-weight:800">عصر بخیر</div></div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <svg width="42" height="42" viewBox="0 0 42 42" style="flex:none" aria-hidden="true"><circle cx="21" cy="21" r="17" fill="none" stroke="#E4E0D2" stroke-width="4"></circle><circle cx="21" cy="21" r="17" fill="none" stroke="#2F6D4B" stroke-width="4" stroke-dasharray="106.8" stroke-dashoffset="64.1" transform="rotate(-90 21 21) scale(-1,1) translate(-42,0)"></circle></svg>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11.5px;font-weight:700;color:#5D665B;margin-bottom:3px">ادامه‌ی دانه</div>
+              <div style="font-size:15px;font-weight:700;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">اثر لنگر چگونه تصمیم…</div>
+            </div>
+            <span style="flex:none;width:44px;height:44px;border-radius:14px;background:#2F6D4B;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#FFFDF7" aria-hidden="true"><path d="M8 5l11 7-11 7z"></path></svg></span>
+          </div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;overflow:hidden">
+          <div style="height:96px;background:repeating-linear-gradient(135deg,#EDE8D8 0 9px,#F4F0E2 9px 18px)"></div>
+          <div style="padding:14px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap">
+              <span style="font-size:11.5px;font-weight:700;color:#2F6D4B;background:rgba(47,109,75,.10);border-radius:8px;padding:5px 9px">اخترشناسی</span>
+              <span style="font-size:12px;font-weight:600;color:#5D665B">۶ دقیقه<span aria-hidden="true" style="display:inline-block;width:4px;height:4px;border-radius:2px;background:currentColor;opacity:.42;vertical-align:middle;margin:0 7px"></span>مقدماتی</span>
+            </div>
+            <div style="font-size:18px;font-weight:800;line-height:1.45;margin-bottom:10px">چرا آسمان شب کاملاً تاریک است؟</div>
+            <div style="background:#2F6D4B;border-radius:16px;min-height:46px;display:flex;align-items:center;justify-content:center;color:#FFFDF7;font-size:15px;font-weight:700">شروع دانه</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;box-sizing:border-box;height:76px;background:#FFFDF7;border-top:1px solid rgba(31,36,30,.10);display:flex;align-items:flex-start;padding-top:10px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:700;color:#2F6D4B">خانه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">کاوش</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">باغچه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">من</span></div>
+      </div>
+    </div>
+    <div style="width:390px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">gutter 20 · content 350</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+  </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+    <div style="font-size:12.5px;color:#5D665B"><strong style="color:#1F241E">430pt · Pro Max</strong> — gutter 24, metadata fits one row</div>
+    <div style="width:430px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">430pt</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+    <div dir="rtl" style="width:430px;height:600px;background:#F7F4EA;border:1px solid rgba(31,36,30,.16);border-radius:30px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+      <div style="flex:none;height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12.5px;font-weight:600"><span>۹:۴۱</span><span style="width:14px;height:8px;border:1px solid #1F241E;border-radius:2px"></span></div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:0 24px">
+        <div style="position:absolute;inset-block:0;inset-inline-start:0;width:24px;background:rgba(181,68,60,.07);border-inline-end:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="position:absolute;inset-block:0;inset-inline-end:0;width:24px;background:rgba(181,68,60,.07);border-inline-start:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="padding:6px 0 14px"><div style="font-size:20px;font-weight:800">عصر بخیر</div></div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <svg width="42" height="42" viewBox="0 0 42 42" style="flex:none" aria-hidden="true"><circle cx="21" cy="21" r="17" fill="none" stroke="#E4E0D2" stroke-width="4"></circle><circle cx="21" cy="21" r="17" fill="none" stroke="#2F6D4B" stroke-width="4" stroke-dasharray="106.8" stroke-dashoffset="64.1" transform="rotate(-90 21 21) scale(-1,1) translate(-42,0)"></circle></svg>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11.5px;font-weight:700;color:#5D665B;margin-bottom:3px">ادامه‌ی دانه</div>
+              <div style="font-size:15px;font-weight:700;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">اثر لنگر چگونه تصمیم…</div>
+            </div>
+            <span style="flex:none;width:44px;height:44px;border-radius:14px;background:#2F6D4B;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#FFFDF7" aria-hidden="true"><path d="M8 5l11 7-11 7z"></path></svg></span>
+          </div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;overflow:hidden">
+          <div style="height:96px;background:repeating-linear-gradient(135deg,#EDE8D8 0 9px,#F4F0E2 9px 18px)"></div>
+          <div style="padding:14px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap">
+              <span style="font-size:11.5px;font-weight:700;color:#2F6D4B;background:rgba(47,109,75,.10);border-radius:8px;padding:5px 9px">اخترشناسی</span>
+              <span style="font-size:12px;font-weight:600;color:#5D665B">۶ دقیقه<span aria-hidden="true" style="display:inline-block;width:4px;height:4px;border-radius:2px;background:currentColor;opacity:.42;vertical-align:middle;margin:0 7px"></span>مقدماتی</span>
+            </div>
+            <div style="font-size:18px;font-weight:800;line-height:1.45;margin-bottom:10px">چرا آسمان شب کاملاً تاریک است؟</div>
+            <div style="background:#2F6D4B;border-radius:16px;min-height:46px;display:flex;align-items:center;justify-content:center;color:#FFFDF7;font-size:15px;font-weight:700">شروع دانه</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;box-sizing:border-box;height:76px;background:#FFFDF7;border-top:1px solid rgba(31,36,30,.10);display:flex;align-items:flex-start;padding-top:10px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:700;color:#2F6D4B">خانه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">کاوش</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">باغچه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:10.5px;font-weight:600;color:#5D665B">من</span></div>
+      </div>
+    </div>
+    <div style="width:430px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">gutter 24 · content 382</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+  </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+    <div style="font-size:12.5px;color:#5D665B"><strong style="color:#1F241E">390pt at 200% type</strong> — the feed scrolls; boundary marked</div>
+    <div style="width:390px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">390pt</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+    <div dir="rtl" style="width:390px;height:600px;background:#F7F4EA;border:1px solid rgba(31,36,30,.16);border-radius:30px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+      <div style="flex:none;height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12.5px;font-weight:600"><span>۹:۴۱</span><span style="width:14px;height:8px;border:1px solid #1F241E;border-radius:2px"></span></div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:0 20px">
+        <div style="position:absolute;inset-block:0;inset-inline-start:0;width:20px;background:rgba(181,68,60,.07);border-inline-end:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="position:absolute;inset-block:0;inset-inline-end:0;width:20px;background:rgba(181,68,60,.07);border-inline-start:1px dashed rgba(181,68,60,.45)"></div>
+        <div style="padding:6px 0 14px"><div style="font-size:26px;font-weight:800">عصر بخیر</div></div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <svg width="42" height="42" viewBox="0 0 42 42" style="flex:none" aria-hidden="true"><circle cx="21" cy="21" r="17" fill="none" stroke="#E4E0D2" stroke-width="4"></circle><circle cx="21" cy="21" r="17" fill="none" stroke="#2F6D4B" stroke-width="4" stroke-dasharray="106.8" stroke-dashoffset="64.1" transform="rotate(-90 21 21) scale(-1,1) translate(-42,0)"></circle></svg>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:15px;font-weight:700;color:#5D665B;margin-bottom:3px">ادامه‌ی دانه</div>
+              <div style="font-size:20px;font-weight:700;line-height:1.45;">اثر لنگر چگونه تصمیم‌های مالی ما را تغییر می‌دهد؟</div>
+            </div>
+            <span style="flex:none;width:44px;height:44px;border-radius:14px;background:#2F6D4B;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="#FFFDF7" aria-hidden="true"><path d="M8 5l11 7-11 7z"></path></svg></span>
+          </div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;overflow:hidden">
+          <div style="height:70px;background:repeating-linear-gradient(135deg,#EDE8D8 0 9px,#F4F0E2 9px 18px)"></div>
+          <div style="padding:14px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap">
+              <span style="font-size:15px;font-weight:700;color:#2F6D4B;background:rgba(47,109,75,.10);border-radius:8px;padding:5px 9px">اخترشناسی</span>
+              <span style="font-size:15px;font-weight:600;color:#5D665B">۶ دقیقه<span aria-hidden="true" style="display:inline-block;width:4px;height:4px;border-radius:2px;background:currentColor;opacity:.42;vertical-align:middle;margin:0 7px"></span>مقدماتی</span>
+            </div>
+            <div style="font-size:26px;font-weight:800;line-height:1.45;margin-bottom:10px">چرا آسمان شب کاملاً تاریک است؟</div>
+            <div style="background:#2F6D4B;border-radius:16px;min-height:60px;display:flex;align-items:center;justify-content:center;color:#FFFDF7;font-size:20px;font-weight:700">شروع دانه</div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute;inset-inline:0;bottom:96px;height:0;pointer-events:none">
+        <div style="border-top:1.5px dashed #A03A33"></div>
+        <div style="display:flex;justify-content:flex-start;padding-inline-start:10px">
+          <span dir="ltr" style="background:#A03A33;color:#FFFDF7;font-family:ui-monospace,Menlo,monospace;font-size:9px;font-weight:700;border-radius:0 0 4px 4px;padding:2px 6px;white-space:nowrap">scroll boundary · +38pt below</span>
+        </div>
+      </div>
+      <div style="flex:none;box-sizing:border-box;height:96px;background:#FFFDF7;border-top:1px solid rgba(31,36,30,.10);display:flex;align-items:flex-start;padding-top:10px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#2F6D4B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:13px;font-weight:700;color:#2F6D4B">خانه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:13px;font-weight:600;color:#5D665B">کاوش</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:13px;font-weight:600;color:#5D665B">باغچه</span></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#5D665B" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9.5"></circle></svg><span style="font-size:13px;font-weight:600;color:#5D665B">من</span></div>
+      </div>
+    </div>
+    <div style="width:390px"><div style="display:flex;align-items:center;gap:6px;width:100%;color:#A03A33">
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:700;white-space:nowrap">gutter 20 · content 350</span>
+  <span style="flex:1;height:1px;background:#A03A33"></span>
+  <span style="flex:none;width:1px;height:9px;background:#A03A33"></span>
+</div></div>
+  </div>
+    </div>
+    <div style="margin-top:22px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:18px;padding:18px 20px"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Gutter</div><div style="font-size:12.5px;line-height:1.7;color:#5D665B">20 below 430pt, 24 at and above. Cards go edge-to-edge within the gutter; nothing bleeds to the screen edge except the tab bar and banners.</div></div>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:18px;padding:18px 20px"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Vertical rhythm</div><div style="font-size:12.5px;line-height:1.7;color:#5D665B">12 between cards in a group, 22 between groups, 32 before a section header. Player blocks use a strict 24 so every block starts at the same y.</div></div>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:18px;padding:18px 20px"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Safe areas</div><div style="font-size:12.5px;line-height:1.7;color:#5D665B">Bottom CTA sits 26–28 above the safe-area inset, never on it. The tab bar is <strong style="color:#1F241E">76 border-box</strong> plus the home-indicator inset (96 at 200% type). The repo currently sets <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">BottomTabInset = {ios: 50, android: 80}</span> — Android already fits, <strong style="color:#1F241E">iOS must change 50 → 76</strong>, or the labels lose 26pt and clip at large type.</div></div>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:18px;padding:18px 20px"><div style="font-size:13px;font-weight:800;margin-bottom:8px">At 200%</div><div style="font-size:12.5px;line-height:1.7;color:#5D665B">Hero illustration drops 96→70 and metadata wraps to two rows, but Home still exceeds the viewport by ~38pt — it is a scrolling feed, and at this size it scrolls. That is correct: the guarantee is that <strong style="color:#1F241E">pinned screen-level CTAs</strong> — player, onboarding, review — never leave the viewport, because they sit in a non-shrinking footer. A card CTA inside a feed scrolls with its card.</div></div>
+    </div>
+  </section>
+
+  <section style="padding:48px 48px 0">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">J · 05</span><h2 style="margin:0;font-size:24px;font-weight:800">Developer handoff</h2></div>
+    <p style="margin:0 0 24px;max-width:82ch;font-size:15px;line-height:1.72;color:#5D665B;text-wrap:pretty">Mapped onto the repo as it stands. The blueprint's Goal 1 asks for tokens and typography primitives before anything else; this is the concrete version of that goal.</p>
+
+    <div style="margin-bottom:22px">
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;overflow:hidden;margin-bottom:22px">
+        <div style="padding:18px 22px 12px;border-bottom:1px solid rgba(31,36,30,.08)"><strong style="font-size:14.5px;font-weight:800">Files this design touches</strong></div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;background:rgba(31,36,30,.04);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:#5D665B"><div style="padding:9px 14px">PATH</div><div style="padding:9px 8px">ACTION</div><div style="padding:9px 14px">WHAT CHANGES</div></div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/constants/theme.ts</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#A03A33;background:rgba(181,68,60,.12);border-radius:5px;padding:3px 7px">replace</span></div>
+        <div style="padding:11px 14px;color:#5D665B">The 5 greyscale colours become the semantic token set below, with a light/dark pair per token. <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">Spacing</span> keeps its shape but gains 12/20/48; <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">MaxContentWidth</span> drops to 720.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">tailwind.config.js</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#A03A33;background:rgba(181,68,60,.12);border-radius:5px;padding:3px 7px">replace</span></div>
+        <div style="padding:11px 14px;color:#5D665B">Remove <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">brand.500 #8b5cf6</span> and <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">surface.light #f9fafb</span> entirely — no violet survives the rebrand. Radius scale becomes 8/16/24/32.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/components/Text.tsx</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#8A6100;background:rgba(233,169,40,.2);border-radius:5px;padding:3px 7px">extend</span></div>
+        <div style="padding:11px 14px;color:#5D665B">Keep the weight→family mapping. Add a <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">variant</span> prop bound to the type scale so sizes stop being ad-hoc class names.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/app/lesson/[id].tsx</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#A03A33;background:rgba(181,68,60,.12);border-radius:5px;padding:3px 7px">replace</span></div>
+        <div style="padding:11px 14px;color:#5D665B">Becomes <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">features/seed-player</span> with a block registry. Also fixes the conditional <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">useColorScheme</span> call flagged in the audit.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/app/(tabs)/_layout.tsx</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#8A6100;background:rgba(233,169,40,.2);border-radius:5px;padding:3px 7px">extend</span></div>
+        <div style="padding:11px 14px;color:#5D665B">Add the Garden tab; four tabs total. Tab icons ship as vectors — the two PNGs in <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">assets/images/tabIcons</span> are retired.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/app/(tabs)/index.tsx</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#A03A33;background:rgba(181,68,60,.12);border-radius:5px;padding:3px 7px">replace</span></div>
+        <div style="padding:11px 14px;color:#5D665B">From a centred welcome card to the Home composition: continue, growth strip, hero, four rails, explicit end.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/app/auth.tsx</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#8A6100;background:rgba(233,169,40,.2);border-radius:5px;padding:3px 7px">extend</span></div>
+        <div style="padding:11px 14px;color:#5D665B">No longer the entry point. Reached from Profile or after a completion; guest stays guest until they choose otherwise.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/i18n.ts</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#A03A33;background:rgba(181,68,60,.12);border-radius:5px;padding:3px 7px">replace</span></div>
+        <div style="padding:11px 14px;color:#5D665B">Locale bootstrap instead of <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">I18nManager.forceRTL</span> at import time — the current version needs a reload to switch direction.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/locales/fa.json</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#8A6100;background:rgba(233,169,40,.2);border-radius:5px;padding:3px 7px">extend</span></div>
+        <div style="padding:11px 14px;color:#5D665B">Rename every «ویفر خرد» string. New keys for the 12 system states; no string may contain shame or urgency copy.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">src/models/lesson.ts</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#A03A33;background:rgba(181,68,60,.12);border-radius:5px;padding:3px 7px">replace</span></div>
+        <div style="padding:11px 14px;color:#5D665B">3 card types → 11 block types with <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">schemaVersion</span> and <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">revision</span>, per the blueprint bundle shape.</div>
+      </div>
+        <div style="display:grid;grid-template-columns:280px 118px 1fr;border-top:1px solid rgba(31,36,30,.07);font-size:12.5px;line-height:1.6">
+        <div style="padding:11px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">assets/fonts/*</span></div>
+        <div style="padding:11px 8px"><span style="font-size:10.5px;font-weight:800;color:#2F6D4B;background:rgba(47,109,75,.12);border-radius:5px;padding:3px 7px">keep</span></div>
+        <div style="padding:11px 14px;color:#5D665B">Six of the eight weights are loaded, <strong style="color:#1F241E">four are used</strong>: Regular 400 (body), SemiBold 600 (caption), Bold 700 (title.md, label), ExtraBold 800 (display, title.lg). Black 900 renders only in the archived «ویفر خرد» before-frames and the rejected streak sketch; Light 300 is loaded but never applied — the type scale has no light weight on purpose, because Persian loses stroke contrast at body sizes. <strong style="color:#1F241E">Prunable: Light, Thin, ExtraBlack.</strong></div>
+      </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start">
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;overflow:hidden">
+          <div style="padding:18px 22px 12px;border-bottom:1px solid rgba(31,36,30,.08)"><strong style="font-size:14.5px;font-weight:800">Token → RN mapping</strong></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;background:rgba(31,36,30,.04);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:#5D665B"><div style="padding:9px 14px">SEMANTIC</div><div style="padding:9px 8px">LIGHT / DARK</div><div style="padding:9px 14px">NATIVEWIND CLASS</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">surface.canvas</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#F7F4EA / #171A17</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">bg-canvas dark:bg-canvas-dark</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">surface.card</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#FFFDF7 / #222722</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">bg-card dark:bg-card-dark</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">text.primary</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#1F241E / #F4F3EB</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">text-ink dark:text-ink-dark</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">text.secondary</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#5D665B / #BBC2B8</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">text-muted dark:text-muted-dark</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">brand.primary</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#2F6D4B / #77B98A</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">bg-brand text-brand</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">brand.sprout</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#65A96B / #8BCB94</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">bg-sprout</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">accent.sun</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#E9A928 / #F2C45F</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">bg-sun</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">accent.sunInk</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#8A6100 / #F2C45F</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">text-sun-ink</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">accent.plum</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#6F5178 / #B99BC2</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">text-plum bg-plum</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">feedback.error</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#B5443C / #EF8C84</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">bg-error border-error</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">feedback.errorInk</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#A03A33 / #EF8C84</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">text-error-ink</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">border.hairline</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">rgba(31,36,30,.10)</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">border-hairline</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">border.strong</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#8C8778 / #4A5248</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">border-strong bg-strong</span></div>
+      </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;border-top:1px solid rgba(31,36,30,.07);font-size:12px;line-height:1.6">
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700">border.track</span></div>
+        <div style="padding:9px 8px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#E4E0D2 / #333A32</span></div>
+        <div style="padding:9px 14px"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5D665B">bg-track</span></div>
+      </div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:20px 22px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:13px">CONTENT CONSTRAINTS</div>
+          <div style="display:flex;flex-direction:column;gap:11px;font-size:13px;line-height:1.7;color:#5D665B">
+            <div><strong style="color:#1F241E;font-weight:700">Seed title</strong> ≤ 60 chars, 3-line clamp. <strong style="color:#1F241E;font-weight:700">Promise</strong> ≤ 80, one line, required. <strong style="color:#1F241E;font-weight:700">Topic name</strong> ≤ 14 or the chip wraps.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Question</strong> ≤ 120. <strong style="color:#1F241E;font-weight:700">Option</strong> ≤ 70. <strong style="color:#1F241E;font-weight:700">Explanation</strong> 120–260 — shorter reads as dismissive, longer gets skipped.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Summary</strong> exactly 3 points, ≤ 90 each, each independently recallable because the scheduler asks them separately.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Reflection</strong> ≤ 600, optional, never scored, stored on-device only.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Sources</strong> ≥ 1 to publish, each with publisher, date, era marker and type.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:22px">
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:22px 24px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:13px">REACT NATIVE NOTES</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.7;color:#5D665B">
+          <div><strong style="color:#1F241E;font-weight:700">Logical properties only.</strong> <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">marginStart/End</span>, <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">paddingStart/End</span>, <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">start/end</span> — never <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">left/right</span>. This is what makes the LTR proof free.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Do not <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">flexDirection:'row-reverse'</span></strong> inside an RTL tree — it double-flips. Plain <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">row</span> already lays out right-to-left.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Progress rings</strong> need <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">react-native-svg</span> with an explicit RTL transform; SVG does not inherit direction.</div>
+          <div><strong style="color:#1F241E;font-weight:700">FlashList</strong> for Garden and search; fixed <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">estimatedItemSize</span> per card variant (list 84, rail 132, hero 300).</div>
+          <div><strong style="color:#1F241E;font-weight:700">Player blocks</strong> render from a registry keyed by <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">block.type</span> with a default case. A missing key must render the fallback, not throw.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Persian numerals</strong> at the formatter, not in strings — one <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">toFaDigits()</span> so a Latin digit can never leak into UI copy.</div>
+        </div>
+      </div>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:22px 24px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:13px">LOCALIZATION</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.7;color:#5D665B">
+          <div><strong style="color:#1F241E;font-weight:700">No concatenation.</strong> «۶ دقیقه» is one ICU-formatted unit, not <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">n + ' دقیقه'</span> — the plural rule differs by locale.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Metadata separators are components,</strong> never the character <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">·</span>: in Yekan Bakh it is glyph-identical to ۰, so «۳۴ دقیقه» reads as ۳۴۰.</div>
+          <div><strong style="color:#1F241E;font-weight:700">ZWNJ is content.</strong> Store U+200C in the string; normalise it for search, preserve it for display, and test truncation against it.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Dates:</strong> ISO UTC in data, Jalali at render. Foreign publication years carry an era marker («۱۹۸۷ م.»).</div>
+          <div><strong style="color:#1F241E;font-weight:700">Search normalization is shared</strong> between index and query — one package, or the two drift and results become unexplainable. Colloquial variants («آسمون») are a separate curated list, not normalization.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Bidi isolation</strong> on every Latin run: emails, URLs, error codes, versions, publisher names.</div>
+        </div>
+      </div>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:22px;padding:22px 24px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:13px">ASSETS</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.7;color:#5D665B">
+          <div><strong style="color:#1F241E;font-weight:700">Fonts:</strong> six loaded, <strong style="color:#1F241E">four used</strong> — 400/600/700/800. 900 only in the archived before-frames; 300 loaded but unapplied. Ship four, prune Light, Thin and ExtraBlack. woff2 for web, ttf for native, already in <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px">assets/fonts</span>. License confirmed by the product owner.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Icons:</strong> one 24×24 / 1.75-stroke vector set, ~22 glyphs, derived from the concentric-ring geometry. No icon font, no PNG sets.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Illustration:</strong> one commissioned piece per topic, 16:9 for cards and 4:5 for in-player, AVIF/WebP with JPEG fallback, three widths. Alt text is a publish gate.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Brand mark:</strong> three concentric circles plus a filled centre — never mirrored, never recoloured, never rotated. Works at 24px.</div>
+          <div><strong style="color:#1F241E;font-weight:700">Nothing text-in-image.</strong> Every string in every screen is live text, which is what makes 200% type and screen readers work.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#2F6D4B;border-radius:22px;padding:26px 30px;color:#F4F3EB;display:grid;grid-template-columns:1fr 1fr;gap:32px">
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.08em;opacity:.72;margin-bottom:12px">SUGGESTED BUILD ORDER</div>
+        <div style="font-size:14px;line-height:1.85">
+          <div><strong>1 · Tokens and type primitives.</strong> Blueprint Goal 1. Nothing else lands cleanly until the violet is gone.</div>
+          <div><strong>2 · Guest-first routing.</strong> Goal 2. Removes the login wall; biggest activation change in the set.</div>
+          <div><strong>3 · Block registry + player.</strong> Goal 6, but bring it forward — it is where the product actually lives.</div>
+          <div><strong>4 · Offline catalog and outbox.</strong> Goal 5. The differentiator, and it constrains the player's autosave shape.</div>
+          <div><strong>5 · Home, Explore, search.</strong> Goal 7. Needs the card component and the reason codes to exist first.</div>
+          <div><strong>6 · Review and growth.</strong> Goal 8. Retention, and the reason the summary block is written the way it is.</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.08em;opacity:.72;margin-bottom:12px">WHAT I WOULD TEST FIRST</div>
+        <div style="font-size:14px;line-height:1.85">
+          <div><strong>The finite Home.</strong> Whether an ending screen with four rails feels generous or empty is the one call in this design I cannot settle from the brief. Instrument the Explore CTA at the end of the rails.</div>
+          <div><strong>Weekly growth vs daily streak.</strong> Softer by design, and softer mechanics retain less in the short run. Watch D7 against the grace-day usage rate.</div>
+          <div><strong>Partial credit copy.</strong> «یکی از ۲ مورد» is honest but may read as failure. Worth an A/B against a warmer phrasing that keeps the same information.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}"></script>
+</body>
+</html>

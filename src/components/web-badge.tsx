@@ -29,7 +29,7 @@ export function WebBadge() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: Spacing.five,
+    padding: Spacing.eight,
     alignItems: 'center',
     gap: Spacing.two,
   },

@@ -1,0 +1,259 @@
+rules_version = '2';
+
+/**
+ * Deny by default.
+ *
+ * Two rules of thumb this file is written against:
+ *   1. Rules are not filters. A client query must carry constraints that match
+ *      the condition here, or the whole query fails — see the notes on `seeds`.
+ *   2. The privileged server SDK bypasses all of this, so anything that must be
+ *      true of server writes is enforced in the Function, not here.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function staff(role) {
+      return signedIn() && request.auth.token[role] == true;
+    }
+
+    function editorial() {
+      return staff('admin') || staff('editor') || staff('reviewer');
+    }
+
+    function unchanged(field) {
+      return !(field in request.resource.data) ||
+             (field in resource.data && request.resource.data[field] == resource.data[field]);
+    }
+
+    // ---------------------------------------------------------------- catalogue
+    // Published content is world-readable; nothing here is client-writable.
+    // A client listing these must filter on `status == 'published'` itself.
+
+    match /topics/{topicId} {
+      allow get, list: if resource.data.status == 'published';
+      allow write: if false;
+    }
+
+    match /paths/{pathId} {
+      allow get, list: if resource.data.status == 'published';
+      allow write: if false;
+    }
+
+    match /seeds/{seedId} {
+      allow get, list: if resource.data.status == 'published';
+      allow write: if false;
+    }
+
+    match /seedRevisions/{revisionId} {
+      allow get, list: if resource.data.status == 'published';
+      allow write: if false;
+    }
+
+    /** Minimum supported version and catalogue version; read by every client. */
+    match /appConfig/{document} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // --------------------------------------------------------------- user data
+
+    match /users/{uid} {
+      allow get: if owner(uid);
+      allow list: if false;
+
+      allow create: if owner(uid)
+        && request.resource.data.keys().hasOnly([
+             'displayName', 'locale', 'timezone', 'interests',
+             'notificationPreferences', 'createdAt', 'updatedAt'
+           ])
+        && request.resource.data.interests is list
+        && request.resource.data.interests.size() <= 20;
+
+      allow update: if owner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'displayName', 'locale', 'timezone', 'interests',
+             'notificationPreferences', 'updatedAt'
+           ])
+        && (!('interests' in request.resource.data)
+            || (request.resource.data.interests is list
+                && request.resource.data.interests.size() <= 20));
+
+      // Deletion is a Function: it has to reach subcollections, Storage files
+      // and push tokens, none of which a client delete would touch.
+      allow delete: if false;
+
+      match /progress/{seedId} {
+        allow read: if owner(uid);
+        allow create, update: if owner(uid)
+          && request.resource.data.seedId == seedId
+          && request.resource.data.revision is int
+          && request.resource.data.revision > 0
+          && request.resource.data.percent is number
+          && request.resource.data.percent >= 0
+          && request.resource.data.percent <= 100
+          && request.resource.data.status in ['in_progress', 'completed']
+          // Completion is monotonic: a finished seed never reopens, because the
+          // streak and review schedule are derived from it. `resource` is null
+          // on create, and reading through it there is an evaluation error, not
+          // a false — so the null case comes first.
+          && (resource == null
+              || resource.data.status != 'completed'
+              || request.resource.data.status == 'completed');
+        allow delete: if false;
+      }
+
+      match /saved/{seedId} {
+        allow read, write: if owner(uid)
+          && (request.method == 'delete' || request.resource.data.seedId == seedId);
+      }
+
+      match /reviews/{reviewId} {
+        allow read: if owner(uid);
+        // Intervals are computed server-side; a client may record the attempt
+        // but not invent its own schedule.
+        allow create, update: if owner(uid)
+          && request.resource.data.seedId is string
+          && request.resource.data.confidence in ['easy', 'good', 'hard', 'again'];
+        allow delete: if false;
+      }
+
+      match /devices/{deviceId} {
+        allow read, write: if owner(uid);
+      }
+
+      /** Server-authoritative aggregates: readable by their owner, never written. */
+      match /daily/{date} {
+        allow read: if owner(uid);
+        allow write: if false;
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    /**
+     * Deletion jobs. Written by the Function only; the owner can watch their
+     * own, which is what lets a resumed deletion report where it got to.
+     */
+    match /deletionJobs/{uid} {
+      allow read: if owner(uid) || staff('admin');
+      allow write: if false;
+    }
+
+    match /userStats/{uid} {
+      allow read: if owner(uid);
+      allow write: if false;
+    }
+
+    match /entitlements/{uid} {
+      allow read: if owner(uid);
+      allow write: if false;
+    }
+
+    match /feeds/{uid}/items/{itemId} {
+      allow read: if owner(uid);
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------- reporting
+
+    /**
+     * Reports arrive through the `submitReport` Function, never from a client.
+     *
+     * A report is retried from the outbox, so it has to be idempotent on the id
+     * the device generated — which a client-side create cannot be without also
+     * being allowed to update, and an updatable report is a rewritable one. The
+     * uid, the received time and the triage state are all set server-side.
+     */
+    match /reports/{reportId} {
+      allow create, update, delete: if false;
+      allow read: if staff('reviewer') || staff('admin');
+    }
+
+    /**
+     * Telemetry. Written by `recordTelemetryBatch`, read by staff.
+     *
+     * A client that could write here could forge a funnel or bury a crash; a
+     * client that could read it would be reading every other reader's context.
+     */
+    match /telemetryEvents/{eventId} {
+      allow write: if false;
+      allow read: if staff('admin');
+    }
+
+    match /crashReports/{reportId} {
+      allow write: if false;
+      allow read: if staff('admin');
+    }
+
+    // ---------------------------------------------------------------------- CMS
+
+    /**
+     * Drafts.
+     *
+     * A client may write **content**, and nothing else. Every field that
+     * decides whether content ships — the state, who wrote it, who approved it,
+     * which revision it published — is set by `functions/src/publish/drafts.ts`
+     * and is unwritable here.
+     *
+     * This is not belt-and-braces over the Function's checks. Rules and
+     * Functions are separate doors: an editor with a REST client could
+     * previously set `state: 'approved'` and `authorUid` on their own draft and
+     * then ask the publish Function to ship it, which would pass every check
+     * the Function makes, because the Function trusts the document.
+     */
+    match /cmsDrafts/{draftId} {
+      allow read: if editorial();
+
+      // The author is whoever is signed in, and a draft starts as a draft.
+      allow create: if editorial()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.state == 'draft'
+        && !request.resource.data.keys().hasAny([
+             'reviewerUid', 'approvedBy', 'approvedAt',
+             'publishedRevision', 'publishedAt', 'publishedBy'
+           ]);
+
+      // Editing is content only, and only while the draft is still the
+      // author's to edit. A draft in review is frozen: a reviewer must be
+      // looking at the text that was submitted.
+      allow update: if editorial()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['seed', 'title', 'updatedAt'])
+        && resource.data.state in ['draft', 'changes_requested'];
+
+      allow delete: if staff('admin');
+    }
+
+    /**
+     * The audit trail is written by the Function, never by a client.
+     *
+     * A reviewer who can create a review row can write "approved by someone
+     * else" onto their own draft — which is exactly the rule the workflow
+     * exists to enforce. Read-only here, for the history panel.
+     */
+    match /cmsReviews/{reviewId} {
+      allow read: if editorial();
+      allow write: if false;
+    }
+
+    /** Publish jobs are written by the pipeline only. */
+    match /publishJobs/{jobId} {
+      allow read: if editorial();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

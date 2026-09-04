@@ -1,0 +1,32 @@
+# Fresh install → onboarding.
+#
+# The first thing a tester does, and the state that is hardest to get back to.
+# `clearState` makes it repeatable.
+appId: com.dananeh.app.staging
+---
+- clearState
+- launchApp
+
+# The promise screen. Persian, right to left, and no login wall.
+- assertVisible: "پنج دقیقه،"
+- assertVisible: "شروع کنیم"
+# The way past the account offer is a real action, equally reachable.
+- assertVisible: "حساب دارم؟ ورود"
+
+- tapOn: "شروع کنیم"
+
+# Interests: at least two, and the CTA says so rather than greying out silently.
+- assertVisible: "روان‌شناسی"
+- tapOn: "روان‌شناسی"
+- tapOn: "زیست‌شناسی"
+- tapOn:
+    text: "ادامه"
+    optional: false
+
+# Pace, then the handoff into the first seed.
+- assertVisible:
+    text: ".*"
+- tapOn:
+    text: "ادامه"
+    optional: true
+- takeScreenshot: onboarding-complete

@@ -1,0 +1,26 @@
+# A guest finishes a seed.
+#
+# No account anywhere in this flow — that is the product's central claim.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- tapOn: "شروع دانه"
+
+# Walk the seed to the end. The player is a mix of reading and answering, so
+# this taps whichever primary action is on screen until the completion appears.
+- repeat:
+    times: 30
+    commands:
+      - runFlow:
+          when:
+            notVisible: "تمام شد"
+          commands:
+            - tapOn:
+                text: "ادامه|بررسی|یکی را انتخاب کن|تأیید ترتیب|تأیید جفت‌ها|هر چند تا که درست است"
+                optional: true
+            - tapOn:
+                point: "50%,45%"
+                optional: true
+
+- assertVisible: "تمام شد"
+- takeScreenshot: seed-completed

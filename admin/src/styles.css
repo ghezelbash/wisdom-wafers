@@ -1,0 +1,67 @@
+/* The editorial surface borrows the app's tokens so a preview reads true. */
+:root {
+  --canvas: #f7f4ea;
+  --card: #fffdf7;
+  --ink: #1f241e;
+  --muted: #5d665b;
+  --brand: #2f6d4b;
+  --error: #b5443c;
+  --error-ink: #a03a33;
+  --sun-ink: #8a6100;
+  --hairline: rgba(31, 36, 30, 0.1);
+  --track: #e4e0d2;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Yekan Bakh', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.7;
+}
+
+button {
+  font: inherit;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button.primary { background: var(--brand); color: var(--card); border-color: var(--brand); }
+button.danger { background: transparent; color: var(--error-ink); border-color: var(--error); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+input, textarea {
+  font: inherit;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--card);
+  color: var(--ink);
+}
+
+textarea { min-height: 320px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; direction: ltr; text-align: left; }
+
+.layout { display: grid; grid-template-columns: 280px 1fr 380px; gap: 20px; padding: 20px; min-height: 100vh; }
+.panel { background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; padding: 16px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.muted { color: var(--muted); font-size: 13px; }
+.state { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--track); }
+.state.published { background: var(--brand); color: var(--card); }
+.state.in_review { background: rgba(233, 169, 40, 0.2); color: var(--sun-ink); }
+.issues { list-style: none; padding: 0; margin: 8px 0 0; }
+.issues li { color: var(--error-ink); font-size: 13px; }
+.draft-item { display: block; width: 100%; text-align: start; margin-bottom: 8px; }
+.phone { border: 1px solid var(--hairline); border-radius: 24px; padding: 16px; background: var(--canvas); max-height: 70vh; overflow: auto; }
+.block { border-bottom: 1px solid var(--hairline); padding: 12px 0; }
+.block:last-child { border-bottom: 0; }
+.block-type { font-size: 11px; color: var(--muted); }
+.signin { max-width: 360px; margin: 15vh auto; }

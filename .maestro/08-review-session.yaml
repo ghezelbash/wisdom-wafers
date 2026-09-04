@@ -1,0 +1,20 @@
+# آبیاری: the review session.
+#
+# The answer stays covered until recall has been attempted — revealing first
+# turns retrieval practice into re-reading, so this asserts the order.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- tapOn: "باغ"
+- tapOn:
+    text: "آبیاری|شروع مرور"
+    optional: true
+- runFlow:
+    when:
+      visible: "نشانم بده"
+    commands:
+      - assertNotVisible: "پاسخ"
+      - tapOn: "نشانم بده"
+      - tapOn:
+          text: "خوب|آسان|سخت"
+      - takeScreenshot: review-rated

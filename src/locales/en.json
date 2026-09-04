@@ -1,22 +1,488 @@
 {
-  "home": "Home",
-  "explore": "Explore",
-  "profile": "Profile",
-  "welcome": "Welcome to Wisdom Wafer",
-  "daily_recommendations": "Daily Recommendations",
-  "resume_learning": "Resume Learning",
-  "continue": "Continue",
-  "check_answer": "Check Answer",
-  "correct": "Correct!",
-  "incorrect": "Incorrect!",
-  "finish_lesson": "Finish Lesson",
-  "auth_login_subtitle": "Welcome back! Please login to continue.",
-  "auth_signup_subtitle": "Create an account to start your journey.",
-  "auth_email": "Email",
-  "auth_password": "Password",
-  "auth_login_btn": "Log In",
-  "auth_signup_btn": "Sign Up",
-  "auth_switch_to_signup": "Don't have an account? Sign Up",
-  "auth_switch_to_login": "Already have an account? Log In",
-  "auth_error_empty": "Please fill in all fields"
+  "app": {
+    "name": "Dananeh"
+  },
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "close": "Close",
+    "selectedCount": "{{count}} selected"
+  },
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "garden": "Garden",
+    "profile": "You"
+  },
+  "topics": {
+    "astronomy": "Astronomy",
+    "math": "Maths",
+    "psychology": "Psychology",
+    "art": "Art",
+    "history": "History",
+    "economics": "Economics",
+    "biology": "Biology",
+    "philosophy": "Philosophy",
+    "language": "Language"
+  },
+  "onboarding": {
+    "step": "{{current}} of {{total}}",
+    "promise": {
+      "title": "Five minutes,\none idea worth keeping.",
+      "body": "Every seed is one complete idea with its sources named. You read it, you answer, and next week you still remember it.",
+      "cta": "Let's start",
+      "signIn": "Already have an account? Sign in"
+    },
+    "interests": {
+      "title": "What are you curious about?",
+      "subtitle": "Pick at least two. You can change them any time from You.",
+      "blocked": "Pick two topics"
+    },
+    "pace": {
+      "title": "How much time do you have a day?",
+      "subtitle": "This sets your daily goal. It isn't strict.",
+      "one": "One seed a day",
+      "oneMeta": "About 5 to 8 minutes",
+      "two": "Two seeds a day",
+      "twoMeta": "About 10 to 15 minutes",
+      "whenever": "Whenever I can",
+      "wheneverMeta": "No daily goal",
+      "recommended": "Our pick",
+      "timeQuestion": "When do you usually have time?",
+      "morning": "Morning",
+      "evening": "Evening",
+      "night": "Night"
+    },
+    "firstSeed": {
+      "eyebrow": "Your first seed is ready",
+      "offline": "This seed ships with the app — it works without a connection.",
+      "cta": "Start the seed",
+      "another": "Suggest another one"
+    }
+  },
+  "seed": {
+    "minutes": "{{count}} min",
+    "level": {
+      "intro": "Introductory",
+      "medium": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "sources": "{{count}} sources",
+    "illustration": "Illustration for {{topic}}"
+  },
+  "auth": {
+    "title": "Sign in",
+    "welcomeBack": "Welcome back",
+    "subtitle": "Use the email you created your account with.",
+    "signUpTitle": "Create an account",
+    "signUpSubtitle": "Everything you have done so far carries over — you don't start again.",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "switchToSignUp": "No account? Create one",
+    "switchToSignIn": "Already have an account? Sign in",
+    "continueAsGuest": "Keep going as a guest",
+    "errorEmpty": "Enter your email and password.",
+    "signOut": "Sign out",
+    "unavailable": "We can't create an account or sign in right now. Carry on as a guest — everything you read stays on this device.",
+    "existingAccountTitle": "This email already has an account",
+    "existingAccountBody": "Sign in to it. What you have read on this device is added to it, and nothing is lost.",
+    "existingAccountAction": "Sign in to that account",
+    "carryOver": "What you have read on this device is added to your account.",
+    "reconnected": "We are back online. You can sign in or create an account now."
+  },
+  "profile": {
+    "title": "You",
+    "guest": "Guest",
+    "guestData": "Your data stays on this device",
+    "signedInAs": "Signed in as",
+    "upgradeTitle": "Create your account",
+    "upgradeBody": "So your progress follows you to your other devices",
+    "settings": "Settings",
+    "interests": "Interests",
+    "interestsValue": "{{count}} topics",
+    "pace": "Learning pace",
+    "paceNone": "No daily goal",
+    "language": "Language and calendar",
+    "languageValue": "English, Gregorian",
+    "storage": "Storage",
+    "notifications": "Reminders",
+    "deleteAccount": "Delete account",
+    "localOnly": "Without an account, this device only"
+  },
+  "home": {
+    "welcome": "Welcome to Dananeh",
+    "subtitle": "Today's seed is ready.",
+    "dailyRecommendations": "Today's pick",
+    "resume": "Keep learning",
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "night": "Good evening",
+    "continueTitle": "Pick up where you stopped",
+    "minutesLeft": "{{count}} min left",
+    "continueProgressA11y": "Progress in this seed, {{percent}} percent",
+    "growthTitle": "Growth this week",
+    "growthValue": "{{count}} of {{total}} days",
+    "dueTitle": "Watering today",
+    "startReview": "Start review",
+    "nothingDue": "Nothing to review today",
+    "todaySeed": "Today's seed",
+    "startSeed": "Start the seed",
+    "unavailableOffline": "Not available",
+    "railShort": "Under five minutes",
+    "railPaths": "Paths",
+    "railOthers": "New topics for you",
+    "endTitle": "That's it — enough for today.",
+    "endCta": "Explore every seed"
+  },
+  "explore": {
+    "title": "Explore",
+    "subtitle": "Find a new topic and start there.",
+    "topics": "Topics",
+    "topicCount": "{{count}} active topics",
+    "seedCount": "{{count}} seeds",
+    "pathCount": "{{count}} paths",
+    "paths": "Paths"
+  },
+  "player": {
+    "continue": "Continue",
+    "finish": "Finish seed",
+    "notFound": "That seed could not be found",
+    "goBack": "Back to home",
+    "close": "Close seed",
+    "save": "Save",
+    "more": "More options",
+    "progress": "{{current}} of {{total}}",
+    "notFoundBody": "It may have been removed from the catalogue. Every other seed still works.",
+    "badge": {
+      "multipleChoice": "One answer",
+      "multiSelect": "Several answers",
+      "trueFalse": "True or false",
+      "ordering": "Put in order",
+      "matchPairs": "Match pairs",
+      "reflection": "Reflection"
+    },
+    "chooseOne": "Pick one answer",
+    "chooseAny": "Pick at least one answer",
+    "choosePosition": "Pick one",
+    "confirmOrder": "Confirm the order",
+    "confirmPairs": "Confirm the pairs",
+    "correct": "That's right",
+    "incorrect": "Not this time",
+    "partial": "{{hits}} of {{total}}",
+    "retry": "Try once more",
+    "seeSource": "See the source for this answer",
+    "multiSelectHint": "{{count}} are correct",
+    "true": "True",
+    "false": "False",
+    "image": {
+      "altRecorded": "Alt text is recorded for this image"
+    },
+    "ordering": {
+      "hint": "Move rows with the up and down buttons",
+      "moveUp": "Move up one place",
+      "moveDown": "Move down one place"
+    },
+    "matchPairs": {
+      "hint": "Tap a concept, then tap its description",
+      "progress": "{{done}} of {{total}} pairs",
+      "pickDescription": "Pick its description",
+      "remaining": "{{count}} pairs left"
+    },
+    "reflection": {
+      "note": "Writing this is optional and never scored. It is saved for you alone.",
+      "counter": "{{count}} of {{max}} characters",
+      "private": "On your device only",
+      "skip": "Skip this part"
+    },
+    "summary": {
+      "title": "Three things that stay",
+      "note": "You'll be asked these three in the day-three review",
+      "finish": "Finish the seed"
+    },
+    "unknown": {
+      "title": "This part needs a newer version of the app",
+      "body": "This seed has a new kind of block that this version doesn't know. You can skip it and carry on — your progress is saved."
+    }
+  },
+  "option": {
+    "correct": "Correct",
+    "missed": "Missed",
+    "wrong": "Wrong",
+    "yourAnswer": "Your answer",
+    "misplaced": "Out of place"
+  },
+  "sources": {
+    "title": "Sources",
+    "count": "{{count}} items",
+    "lastReviewed": "Content last reviewed: {{date}} — by {{by}}",
+    "empty": "No sources are recorded for this seed yet.",
+    "report": "Report a problem in this seed"
+  },
+  "report": {
+    "title": "What's wrong with it?",
+    "note": "Reports are read by the editors. Serious ones are looked at the same day.",
+    "reasons": {
+      "factual": "Scientific or factual error",
+      "sources": "Weak or missing sources",
+      "language": "Translation or Persian writing",
+      "inappropriate": "Inappropriate content",
+      "technical": "Display or technical problem"
+    },
+    "detail": "Optional detail…",
+    "submit": "Send report",
+    "sentTitle": "Report sent",
+    "sentBody": "Thank you. An editor will read it and fix the seed if needed."
+  },
+  "complete": {
+    "title": "Done",
+    "nth": "Your seed number {{count}}",
+    "correct": "Correct answers",
+    "correctValue": "{{correct}} of {{total}}",
+    "nextReview": "Next review",
+    "next": "Next, if you want one",
+    "nextCta": "Next seed",
+    "save": "Save",
+    "share": "Share",
+    "done": "Done"
+  },
+  "notify": {
+    "title": "Shall we remind you tomorrow?",
+    "body": "One reminder at a time you choose — at most once a day. Turn it off whenever you like.",
+    "timeLabel": "Reminder time",
+    "accept": "Yes, remind me",
+    "decline": "Not now"
+  },
+  "account": {
+    "title": "Shall we keep your progress?",
+    "body": "Everything you've read so far is stored on this device. With an account it follows you to your phone and tablet.",
+    "points": {
+      "carriesOver": "This same data moves over — you don't start again",
+      "noSubscription": "No subscription needed",
+      "deletable": "You can delete the account at any time"
+    },
+    "email": "Continue with email",
+    "later": "Later — I'll stay a guest"
+  },
+  "offline": {
+    "title": "You're offline",
+    "lastSynced": "Last updated: {{date}}",
+    "neverSynced": "Nothing has synced yet — seeds on this device still work",
+    "assetTitle": "This part has an image that isn't downloaded",
+    "assetBody": "The blocks after this one are text and ready. The image arrives when you're back online — until then you can skip it and carry on.",
+    "resumePoint": "Your place is saved at block {{block}}",
+    "skipAndContinue": "Skip it and carry on"
+  },
+  "download": {
+    "start": "Download for offline",
+    "startWithSize": "Download for offline, {{size}} MB",
+    "inProgress": "Downloading",
+    "bytes": "{{done}} of {{total}} MB",
+    "progressA11y": "Downloading, {{percent}} percent",
+    "done": "Downloaded",
+    "corrupt": "Incomplete file",
+    "corruptBody": "The checksum didn't match. Downloading again fixes it.",
+    "retry": "Download again"
+  },
+  "storage": {
+    "title": "Storage",
+    "used": "{{size}} MB on this device",
+    "quota": "of a {{size}} MB cap",
+    "barA11y": "Storage used, {{percent}} percent of the cap",
+    "text": "Seed text {{size}}",
+    "images": "Images {{size}}",
+    "autoDownload": "Automatic downloads",
+    "tomorrowSeed": "Tomorrow's suggested seed",
+    "wifiOnly": "Wi-Fi only",
+    "lowData": "Low data mode",
+    "lowDataBody": "Smaller images, no preloading",
+    "clear": "Clear",
+    "clearCompletedImages": "Clear images from finished seeds",
+    "clearAll": "Clear every download",
+    "bundledNote": "The seed bundled with the app always stays and is never cleared.",
+    "megabytes": "{{size}} MB"
+  },
+  "error": {
+    "title": "Couldn't connect",
+    "body": "We couldn't fetch today's suggestions. The seeds you've saved are available right now.",
+    "codeLabel": "Error code",
+    "retry": "Try again",
+    "goToGarden": "Go to Garden"
+  },
+  "fatal": {
+    "title": "Something went wrong that we couldn't fix",
+    "body": "This error was logged for our team. If it happens again, please report it with the code below.",
+    "idLabel": "Reference",
+    "versionLabel": "Version",
+    "restart": "Restart the app"
+  },
+  "reason": {
+    "interest": "Because you picked {{topic}}",
+    "short": "Under five minutes",
+    "path": "Continues a path you started",
+    "review": "To settle what you read",
+    "continuation": "Continues what you started",
+    "fresh": "Recently published",
+    "explore": "A little outside your usual topics"
+  },
+  "search": {
+    "open": "Search",
+    "placeholder": "Search seeds and topics",
+    "cancel": "Cancel",
+    "hint": "Type a topic, or part of a seed's title.",
+    "filter": {
+      "all": "All",
+      "short": "Under 5 min",
+      "intro": "Introductory",
+      "downloaded": "Downloaded"
+    },
+    "expanded": "We also read “{{from}}” as “{{to}}”",
+    "resultCount": "{{count}} results",
+    "emptyTitle": "We have no seeds for that",
+    "emptyBody": "We haven't covered this yet. These are the closest things we have.",
+    "nearest": "You might have meant",
+    "suggestTitle": "Suggest this topic",
+    "suggestBody": "We read every request and weigh it in the content plan.",
+    "suggestCta": "Send the request"
+  },
+  "topic": {
+    "seeds": "seeds",
+    "paths": "paths",
+    "completed": "finished",
+    "seedsHere": "Seeds in this topic",
+    "nextReview": "Next review {{date}}"
+  },
+  "path": {
+    "progress": "{{done}} of {{total}} seeds"
+  },
+  "review": {
+    "intervalBadge": "{{days}}d",
+    "title": "Watering",
+    "sessionTitle": "Today's watering",
+    "readyCount": "{{count}} seeds are ready to review",
+    "intro": "About {{minutes}} minutes. Active recall works better than re-reading, so this time you retrieve it yourself.",
+    "pass": "Review {{count}}",
+    "deferNote": "If today is busy, “I'll review later” loses nothing — it just moves the queue back.",
+    "start": "Start the review",
+    "defer": "I'll review later",
+    "recallBadge": "Active recall",
+    "recallHint": "Answer it in your head, then reveal. No typing needed.",
+    "covered": "The answer stays covered until you've tried to recall it",
+    "reveal": "Show the answer",
+    "answer": "Answer",
+    "confidenceTitle": "How much came back?",
+    "confidenceNote": "Recorded separately from right/wrong, and it sets the next interval.",
+    "confidence": {
+      "easy": "All of it, easily",
+      "good": "With a little thought",
+      "hard": "Half of it",
+      "again": "I didn't recall it"
+    },
+    "nextIn": "Next review: in {{days}} days",
+    "tomorrow": "We'll ask again tomorrow",
+    "resultsTitle": "Today's watering is done",
+    "resultsBody": "{{count}} seeds reviewed. Each one's next interval is below.",
+    "backHome": "Back to home",
+    "emptyTitle": "Nothing to review today",
+    "emptyBody": "Every review for today is done. There's nothing you need to do."
+  },
+  "garden": {
+    "title": "My garden",
+    "onDevice": "{{count}} seeds on this device",
+    "graceDay": "You have one grace day; missing a day doesn't spoil the week.",
+    "manageStorage": "Manage storage and clear downloads",
+    "nextReview": "Your next review is {{date}}.",
+    "segment": {
+      "inProgress": "In progress",
+      "saved": "Saved",
+      "downloaded": "Downloaded",
+      "due": "Watering",
+      "completed": "Finished"
+    },
+    "empty": {
+      "inProgress": {
+        "title": "No half-finished seeds",
+        "body": "Anything you start and don't finish waits here for you."
+      },
+      "saved": {
+        "title": "Nothing saved yet",
+        "body": "Use the bookmark at the top of a seed to keep it for later."
+      },
+      "downloaded": {
+        "title": "Nothing downloaded",
+        "body": "Download seeds to open them without a connection."
+      },
+      "due": {
+        "title": "Every review for today is done",
+        "body": "There's nothing you need to do today."
+      },
+      "completed": {
+        "title": "No finished seeds yet",
+        "body": "Start your first one from Home; five minutes is enough."
+      }
+    }
+  },
+  "notifySettings": {
+    "title": "Reminders",
+    "reminder": "Daily reminder",
+    "cap": "At most once a day, at a time you choose.",
+    "deniedTitle": "Notifications are off in your device settings",
+    "deniedBody": "The app can't change this itself. If you want a reminder, allow it in your device settings — everything else works without it.",
+    "deniedPath": "Path: Settings → Dananeh → Notifications",
+    "openSettings": "Open settings"
+  },
+  "deleteAccount": {
+    "title": "Delete account",
+    "body": "This cannot be undone. You can take a copy of your data first.",
+    "destroyed": {
+      "account": "Your account and email",
+      "progress": "Progress and review history",
+      "reflections": "The reflections you wrote",
+      "downloads": "Downloads on this device"
+    },
+    "exportTitle": "Take a copy first",
+    "exportBody": "Your progress and notes come out as a text file.",
+    "exportCta": "Export my data",
+    "startCta": "I want to delete my account",
+    "confirmTitle": "Sure? There's no way back from this.",
+    "confirmCta": "Yes, delete the account and data",
+    "cancel": "Cancel",
+    "deleting": "Deleting…",
+    "failedRecentLogin": "Deleting an account needs a recent sign-in. Sign out, sign back in, and try again.",
+    "failedNetwork": "We could not reach the server. Nothing was deleted — try again.",
+    "failedPartial": "The deletion did not finish, and nothing on your device was erased. Try again; it resumes where it stopped.",
+    "failedUnknown": "The deletion did not run. No data was erased.",
+    "done": "Your account and data are gone. You are continuing as a new guest."
+  },
+  "authError": {
+    "invalidEmail": "That email doesn't look right.",
+    "weakPassword": "A password needs at least six characters.",
+    "emailInUse": "An account already uses this email. Sign in to get back to it.",
+    "invalidCredential": "That email or password isn't right.",
+    "tooManyRequests": "Too many attempts in a row. Wait a moment and try again.",
+    "network": "We can't reach the network. The seeds on this device still work.",
+    "notAllowed": "That sign-in method isn't available right now.",
+    "requiresRecentLogin": "Sign in again to do that.",
+    "unknown": "Something didn't go through. Try again."
+  },
+  "reminder": {
+    "title": "Today's seed is ready",
+    "body": "Five minutes, one idea worth keeping."
+  },
+  "maintenance": {
+    "title": "Back shortly",
+    "body": "The service is briefly unavailable. Seeds you have downloaded still open on this device.",
+    "untilLabel": "Until",
+    "goToGarden": "Go to the garden",
+    "retry": "Check again"
+  },
+  "updateRequired": {
+    "title": "This version is no longer supported",
+    "body": "Install the newer version to carry on. Nothing you have read is lost.",
+    "currentLabel": "This build",
+    "minimumLabel": "Minimum required",
+    "cta": "Get the new version"
+  }
 }

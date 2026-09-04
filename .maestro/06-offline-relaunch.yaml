@@ -1,0 +1,18 @@
+# Airplane mode, force-stop, relaunch.
+#
+# The one that matters most for the beta: a downloaded seed opens with no
+# network, and nothing anywhere says "try again".
+#
+# Requires: `adb shell cmd connectivity airplane-mode enable` before, disable
+# after. Maestro cannot toggle it, so the runner script does.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- assertVisible: "آخرین به‌روزرسانی|بدون اینترنت"
+- tapOn: "باغ"
+- assertVisible: "رسیده"
+- tapOn:
+    text: "چرا آسمان شب کاملاً تاریک است؟"
+    optional: true
+- assertNotVisible: "دوباره امتحان کن"
+- takeScreenshot: offline-relaunch
