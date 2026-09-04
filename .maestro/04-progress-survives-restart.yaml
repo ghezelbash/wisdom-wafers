@@ -1,0 +1,12 @@
+# Progress survives a force-stop.
+#
+# The completion was written through on the block change, not on a save button,
+# so killing the process must not cost it.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- stopApp
+- launchApp
+- tapOn: "باغ"
+- assertVisible: "رسیده"
+- takeScreenshot: garden-after-restart

@@ -1,3 +1,67 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * Dananeh design tokens as CSS custom properties.
+ *
+ * Mirrors `src/constants/theme.ts` — that file is the source of truth for JS
+ * (SVG rings, native tab bar, StatusBar); this one feeds the NativeWind class
+ * names. Light values live on `:root`; dark mode swaps the same names, so no
+ * component needs a `dark:` variant to change colour.
+ */
+@layer base {
+  :root {
+    --color-canvas: #F7F4EA;
+    --color-card: #FFFDF7;
+    --color-ink: #1F241E;
+    --color-muted: #5D665B;
+    --color-brand: #2F6D4B;
+    --color-on-brand: #FFFDF7;
+    --color-brand-tint: rgba(47, 109, 75, 0.1);
+    --color-sprout: #65A96B;
+    --color-sprout-tint: rgba(101, 169, 107, 0.12);
+    --color-sun: #E9A928;
+    --color-sun-ink: #8A6100;
+    --color-sun-tint: rgba(233, 169, 40, 0.16);
+    --color-plum: #6F5178;
+    --color-plum-tint: rgba(111, 81, 120, 0.1);
+    --color-error: #B5443C;
+    --color-error-ink: #A03A33;
+    --color-error-tint: rgba(181, 68, 60, 0.09);
+    --color-hairline: rgba(31, 36, 30, 0.1);
+    --color-strong: #8C8778;
+    --color-track: #E4E0D2;
+    --color-scrim: rgba(31, 36, 30, 0.32);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-canvas: #171A17;
+      --color-card: #222722;
+      --color-ink: #F4F3EB;
+      --color-muted: #BBC2B8;
+      --color-brand: #77B98A;
+      --color-on-brand: #0F120F;
+      --color-brand-tint: rgba(119, 185, 138, 0.14);
+      --color-sprout: #8BCB94;
+      --color-sprout-tint: rgba(139, 203, 148, 0.14);
+      --color-sun: #F2C45F;
+      --color-sun-ink: #F2C45F;
+      --color-sun-tint: rgba(242, 196, 95, 0.14);
+      --color-plum: #B99BC2;
+      --color-plum-tint: rgba(185, 155, 194, 0.14);
+      --color-error: #EF8C84;
+      --color-error-ink: #EF8C84;
+      --color-error-tint: rgba(239, 140, 132, 0.14);
+      --color-hairline: rgba(244, 243, 235, 0.09);
+      --color-strong: #4A5248;
+      --color-track: #333A32;
+      --color-scrim: rgba(0, 0, 0, 0.48);
+    }
+  }
+
+  body {
+    background-color: var(--color-canvas);
+  }
+}

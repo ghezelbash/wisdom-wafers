@@ -1,0 +1,45 @@
+rules_version = '2';
+
+/**
+ * Published bundles and media are readable; everything a user uploads is
+ * quarantined under their own uid, size- and type-limited, and never executable.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    /** Immutable published artifacts: written by the publish Function only. */
+    match /content/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /**
+     * User uploads land in quarantine first; a scan promotes them. 5 MB and an
+     * image allow-list — no SVG, which can carry script, and nothing executable.
+     */
+    match /quarantine/users/{uid}/{fileName} {
+      allow read: if owner(uid);
+      allow create: if owner(uid)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+      allow update, delete: if false;
+    }
+
+    match /users/{uid}/{allPaths=**} {
+      allow read: if owner(uid);
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

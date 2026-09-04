@@ -1,0 +1,13 @@
+# Maestro flows for the Android internal beta.
+#
+# They run against an installed APK, in order, on a device that has never had
+# the app: several of them assert what happens on a *fresh* install, which is
+# the state that only exists once.
+#
+#   maestro test .maestro                      # everything, in order
+#   maestro test .maestro/03-guest-seed.yaml   # one flow
+#
+# The app id is the staging package. Change it for another variant.
+appId: com.dananeh.app.staging
+flows:
+  - "*.yaml"

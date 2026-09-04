@@ -1,0 +1,23 @@
+# Guest → account, keeping everything.
+#
+# The uid is linked rather than replaced, so what the guest read comes with
+# them. Asserted here by the garden still showing it afterwards.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- tapOn: "پروفایل"
+- tapOn:
+    text: "حساب|ورود|ساختن حساب"
+- assertVisible: "آنچه روی این دستگاه خوانده‌ای به حسابت اضافه می‌شود."
+
+- tapOn: "قبلاً حساب ساخته‌ای؟ وارد شو"
+- tapOn:
+    id: "email"
+    optional: true
+- inputText: "beta-${maestro.copiedText}@example.com"
+- tapOn: "ساختن حساب"
+
+- assertNotVisible: "چیزی درست پیش نرفت"
+- tapOn: "باغ"
+- assertVisible: "رسیده"
+- takeScreenshot: after-signup

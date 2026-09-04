@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Light.woff2') format('woff2');font-weight:300;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-ExtraBold.woff2') format('woff2');font-weight:800;font-display:swap}
+body{margin:0;background:#E6E2D5}
+[dir="rtl"]{font-family:'YekanBakh',system-ui,sans-serif}
+a{color:#2F6D4B}
+a:hover{color:#1F241E}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#E6E2D5;font-family:system-ui,-apple-system,'Helvetica Neue',sans-serif;color:#1F241E;display:flex;gap:44px;padding:44px 48px;box-sizing:border-box">
+
+  <div style="flex:none;width:330px;display:flex;flex-direction:column;gap:22px">
+    <div>
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:14px">
+        <svg width="28" height="28" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" fill="none" stroke="#2F6D4B" stroke-width="1.5"></circle><circle cx="17" cy="17" r="10.5" fill="none" stroke="#65A96B" stroke-width="1.5"></circle><circle cx="17" cy="17" r="4.5" fill="#2F6D4B"></circle></svg>
+        <span style="font-size:13.5px;font-weight:700;font-family:'YekanBakh',system-ui,sans-serif">دانانه · Dananeh</span>
+      </div>
+      <h1 style="margin:0 0 10px;font-size:30px;line-height:1.16;font-weight:800">Interactive prototype</h1>
+      <p style="margin:0;font-size:14.5px;line-height:1.72;color:#5D665B;text-wrap:pretty">Deliverable G. Four flows are wired end to end with real state — answers, progress, autosave, offline. Tap the phone, not a hotspot map.</p>
+    </div>
+
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:18px 20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:13px">FLOW</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div onClick="{{ startFirstRun }}" style="{{ flowStyleA }}">
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:3px">First run → first completion</div>
+          <div style="font-size:12px;line-height:1.55;color:#5D665B">Promise, interests, pace, then a seed you actually finish</div>
+        </div>
+        <div onClick="{{ startSearch }}" style="{{ flowStyleB }}">
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:3px">Search → seed</div>
+          <div style="font-size:12px;line-height:1.55;color:#5D665B">«اسمان» is normalization; «آسمون» is a spoken variant</div>
+        </div>
+        <div onClick="{{ startOffline }}" style="{{ flowStyleC }}">
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:3px">Offline resume</div>
+          <div style="font-size:12px;line-height:1.55;color:#5D665B">Kill the network mid-seed, reopen, land on the same block</div>
+        </div>
+        <div onClick="{{ startReview }}" style="{{ flowStyleD }}">
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:3px">Review session</div>
+          <div style="font-size:12px;line-height:1.55;color:#5D665B">Recall before the answer, then rate confidence</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:18px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#8A6100">STATE</span>
+        <span onClick="{{ reset }}" role="button" tabindex="0" style="font-size:12px;font-weight:700;color:#2F6D4B;cursor:pointer">Reset</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px">
+        <div style="display:flex;justify-content:space-between;gap:10px"><span style="color:#5D665B">Screen</span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-weight:700">{{ screen }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><span style="color:#5D665B">Interests</span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-weight:700">{{ interestCount }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><span style="color:#5D665B">Block</span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-weight:700">{{ blockLabel }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><span style="color:#5D665B">Autosaved at</span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-weight:700">{{ savedLabel }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><span style="color:#5D665B">Network</span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-weight:700">{{ netLabel }}</span></div>
+      </div>
+      <div onClick="{{ toggleNet }}" role="button" tabindex="0" style="{{ netBtnStyle }}">{{ netBtnLabel }}</div>
+      <div onClick="{{ toggleMotion }}" role="button" tabindex="0" style="{{ motionBtnStyle }}">{{ motionBtnLabel }}</div>
+    </div>
+
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:18px 20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:11px">WHAT TO TRY</div>
+      <div style="font-size:12.5px;line-height:1.75;color:#5D665B">{{ hint }}</div>
+    </div>
+  </div>
+
+  <div style="flex:none">
+    <div dir="rtl" style="width:390px;height:800px;background:#F7F4EA;border:10px solid #1F241E;border-radius:46px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 18px 50px rgba(31,36,30,.22)">{{ phone }}</div>
+    <div style="margin-top:14px;text-align:center;font-size:12px;color:#5D665B">390 × 800<span style="display:inline-block;width:4px;height:4px;border-radius:2px;background:currentColor;opacity:.42;vertical-align:middle;margin:0 8px"></span>fa-IR, RTL</div>
+  </div>
+
+  <div style="flex:1;min-width:260px;max-width:420px">
+    <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:20px 22px;position:sticky;top:44px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:12px">NOTES ON THIS SCREEN</div>
+      <div style="font-size:13.5px;line-height:1.75;color:#5D665B">{{ note }}</div>
+      <div style="height:1px;background:rgba(31,36,30,.08);margin:18px 0"></div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:12px">FOCUS ORDER</div>
+      <div dir="rtl" style="display:flex;flex-direction:column;gap:7px">{{ focusList }}</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const DOT = () => React.createElement('span', {'aria-hidden':'true', style:{display:'inline-block',width:4,height:4,borderRadius:2,background:'currentColor',opacity:.42,verticalAlign:'middle',margin:'0 7px'}});
+
+const TOPICS = ['اخترشناسی','ریاضی','روان‌شناسی','هنر','تاریخ','اقتصاد','زیست‌شناسی','فلسفه','زبان'];
+const FAMILY = {'اخترشناسی':'#2F6D4B','ریاضی':'#2F6D4B','زیست‌شناسی':'#2F6D4B','روان‌شناسی':'#6F5178','هنر':'#6F5178','تاریخ':'#6F5178','فلسفه':'#6F5178','اقتصاد':'#8A6100','زبان':'#8A6100'};
+
+const BLOCKS = [
+  {type:'richText', kicker:'پارادوکس اولبرس', title:'اگر جهان بی‌کران باشد، تاریکی توضیح می‌خواهد',
+   paras:['فرض کن جهان بی‌نهایت بزرگ، بی‌نهایت قدیمی و پر از ستاره باشد. در این حالت در هر جهتی که نگاه کنی، دیر یا زود چشمت به سطح یک ستاره می‌خورد.','نتیجه‌اش این است که آسمان شب باید مثل روز روشن باشد — نه فقط پرستاره، بلکه یکدست درخشان. اما آسمان تاریک است. پس یکی از آن سه فرض غلط است.']},
+  {type:'image', caption:'در جهانی بی‌کران، هر خط دید در نهایت به سطح یک ستاره می‌رسد. تعداد ستاره‌ها با فاصله زیاد می‌شود و کم‌نوری‌شان را جبران می‌کند.', slot:'illustration · 4:5 portrait'},
+  {type:'quote', text:'«تاریکی آسمان شب یکی از قدیمی‌ترین سرنخ‌های ما درباره‌ی این است که جهان همیشه نبوده است.»', attr:'نقل به مضمون از بحث‌های کلاسیک کیهان‌شناسی'},
+  {type:'mc', kind:'یک گزینه', q:'اگر جهان بی‌کران، ساکن و بی‌نهایت‌سال بود، آسمان شب چگونه دیده می‌شد؟',
+   options:[{t:'همان‌قدر تاریک، چون فاصله‌ها زیاد است',ok:false},{t:'یکدست روشن، مثل سطح یک ستاره',ok:true},{t:'پر از ستاره‌های پراکنده، مثل امشب',ok:false},{t:'بستگی به فصل و جهت نگاه دارد',ok:false}],
+   ok:'تعداد ستاره‌ها با مربع فاصله زیاد می‌شود و کم‌نوری هر ستاره را جبران می‌کند. جمعِ همه، سطحی یکدست روشن می‌سازد.',
+   no:'فاصله نور هر ستاره را کم می‌کند، اما در جهان بی‌کران تعداد ستاره‌های دور آن‌قدر زیاد می‌شود که همین کاهش را جبران می‌کند. تاریکی از فاصله نمی‌آید.'},
+  {type:'ms', kind:'چند گزینه', q:'کدام‌ها به تاریک بودن آسمان شب کمک می‌کنند؟', hint:'دو مورد درست است',
+   options:[{t:'جهان سنّ محدودی دارد',ok:true},{t:'جهان در حال انبساط است',ok:true},{t:'غبار میان‌ستاره‌ای نور را می‌بلعد',ok:false},{t:'ستاره‌ها کم‌نورتر از گذشته‌اند',ok:false}],
+   ok:'هر دو با هم لازم‌اند: سنّ محدود یعنی نور همه‌ی ستاره‌ها به ما نرسیده، و انبساط نور دورترها را کم‌انرژی می‌کند.',
+   no:'غبار راه‌حل نیست — با جذب نور گرم می‌شود و خودش می‌تابد.'},
+  {type:'summary', points:['در جهان بی‌کران و همیشگی، آسمان شب باید یکدست روشن باشد.','تاریکی آسمان یعنی جهان سنّ محدودی دارد و در حال انبساط است.','غبار پاسخ نیست: هر چیزی که نور را جذب کند، خودش می‌تابد.']}
+];
+
+const REVIEW = [
+  {topic:'اخترشناسی', q:'بدون نگاه‌کردن به دانه: تاریکی آسمان شب کدام دو چیز را دربارهٔ جهان نشان می‌دهد؟', a:'جهان سنّ محدودی دارد و در حال انبساط است. هر دو با هم لازم‌اند — هیچ‌کدام تنها کافی نیست.'},
+  {topic:'روان‌شناسی', q:'اثر لنگر در یک جمله: چه اتفاقی می‌افتد؟', a:'اولین عددی که می‌بینیم قضاوت‌های بعدی‌مان را به سمت خودش می‌کشد، حتی وقتی بی‌ربط باشد.'},
+  {topic:'ریاضی', q:'احتمال شرطی چه چیزی را عوض می‌کند؟', a:'فضای نمونه را کوچک می‌کند: وقتی می‌دانیم یک شرط برقرار است، فقط حالت‌های سازگار با آن شرط باقی می‌مانند.'}
+];
+
+const RESULTS = [
+  {t:'چرا آسمان شب تاریک است؟', c:'با کمی فکر', next:'مرور بعدی ۷ روز دیگر', good:true},
+  {t:'اثر لنگر در تصمیم‌های مالی', c:'کامل', next:'مرور بعدی ۱۴ روز دیگر', good:true},
+  {t:'احتمال شرطی', c:'نصفه‌نیمه', next:'فردا دوباره می‌پرسیم', good:false}
+];
+
+const SEARCH_INDEX = [
+  {title:'چرا آسمان شب کاملاً تاریک است؟', topic:'اخترشناسی', min:'۶ دقیقه', diff:'مقدماتی', promise:'می‌فهمی تاریکی آسمان چه چیزی درباره‌ی سنّ جهان می‌گوید.', norm:'اسمان شب تاریک جهان کیهان', downloaded:false},
+  {title:'نورِ ستاره چند سال است در راه؟', topic:'اخترشناسی', min:'۸ دقیقه', diff:'متوسط', promise:'', norm:'نور ستاره سال راه اسمان', downloaded:true},
+  {title:'آلودگی نوری چه چیزی را از ما گرفته؟', topic:'اخترشناسی', min:'۴ دقیقه', diff:'مقدماتی', promise:'', norm:'الودگی نوری اسمان شب شهر', downloaded:false},
+  {title:'اثر لنگر چگونه تصمیم‌های مالی ما را تغییر می‌دهد؟', topic:'روان‌شناسی', min:'۵ دقیقه', diff:'مقدماتی', promise:'', norm:'اثر لنگر تصمیم مالی پول', downloaded:false},
+  {title:'احتمال، واقعاً درباره‌ی چیست؟', topic:'ریاضی', min:'۷ دقیقه', diff:'متوسط', promise:'', norm:'احتمال ریاضی شرطی', downloaded:true}
+];
+
+const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+
+// Unicode-level normalization: hamza forms, ی/ي, ک/ك, ZWNJ, tatweel, diacritics, digits.
+function normalize(s){
+  return (s||'').replace(/\u200c/g,' ').replace(/[يی]/g,'ی').replace(/[كک]/g,'ک').replace(/[أإآا]/g,'ا')
+    .replace(/ه‌/g,'ه').replace(/[ـًٌٍَُِّْ]/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+    .replace(/\s+/g,' ').trim().toLowerCase();
+}
+// Colloquial ↔ written variants. NOT normalization — a curated expansion list, because
+// «آسمون» and «آسمان» are different words, not different encodings of one word.
+const VARIANTS = {'اسمون':'اسمان','نون':'نان','تهرون':'تهران','میخوام':'می‌خواهم','چطوری':'چگونه'};
+function expand(n){
+  const parts = n.split(' ');
+  const mapped = parts.map(w => VARIANTS[w] || w);
+  const changed = mapped.some((w,i) => w !== parts[i]);
+  return {q: mapped.join(' '), changed};
+}
+
+class Component extends DCLogic {
+  state = {
+    flow:'firstRun', screen:'promise', interests:['اخترشناسی','روان‌شناسی'], pace:1, time:1,
+    block:0, picked:null, submitted:false, msPicked:[], online:true, reduceMotion:false,
+    savedBlock:null, savedAt:null, query:'', revIdx:0, revealed:false, confidence:null, toast:null
+  };
+
+  go = (screen, patch) => this.setState(Object.assign({screen}, patch||{}));
+
+  startFirstRun = () => this.setState({flow:'firstRun', screen:'promise', block:0, picked:null, submitted:false, msPicked:[], savedBlock:null, savedAt:null, online:true});
+  startSearch = () => this.setState({flow:'search', screen:'search', query:''});
+  startOffline = () => this.setState({flow:'offline', screen:'player', block:1, picked:null, submitted:false, msPicked:[], online:true, savedBlock:1, savedAt:this.stamp()});
+  startReview = () => this.setState({flow:'review', screen:'revQueue', revIdx:0, revealed:false, confidence:null});
+  reset = () => this.startFirstRun();
+
+  stamp = () => { const d = new Date(); return fa(String(d.getHours()).padStart(2,'0')) + ':' + fa(String(d.getMinutes()).padStart(2,'0')) + ':' + fa(String(d.getSeconds()).padStart(2,'0')); };
+
+  toggleNet = () => {
+    const online = !this.state.online;
+    this.setState({online, toast: online ? 'وصل شد — پیشرفت هم‌گام شد' : 'آفلاین — پیشرفت روی دستگاه ذخیره می‌شود'});
+    clearTimeout(this._t); this._t = setTimeout(() => this.setState({toast:null}), 2600);
+  };
+  toggleMotion = () => this.setState({reduceMotion:!this.state.reduceMotion});
+
+  toggleInterest = (t) => {
+    const has = this.state.interests.includes(t);
+    this.setState({interests: has ? this.state.interests.filter(x=>x!==t) : this.state.interests.concat([t])});
+  };
+
+  pick = (i) => { if (!this.state.submitted) this.setState({picked:i}); };
+  toggleMs = (i) => {
+    if (this.state.submitted) return;
+    const has = this.state.msPicked.includes(i);
+    this.setState({msPicked: has ? this.state.msPicked.filter(x=>x!==i) : this.state.msPicked.concat([i])});
+  };
+  submit = () => this.setState({submitted:true});
+  retry = () => this.setState({submitted:false, picked:null, msPicked:[]});
+
+  next = () => {
+    const b = this.state.block;
+    if (b >= BLOCKS.length - 1) { this.setState({screen:'done', savedBlock:null}); return; }
+    this.setState({block:b+1, picked:null, submitted:false, msPicked:[], savedBlock:b+1, savedAt:this.stamp()});
+  };
+
+  closePlayer = () => this.setState({screen:'home'});
+  resume = () => this.setState({screen:'player'});
+
+  reveal = () => this.setState({revealed:true});
+  rate = (c) => this.setState({confidence:c});
+  nextReview = () => {
+    if (this.state.revIdx >= REVIEW.length - 1) { this.setState({screen:'revDone'}); return; }
+    this.setState({revIdx:this.state.revIdx+1, revealed:false, confidence:null});
+  };
+
+  setQuery = (e) => this.setState({query:e.target.value});
+
+  results = () => {
+    const raw = normalize(this.state.query);
+    if (!raw) return [];
+    const q = expand(raw).q;
+    const words = q.split(' ').filter(w => w.length > 2);
+    return SEARCH_INDEX.filter(s => {
+      const hay = normalize(s.title) + ' ' + s.norm;
+      return hay.includes(q) || words.some(w => hay.includes(w));
+    });
+  };
+
+  // ---------- shared chrome ----------
+  statusBar = () => React.createElement('div', {style:{flex:'none',height:46,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',fontSize:13,fontWeight:600}},
+    React.createElement('span',null,'۹:۴۱'),
+    React.createElement('span',{style:{width:15,height:9,border:'1px solid #1F241E',borderRadius:2,opacity:this.state.online?1:.4}}));
+
+  banner = () => {
+    if (this.state.online) return null;
+    return React.createElement('div',{style:{flex:'none',background:'#1F241E',color:'#F4F3EB',padding:'11px 20px',display:'flex',alignItems:'center',gap:10}},
+      React.createElement('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#F2C45F',strokeWidth:1.75,'aria-hidden':'true'},
+        React.createElement('path',{d:'M3 8c5-4 13-4 18 0'}), React.createElement('path',{d:'M6.5 12.5c3.4-2.6 7.6-2.6 11 0'}), React.createElement('circle',{cx:12,cy:18,r:1.4,fill:'#F2C45F'})),
+      React.createElement('span',{style:{fontSize:13.5,fontWeight:600,flex:1}},'آفلاین — این دانه روی دستگاه ذخیره شده است'));
+  };
+
+  toastEl = () => {
+    if (!this.state.toast) return null;
+    return React.createElement('div',{style:{position:'absolute',insetInline:16,bottom:22,background:'#1F241E',color:'#F4F3EB',borderRadius:16,padding:'13px 16px',fontSize:13.5,fontWeight:600,boxShadow:'0 8px 28px rgba(31,36,30,.28)',transition:this.state.reduceMotion?'none':'opacity 160ms'}}, this.state.toast);
+  };
+
+  cta = (label, onClick, disabled) => React.createElement('div',{
+    onClick: disabled ? null : onClick, role:'button', tabIndex:0,
+    style:{background:disabled?'#E4E0D2':'#2F6D4B',borderRadius:24,minHeight:56,display:'flex',alignItems:'center',justifyContent:'center',color:disabled?'#5D665B':'#FFFDF7',fontSize:17,fontWeight:700,cursor:disabled?'default':'pointer',padding:'8px 16px',textAlign:'center',boxSizing:'border-box',transition:this.state.reduceMotion?'none':'background 120ms'}}, label);
+
+  ghost = (label, onClick) => React.createElement('div',{onClick, role:'button', tabIndex:0,
+    style:{minHeight:48,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:600,color:'#5D665B',cursor:'pointer'}}, label);
+
+  playerHeader = () => {
+    const b = this.state.block, total = BLOCKS.length;
+    return React.createElement('div',{style:{flex:'none',padding:'0 12px',height:56,display:'flex',alignItems:'center',gap:4}},
+      React.createElement('span',{onClick:this.closePlayer, role:'button', tabIndex:0, 'aria-label':'بستن دانه', style:{flex:'none',width:44,height:44,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+        React.createElement('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M6 6l12 12M18 6L6 18'}))),
+      React.createElement('div',{style:{flex:1,minWidth:0,padding:'0 4px'}},
+        React.createElement('div',{style:{fontSize:13,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:6}},'چرا آسمان شب کاملاً تاریک است؟'),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:7}},
+          React.createElement('div',{style:{flex:1,display:'flex',gap:3}}, BLOCKS.map((_,i)=>React.createElement('span',{key:i,style:{flex:1,height:4,borderRadius:2,background:i<=b?'#2F6D4B':'#E4E0D2',transition:this.state.reduceMotion?'none':'background 200ms'}}))),
+          React.createElement('span',{style:{flex:'none',fontSize:11.5,fontWeight:700,color:'#5D665B'}}, fa(b+1)+' از '+fa(total)))),
+      React.createElement('span',{role:'button', tabIndex:0, 'aria-label':'ذخیره', style:{flex:'none',width:44,height:44,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+        React.createElement('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,'aria-hidden':'true'}, React.createElement('path',{d:'M6 4h12v16l-6-4-6 4z'}))));
+  };
+
+  renderVals(){
+    return {
+      screen: this.state.screen,
+      interestCount: fa(this.state.interests.length),
+      blockLabel: this.state.screen==='player' ? (fa(this.state.block+1)+' / '+fa(BLOCKS.length)+' · '+BLOCKS[this.state.block].type) : '—',
+      savedLabel: this.state.savedAt || '—',
+      netLabel: this.state.online ? 'online' : 'offline',
+      screenText: this.state.screen,
+      startFirstRun: this.startFirstRun, startSearch: this.startSearch, startOffline: this.startOffline, startReview: this.startReview,
+      reset: this.reset, toggleNet: this.toggleNet, toggleMotion: this.toggleMotion,
+      netBtnLabel: this.state.online ? 'Go offline' : 'Go online',
+      motionBtnLabel: this.state.reduceMotion ? 'Reduce Motion: on' : 'Reduce Motion: off',
+      netBtnStyle: {marginTop:14,minHeight:44,borderRadius:14,border:'1.5px solid '+(this.state.online?'rgba(31,36,30,.18)':'#8A6100'),background:this.state.online?'transparent':'rgba(233,169,40,.14)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,cursor:'pointer'},
+      motionBtnStyle: {marginTop:8,minHeight:44,borderRadius:14,border:'1.5px solid '+(this.state.reduceMotion?'#2F6D4B':'rgba(31,36,30,.18)'),background:this.state.reduceMotion?'rgba(47,109,75,.10)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,cursor:'pointer'},
+      flowStyleA: this.flowStyle('firstRun'), flowStyleB: this.flowStyle('search'), flowStyleC: this.flowStyle('offline'), flowStyleD: this.flowStyle('review'),
+      hint: this.hint(), note: this.note(), focusList: this.focusList(),
+      phone: this.phone()
+    };
+  }
+
+  flowStyle = (f) => ({
+    borderRadius:14, padding:'12px 14px', cursor:'pointer',
+    border:'1.5px solid '+(this.state.flow===f?'#2F6D4B':'rgba(31,36,30,.12)'),
+    background:this.state.flow===f?'rgba(47,109,75,.08)':'#F7F4EA'
+  });
+
+  hint(){
+    const s = this.state.screen;
+    const map = {
+      promise:'Press «شروع کنیم». Onboarding is four steps and every one of them is skippable.',
+      interests:'Deselect one and the counter drops; below two, the CTA disables and says why.',
+      pace:'Pick any pace — it only sets the daily goal, and no permission is requested here.',
+      handoff:'The first seed is bundled, so «شروع دانه» works even if you hit "Go offline" first.',
+      player:'Answer the question wrongly on purpose. You get an explanation and a retry, not a red buzzer.',
+      done:'Completion is literal («تمام شد»), the ring is the metaphor, and one next seed is offered.',
+      home:'Continue is above the recommendation. Reopen the seed and it resumes on the exact block.',
+      search:'Try «اسمان» without the hamza — that is normalization. Then try «آسمون», which is a spoken variant, and the note changes to say so.',
+      revQueue:'Three items, ~3 minutes. «بعداً» defers with no penalty and no debt language.',
+      revRecall:'The answer is covered. Try to recall it first, then reveal — that is the whole mechanism.',
+      revDone:'Each item shows the interval its confidence rating produced, so the scheduler is legible.'
+    };
+    return map[s] || 'Pick a flow on the left.';
+  }
+
+  note(){
+    const s = this.state.screen, b = BLOCKS[this.state.block];
+    if (s === 'player' && b) {
+      if (b.type === 'mc' || b.type === 'ms') return 'Assessed block. Selection is reversible until submit — no auto-advance. After submit every state carries three signals: indicator shape, border treatment and a text badge, so nothing depends on colour. The explanation is bundled with the seed, so feedback never waits on the network.';
+      if (b.type === 'image') return 'Image block. The caption is content, not decoration, and alt text is a publish gate. Offline, the text blocks around it still resolve — only the illustration slot is deferred.';
+      if (b.type === 'summary') return 'Summary block. Exactly three points, and these are the items the review scheduler will ask about on day 3, so they are written as recallable claims rather than a recap.';
+      return 'Reading block. One meaningful unit per viewport, 17/30 with line-height 1.78. Nothing peeks from below to bait a scroll, and closing is free — progress autosaves on every block change.';
+    }
+    const map = {
+      promise:'One claim, one out. No carousel, no permission ask, no account. The concentric ring is the only brand artifact and it is reused at four sizes across the app.',
+      interests:'Two-minimum is enforced by the CTA, whose label states the blocking condition instead of greying out silently. Selection is reversible here and later from Profile.',
+      pace:'This sets the daily goal only. The notification ask is deliberately not here — it comes after the first completion, when the value is proven.',
+      handoff:'The first seed ships in the binary. That is what makes a dead-network first run survivable, and it is why the offline badge appears before the user has downloaded anything.',
+      done:'Three-point summary, a calm growth moment capped at 700ms, the next review date, and exactly one next recommendation. No confetti, and the celebration is dismissible.',
+      home:'Continue outranks the recommendation because a half-finished seed is the highest-intent thing on screen. Four finite rails, then an explicit end.',
+      search:'Normalization runs against a local index, so search answers offline. When normalization changes the result set, the header says so rather than silently correcting the user.',
+      revQueue:'Active recall, not re-reading. Deferring is free and never framed as debt — «بعداً مرور می‌کنم» is a first-class action.',
+      revRecall:'The answer stays covered until the attempt is made. Revealing first would turn retrieval practice into re-reading, which is the one thing this screen must not allow.',
+      revDone:'Confidence is stored separately from correctness, and each rating maps to a stated interval so the scheduler is inspectable rather than magic.'
+    };
+    return map[s] || '';
+  }
+
+  focusList(){
+    const s = this.state.screen, b = BLOCKS[this.state.block];
+    let items = [];
+    if (s === 'promise') items = ['عنوان صفحه (سرتیتر)','شروع کنیم (دکمه)','حساب دارم؟ ورود (دکمه)'];
+    else if (s === 'interests') items = ['بازگشت (دکمه)','پیشرفت ۲ از ۴ (متن)','عنوان (سرتیتر)','چیپ‌های موضوع (۹ دکمه‌ی دوحالته)','شمارش انتخاب (متن زنده)','ادامه (دکمه)'];
+    else if (s === 'pace') items = ['بازگشت (دکمه)','عنوان (سرتیتر)','سه گزینه‌ی آهنگ (رادیو)','سه گزینه‌ی ساعت (رادیو)','ادامه (دکمه)'];
+    else if (s === 'handoff') items = ['بازگشت (دکمه)','کارت دانه (گروه)','عنوان دانه (سرتیتر)','۳ منبع (متن)','شروع دانه (دکمه)','یکی دیگر پیشنهاد بده (دکمه)'];
+    else if (s === 'player' && b && (b.type==='mc'||b.type==='ms')) items = ['بستن دانه (دکمه)','پیشرفت: بلوک ۴ از ۶ (متن)','ذخیره (دکمه)','پرسش (سرتیتر)','گزینه‌ها (رادیو/چک‌باکس)','بازخورد و توضیح (ناحیه‌ی زنده)','ادامه (دکمه)'];
+    else if (s === 'player') items = ['بستن دانه (دکمه)','پیشرفت (متن)','ذخیره (دکمه)','عنوان بلوک (سرتیتر)','متن بلوک','ادامه (دکمه)'];
+    else if (s === 'done') items = ['بستن (دکمه)','تمام شد (سرتیتر)','سه نکته (فهرست)','مرور بعدی (متن)','دانه‌ی بعدی (دکمه)','ذخیره (دکمه)','هم‌رسانی (دکمه)'];
+    else if (s === 'home') items = ['عنوان صفحه','جست‌وجو (دکمه)','ادامه‌ی دانه (کارت)','رشد هفته (متن)','آبیاری (دکمه)','دانه‌ی پیشنهادی (کارت)','نوار پایین (۴ زبانه)'];
+    else if (s === 'search') items = ['فیلد جست‌وجو','پاک کردن (دکمه)','لغو (دکمه)','فیلترها (۴ دکمه)','توضیح نرمال‌سازی (ناحیه‌ی زنده)','نتایج (فهرست)'];
+    else if (s === 'revQueue') items = ['بازگشت (دکمه)','عنوان (سرتیتر)','سه مورد صف (فهرست)','شروع مرور (دکمه)','بعداً مرور می‌کنم (دکمه)'];
+    else if (s === 'revRecall') items = ['بستن مرور (دکمه)','پیشرفت (متن)','پرسش (سرتیتر)','ناحیه‌ی پاسخ (پوشیده)','پاسخ را نشان بده / گزینه‌های اطمینان','بعدی (دکمه)'];
+    else if (s === 'revDone') items = ['بستن (دکمه)','عنوان (سرتیتر)','سه نتیجه (فهرست)','رشد هفته (متن)','برگشت به خانه (دکمه)'];
+    return items.map((t,i) => React.createElement('div',{key:i,style:{display:'flex',alignItems:'flex-start',gap:9,fontSize:12.5,lineHeight:1.6,color:'#5D665B'}},
+      React.createElement('span',{style:{flex:'none',width:19,height:19,borderRadius:10,background:'rgba(31,36,30,.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,color:'#1F241E',fontFamily:'ui-monospace,Menlo,monospace'}}, i+1),
+      React.createElement('span',null,t)));
+  }
+
+  // ---------- screens ----------
+  phone(){
+    const s = this.state.screen;
+    const kids = [this.statusBar()];
+    if (s === 'promise') kids.push(this.scrPromise());
+    else if (s === 'interests') kids.push(this.scrInterests());
+    else if (s === 'pace') kids.push(this.scrPace());
+    else if (s === 'handoff') kids.push(this.scrHandoff());
+    else if (s === 'player') { const bn = this.banner(); if (bn) kids.push(bn); kids.push(this.playerHeader(), this.scrPlayerBody(), this.scrPlayerFooter()); }
+    else if (s === 'done') kids.push(this.scrDone());
+    else if (s === 'home') { const bn = this.banner(); if (bn) kids.push(bn); kids.push(this.scrHome()); }
+    else if (s === 'search') kids.push(this.scrSearch());
+    else if (s === 'revQueue') kids.push(this.scrRevQueue());
+    else if (s === 'revRecall') kids.push(this.scrRevRecall());
+    else if (s === 'revDone') kids.push(this.scrRevDone());
+    const t = this.toastEl(); if (t) kids.push(t);
+    return kids.map((k,i) => React.cloneElement(k, {key:i}));
+  }
+
+  progressRow = (step, total, onBack) => React.createElement('div',{style:{flex:'none',height:44,padding:'0 20px',display:'flex',alignItems:'center',gap:12}},
+    React.createElement('span',{onClick:onBack, role:'button', tabIndex:0, 'aria-label':'بازگشت', style:{flex:'none',width:44,height:44,display:'flex',alignItems:'center',justifyContent:'center',marginInlineStart:-10,cursor:'pointer'}},
+      React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'}, React.createElement('path',{d:'M9 5l7 7-7 7'}))),
+    React.createElement('div',{style:{flex:1,height:6,background:'#E4E0D2',borderRadius:3,display:'flex'}},
+      React.createElement('span',{style:{width:(step/total*100)+'%',height:6,background:'#2F6D4B',borderRadius:3,transition:this.state.reduceMotion?'none':'width 200ms'}})),
+    React.createElement('span',{style:{flex:'none',fontSize:13,fontWeight:700,color:'#5D665B'}}, fa(step)+' از '+fa(total)));
+
+  scrPromise = () => React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+    React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',display:'flex',flexDirection:'column',justifyContent:'center',padding:'0 28px'}},
+      React.createElement('svg',{width:88,height:88,viewBox:'0 0 88 88',style:{marginBottom:38},'aria-hidden':'true'},
+        React.createElement('circle',{cx:44,cy:44,r:42,fill:'none',stroke:'#2F6D4B',strokeWidth:1.5,opacity:.3}),
+        React.createElement('circle',{cx:44,cy:44,r:30,fill:'none',stroke:'#2F6D4B',strokeWidth:1.5,opacity:.55}),
+        React.createElement('circle',{cx:44,cy:44,r:18,fill:'none',stroke:'#65A96B',strokeWidth:2}),
+        React.createElement('circle',{cx:44,cy:44,r:7,fill:'#2F6D4B'})),
+      React.createElement('h1',{style:{margin:'0 0 20px',fontSize:34,lineHeight:1.35,fontWeight:800}},'پنج دقیقه،',React.createElement('br'),'یک ایده‌ی درست.'),
+      React.createElement('p',{style:{margin:0,fontSize:17,lineHeight:1.76,color:'#5D665B'}},'هر «دانه» یک مفهوم کامل است با منبع مشخص. می‌خوانی، پاسخ می‌دهی، و هفته‌ی بعد هم یادت می‌ماند.')),
+    React.createElement('div',{style:{flex:'none',padding:'0 24px 34px'}},
+      this.cta('شروع کنیم', () => this.go('interests')),
+      React.createElement('div',{style:{height:12}}),
+      this.ghost('حساب دارم؟ ورود', () => {})));
+
+  scrInterests = () => {
+    const n = this.state.interests.length, ok = n >= 2;
+    return React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+      this.progressRow(2,4,() => this.go('promise')),
+      React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'26px 24px 0'}},
+        React.createElement('h2',{style:{margin:'0 0 8px',fontSize:26,lineHeight:1.42,fontWeight:800}},'به چه چیزهایی کنجکاوی؟'),
+        React.createElement('p',{style:{margin:'0 0 24px',fontSize:15,lineHeight:1.7,color:'#5D665B'}},'دست‌کم دو مورد. هر وقت خواستی از «من» عوضش کن.'),
+        React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:10}}, TOPICS.map(t => {
+          const on = this.state.interests.includes(t);
+          return React.createElement('div',{key:t, onClick:()=>this.toggleInterest(t), role:'button', tabIndex:0, 'aria-pressed':on?'true':'false',
+            style:{background:on?FAMILY[t]:'#FFFDF7',border:'1.5px solid '+(on?FAMILY[t]:'rgba(31,36,30,.18)'),color:on?'#FFFDF7':'#1F241E',borderRadius:16,padding:'13px 18px',fontSize:15,fontWeight:on?700:600,minHeight:48,boxSizing:'border-box',display:'flex',alignItems:'center',gap:8,cursor:'pointer',transition:this.state.reduceMotion?'none':'background 120ms'}},
+            t, on ? React.createElement('span',{style:{fontSize:13}},'✓') : null);
+        }))),
+      React.createElement('div',{style:{flex:'none',padding:'0 24px 34px'}},
+        React.createElement('div',{style:{fontSize:13,color:'#5D665B',marginBottom:12}}, ok ? (fa(n)+' مورد انتخاب شد') : 'دست‌کم دو مورد لازم است'),
+        this.cta(ok ? 'ادامه' : 'دو موضوع انتخاب کن', () => this.go('pace'), !ok)));
+  };
+
+  scrPace = () => {
+    const opt = (i,title,sub,rec) => React.createElement('div',{key:i, onClick:()=>this.setState({pace:i}), role:'button', tabIndex:0,
+      style:{background:'#FFFDF7',border:'1.5px solid '+(this.state.pace===i?'#2F6D4B':'rgba(31,36,30,.14)'),borderRadius:20,padding:18,display:'flex',alignItems:'center',gap:14,cursor:'pointer'}},
+      React.createElement('span',{style:{width:22,height:22,borderRadius:11,border:'1.75px solid '+(this.state.pace===i?'#2F6D4B':'rgba(31,36,30,.28)'),flex:'none',display:'flex',alignItems:'center',justifyContent:'center'}},
+        this.state.pace===i ? React.createElement('span',{style:{width:11,height:11,borderRadius:6,background:'#2F6D4B'}}) : null),
+      React.createElement('div',null,
+        React.createElement('div',{style:{fontSize:16,fontWeight:700}},title),
+        React.createElement('div',{style:{fontSize:13.5,color:'#5D665B',marginTop:3}},sub)),
+      rec ? React.createElement('span',{style:{marginInlineStart:'auto',fontSize:12,fontWeight:700,color:'#8A6100',background:'rgba(233,169,40,.18)',borderRadius:8,padding:'5px 9px'}},'پیشنهاد ما') : null);
+    const timeOpt = (i,label) => React.createElement('div',{key:i, onClick:()=>this.setState({time:i}), role:'button', tabIndex:0,
+      style:{flex:1,background:this.state.time===i?'#1F241E':'#FFFDF7',border:'1.5px solid '+(this.state.time===i?'#1F241E':'rgba(31,36,30,.14)'),color:this.state.time===i?'#FFFDF7':'#1F241E',borderRadius:16,minHeight:48,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:this.state.time===i?700:600,cursor:'pointer'}},label);
+    return React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+      this.progressRow(3,4,() => this.go('interests')),
+      React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'26px 24px 0'}},
+        React.createElement('h2',{style:{margin:'0 0 8px',fontSize:26,lineHeight:1.42,fontWeight:800}},'روزی چقدر وقت داری؟'),
+        React.createElement('p',{style:{margin:'0 0 22px',fontSize:15,lineHeight:1.7,color:'#5D665B'}},'هدف روزانه‌ات را تعیین می‌کند. سخت‌گیر نیست.'),
+        React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:12,marginBottom:28}},
+          opt(0,'یک دانه در روز','حدود ۵ تا ۸ دقیقه',false),
+          opt(1,'دو دانه در روز','حدود ۱۰ تا ۱۵ دقیقه',true),
+          opt(2,'هر وقت شد','بدون هدف روزانه',false)),
+        React.createElement('div',{style:{fontSize:13,fontWeight:700,color:'#5D665B',marginBottom:12}},'چه ساعتی معمولاً وقت داری؟'),
+        React.createElement('div',{style:{display:'flex',gap:9}}, timeOpt(0,'صبح'), timeOpt(1,'عصر'), timeOpt(2,'شب'))),
+      React.createElement('div',{style:{flex:'none',padding:'0 24px 34px'}}, this.cta('ادامه', () => this.go('handoff'))));
+  };
+
+  scrHandoff = () => React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+    this.progressRow(4,4,() => this.go('pace')),
+    React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'20px 24px 0'}},
+      React.createElement('div',{style:{fontSize:13,fontWeight:700,color:'#5D665B',marginBottom:16}},'اولین دانه‌ات آماده است'),
+      React.createElement('div',{style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:28,overflow:'hidden'}},
+        React.createElement('div',{style:{height:118,background:'repeating-linear-gradient(135deg,#EDE8D8 0 9px,#F4F0E2 9px 18px)',display:'flex',alignItems:'center',justifyContent:'center',borderBottom:'1px solid rgba(31,36,30,.08)'}},
+          React.createElement('span',{dir:'ltr',style:{fontFamily:'ui-monospace,Menlo,monospace',fontSize:10.5,color:'#5D665B'}},'illustration · astronomy · 3:2')),
+        React.createElement('div',{style:{padding:18}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}},
+            React.createElement('span',{style:{fontSize:12.5,fontWeight:700,color:'#2F6D4B',background:'rgba(47,109,75,.10)',borderRadius:8,padding:'5px 10px'}},'اخترشناسی'),
+            React.createElement('span',{style:{fontSize:12.5,fontWeight:600,color:'#5D665B'}},'۶ دقیقه',DOT(),'مقدماتی')),
+          React.createElement('h3',{style:{margin:'0 0 8px',fontSize:23,lineHeight:1.46,fontWeight:800}},'چرا آسمان شب کاملاً تاریک است؟'),
+          React.createElement('p',{style:{margin:'0 0 14px',fontSize:15.5,lineHeight:1.72,color:'#5D665B'}},'می‌فهمی تاریکی آسمان چه چیزی درباره‌ی سنّ و گسترش جهان می‌گوید.'),
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:7,fontSize:12.5,fontWeight:600,color:'#5D665B',borderTop:'1px solid rgba(31,36,30,.08)',paddingTop:13}},
+            React.createElement('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'#5D665B',strokeWidth:1.75,'aria-hidden':'true'}, React.createElement('path',{d:'M4 6h16M4 12h16M4 18h10'})),
+            React.createElement('span',null,'۳ منبع',DOT(),'آخرین بازبینی ۱۴۰۵/۰۵/۲۹')))),
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:9,marginTop:16,background:'rgba(47,109,75,.08)',borderRadius:16,padding:'12px 16px'}},
+        React.createElement('svg',{width:17,height:17,viewBox:'0 0 24 24',fill:'none',stroke:'#2F6D4B',strokeWidth:1.75,'aria-hidden':'true'}, React.createElement('path',{d:'M12 3v12m0 0l-4-4m4 4l4-4'}), React.createElement('path',{d:'M4 19h16'})),
+        React.createElement('span',{style:{fontSize:13.5,fontWeight:600}},'این دانه همراه اپ ذخیره شده — بدون اینترنت هم کار می‌کند.'))),
+    React.createElement('div',{style:{flex:'none',padding:'14px 24px 28px'}},
+      this.cta('شروع دانه', () => this.setState({screen:'player', block:0, savedBlock:0, savedAt:this.stamp()})),
+      React.createElement('div',{style:{height:8}}),
+      this.ghost('یکی دیگر پیشنهاد بده', () => {})));
+
+  optionRow = (o, i, kind) => {
+    const st = this.state, sub = st.submitted;
+    const chosen = kind==='mc' ? st.picked===i : st.msPicked.includes(i);
+    let bg='#FFFDF7', bd='1.5px solid rgba(31,36,30,.16)', badge=null, badgeC='', ind=null, weight=600, dim=false;
+    const radius = kind==='mc' ? 11 : 6;
+    if (!sub) {
+      if (chosen) { bd='2px solid #1F241E'; weight=700;
+        ind = React.createElement('span',{style:{flex:'none',width:22,height:22,borderRadius:radius,border:'1.75px solid #1F241E',display:'flex',alignItems:'center',justifyContent:'center'}}, React.createElement('span',{style:{width:11,height:11,borderRadius:radius===11?6:3,background:'#1F241E'}}));
+      } else ind = React.createElement('span',{style:{flex:'none',width:22,height:22,borderRadius:radius,border:'1.75px solid rgba(31,36,30,.28)'}});
+    } else {
+      if (chosen && o.ok) { bg='rgba(47,109,75,.10)'; bd='2px solid #2F6D4B'; weight=700; badge='درست'; badgeC='#2F6D4B';
+        ind = React.createElement('span',{style:{flex:'none',width:22,height:22,borderRadius:radius,background:'#2F6D4B',display:'flex',alignItems:'center',justifyContent:'center'}}, React.createElement('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'#FFFDF7',strokeWidth:3,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M5 13l4 4L19 7'})));
+      } else if (chosen && !o.ok) { bg='rgba(181,68,60,.09)'; bd='2px solid #B5443C'; weight=700; badge='پاسخ تو'; badgeC='#A03A33';
+        ind = React.createElement('span',{style:{flex:'none',width:22,height:22,borderRadius:radius,background:'#B5443C',display:'flex',alignItems:'center',justifyContent:'center'}}, React.createElement('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'#FFFDF7',strokeWidth:3,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M6 6l12 12M18 6L6 18'})));
+      } else if (!chosen && o.ok) { bd='2px dashed #2F6D4B'; weight=700; badge='جا افتاد'; badgeC='#2F6D4B';
+        ind = React.createElement('span',{style:{flex:'none',width:22,height:22,borderRadius:radius,border:'1.75px solid #2F6D4B',display:'flex',alignItems:'center',justifyContent:'center'}}, React.createElement('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'#2F6D4B',strokeWidth:3,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M5 13l4 4L19 7'})));
+      } else { dim=true; ind = React.createElement('span',{style:{flex:'none',width:22,height:22,borderRadius:radius,border:'1.75px solid rgba(31,36,30,.24)'}}); }
+    }
+    return React.createElement('div',{key:i, onClick:()=> kind==='mc' ? this.pick(i) : this.toggleMs(i), role:kind==='mc'?'radio':'checkbox', tabIndex:0, 'aria-checked':chosen?'true':'false',
+      style:{background:bg,border:bd,borderRadius:18,minHeight:56,display:'flex',alignItems:'center',gap:12,padding:'12px 15px',boxSizing:'border-box',opacity:dim?.5:1,cursor:sub?'default':'pointer',transition:this.state.reduceMotion?'none':'border-color 180ms, background 180ms'}},
+      ind,
+      React.createElement('span',{style:{flex:1,fontSize:15,lineHeight:1.55,fontWeight:weight}},o.t),
+      badge ? React.createElement('span',{style:{flex:'none',fontSize:11.5,fontWeight:800,color:badgeC}},badge) : null);
+  };
+
+  scrPlayerBody = () => {
+    const b = BLOCKS[this.state.block], st = this.state;
+    const wrap = (kids) => React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'20px 24px 0'}}, kids);
+    if (b.type === 'richText') return wrap([
+      React.createElement('div',{key:'k',style:{fontSize:12.5,fontWeight:700,color:'#8A6100',marginBottom:16}},b.kicker),
+      React.createElement('h2',{key:'t',style:{margin:'0 0 18px',fontSize:24,lineHeight:1.5,fontWeight:800}},b.title),
+      React.createElement('p',{key:'p1',style:{margin:'0 0 16px',fontSize:17,lineHeight:1.78}},b.paras[0]),
+      React.createElement('p',{key:'p2',style:{margin:0,fontSize:17,lineHeight:1.78,color:'#5D665B'}},b.paras[1])]);
+    if (b.type === 'image') return wrap([
+      React.createElement('div',{key:'i',style:{borderRadius:24,overflow:'hidden',border:'1px solid rgba(31,36,30,.10)',marginBottom:16}},
+        React.createElement('div',{style:{height:290,background:'repeating-linear-gradient(135deg,#EDE8D8 0 9px,#F4F0E2 9px 18px)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:7}},
+          React.createElement('span',{dir:'ltr',style:{fontFamily:'ui-monospace,Menlo,monospace',fontSize:11,color:'#5D665B'}}, st.online ? b.slot : 'offline · asset deferred'),
+          React.createElement('span',{style:{fontSize:11.5,color:'#5D665B'}},'نمودار: نگاه در جهت‌های مختلف در جهان بی‌کران'))),
+      React.createElement('p',{key:'c',style:{margin:0,fontSize:15,lineHeight:1.75,color:'#5D665B'}},b.caption)]);
+    if (b.type === 'quote') return wrap([
+      React.createElement('div',{key:'q',style:{borderInlineStart:'3px solid #E9A928',padding:'2px 18px 2px 0'}},
+        React.createElement('p',{style:{margin:'0 0 12px',fontSize:21,lineHeight:1.68,fontWeight:700}},b.text),
+        React.createElement('div',{style:{fontSize:13,fontWeight:600,color:'#5D665B'}},b.attr,DOT(),'سده‌ی نوزدهم'))]);
+    if (b.type === 'summary') return wrap([
+      React.createElement('div',{key:'c',style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},
+        React.createElement('span',{style:{fontSize:11.5,fontWeight:700,color:'#8A6100',background:'rgba(233,169,40,.16)',borderRadius:7,padding:'5px 9px'}},'جمع‌بندی')),
+      React.createElement('h2',{key:'t',style:{margin:'0 0 20px',fontSize:22,lineHeight:1.5,fontWeight:800}},'سه چیزی که ماند'),
+      React.createElement('div',{key:'l',style:{display:'flex',flexDirection:'column',gap:12}}, b.points.map((p,i)=>
+        React.createElement('div',{key:i,style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:20,padding:16,display:'flex',gap:13}},
+          React.createElement('span',{style:{flex:'none',width:26,height:26,borderRadius:13,background:'rgba(47,109,75,.12)',color:'#2F6D4B',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800}},fa(i+1)),
+          React.createElement('p',{style:{margin:0,fontSize:15,lineHeight:1.72}},p))))]);
+    // assessed
+    const kind = b.type;
+    const chosenAny = kind==='mc' ? st.picked!==null : st.msPicked.length>0;
+    let verdict = null;
+    if (st.submitted) {
+      const hits = b.options.filter((o,i)=> o.ok && (kind==='mc' ? st.picked===i : st.msPicked.includes(i))).length;
+      const wrongs = b.options.filter((o,i)=> !o.ok && (kind==='mc' ? st.picked===i : st.msPicked.includes(i))).length;
+      const total = b.options.filter(o=>o.ok).length;
+      const full = hits===total && wrongs===0;
+      const partial = hits>0 && !full;
+      verdict = {full, partial, hits, total};
+    }
+    return wrap([
+      React.createElement('div',{key:'c',style:{display:'flex',alignItems:'center',gap:8,marginBottom:12}},
+        React.createElement('span',{style:{fontSize:11.5,fontWeight:700,color:'#2F6D4B',background:'rgba(47,109,75,.10)',borderRadius:7,padding:'5px 9px'}},b.kind)),
+      React.createElement('h2',{key:'q',style:{margin:'0 0 '+(b.hint?'8px':'18px'),fontSize:19,lineHeight:1.6,fontWeight:800}},b.q),
+      b.hint ? React.createElement('p',{key:'h',style:{margin:'0 0 16px',fontSize:13.5,color:'#5D665B'}},b.hint) : null,
+      React.createElement('div',{key:'o',style:{display:'flex',flexDirection:'column',gap:10,marginBottom:st.submitted?18:0}}, b.options.map((o,i)=>this.optionRow(o,i,kind))),
+      st.submitted ? React.createElement('div',{key:'f','aria-live':'polite',style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:20,padding:16}},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:9}},
+          React.createElement('span',{style:{width:22,height:22,borderRadius:11,background:verdict.full?'#2F6D4B':(verdict.partial?'#8A6100':'#B5443C'),display:'flex',alignItems:'center',justifyContent:'center'}},
+            React.createElement('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'#FFFDF7',strokeWidth:3,strokeLinecap:'round','aria-hidden':'true'},
+              React.createElement('path',{d: verdict.full ? 'M5 13l4 4L19 7' : (verdict.partial ? 'M6 12h12' : 'M6 6l12 12M18 6L6 18')}))),
+          React.createElement('span',{style:{fontSize:15,fontWeight:800,color:verdict.full?'#2F6D4B':(verdict.partial?'#8A6100':'#A03A33')}},
+            verdict.full ? 'درست است' : (verdict.partial ? ('یکی از '+fa(verdict.total)+' مورد') : 'این‌بار نه'))),
+        React.createElement('p',{style:{margin:'0 0 12px',fontSize:14.5,lineHeight:1.75}}, verdict.full ? b.ok : b.no),
+        verdict.full ? null : React.createElement('div',{onClick:this.retry, role:'button', tabIndex:0,
+          style:{border:'1.5px solid #2F6D4B',borderRadius:16,minHeight:46,display:'flex',alignItems:'center',justifyContent:'center',gap:8,fontSize:14.5,fontWeight:700,color:'#2F6D4B',cursor:'pointer'}},
+          React.createElement('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#2F6D4B',strokeWidth:1.75,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M4 12a8 8 0 108-8'}), React.createElement('path',{d:'M4 4v5h5'})),
+          'یک‌بار دیگر امتحان کن')) : null]);
+  };
+
+  scrPlayerFooter = () => {
+    const b = BLOCKS[this.state.block], st = this.state;
+    const assessed = b.type==='mc' || b.type==='ms';
+    const last = this.state.block === BLOCKS.length - 1;
+    let node;
+    if (assessed && !st.submitted) {
+      const any = b.type==='mc' ? st.picked!==null : st.msPicked.length>0;
+      node = this.cta(any ? 'بررسی پاسخ' : (b.type==='mc' ? 'یک گزینه را انتخاب کن' : 'گزینه‌ها را انتخاب کن'), this.submit, !any);
+    } else {
+      node = this.cta(last ? 'تمام کردن دانه' : 'ادامه', this.next);
+    }
+    return React.createElement('div',{style:{flex:'none',padding:'16px 24px 28px'}}, node);
+  };
+
+  scrDone = () => React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+    React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'10px 24px 0',display:'flex',flexDirection:'column'}},
+      React.createElement('div',{style:{display:'flex',justifyContent:'flex-start'}},
+        React.createElement('span',{onClick:()=>this.go('home'), role:'button', tabIndex:0, 'aria-label':'بستن', style:{width:44,height:44,marginInlineStart:-10,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+          React.createElement('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M6 6l12 12M18 6L6 18'})))),
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:16,margin:'4px 0 22px'}},
+        React.createElement('svg',{width:76,height:76,viewBox:'0 0 76 76','aria-hidden':'true'},
+          React.createElement('circle',{cx:38,cy:38,r:32,fill:'none',stroke:'#E4E0D2',strokeWidth:7}),
+          React.createElement('circle',{cx:38,cy:38,r:32,fill:'none',stroke:'#2F6D4B',strokeWidth:7,strokeLinecap:'round'}),
+          React.createElement('circle',{cx:38,cy:38,r:14,fill:'#65A96B',opacity:.22}),
+          React.createElement('circle',{cx:38,cy:38,r:6.4,fill:'#2F6D4B'})),
+        React.createElement('div',null,
+          React.createElement('div',{style:{fontSize:24,fontWeight:800,marginBottom:4}},'تمام شد'),
+          React.createElement('div',{style:{fontSize:13.5,color:'#5D665B'}},'دانه‌ی اولِ تو',DOT(),'۶ دقیقه'))),
+      React.createElement('div',{style:{fontSize:12.5,fontWeight:700,color:'#5D665B',marginBottom:10}},'سه چیزی که ماند'),
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:9,marginBottom:18}}, BLOCKS[5].points.map((p,i)=>
+        React.createElement('div',{key:i,style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:16,padding:'11px 15px',fontSize:14,lineHeight:1.65}},p))),
+      React.createElement('div',{style:{display:'flex',gap:9,marginBottom:18}},
+        React.createElement('div',{style:{flex:1,background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:16,padding:'13px 14px'}},
+          React.createElement('div',{style:{fontSize:11.5,color:'#5D665B',marginBottom:5}},'پاسخ‌های درست'),
+          React.createElement('div',{style:{fontSize:15,fontWeight:800}},'۲ از ۲')),
+        React.createElement('div',{style:{flex:1,background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:16,padding:'13px 14px'}},
+          React.createElement('div',{style:{fontSize:11.5,color:'#5D665B',marginBottom:5}},'مرور بعدی'),
+          React.createElement('div',{style:{fontSize:15,fontWeight:800}},'۱۴۰۵/۰۶/۰۱'))),
+      React.createElement('div',{style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:20,padding:15}},
+        React.createElement('div',{style:{fontSize:11.5,fontWeight:700,color:'#5D665B',marginBottom:9}},'بعدی، اگر خواستی'),
+        React.createElement('div',{style:{fontSize:15.5,fontWeight:700,lineHeight:1.5,marginBottom:5}},'نورِ ستاره چند سال است در راه؟'),
+        React.createElement('div',{style:{fontSize:12.5,color:'#5D665B'}},'اخترشناسی',DOT(),'۸ دقیقه'))),
+    React.createElement('div',{style:{flex:'none',padding:'14px 24px 26px'}}, this.cta('برو به خانه', ()=>this.go('home'))));
+
+  scrHome = () => {
+    const resumeCard = this.state.savedBlock !== null;
+    return React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+      React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'0 20px'}},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0 20px'}},
+          React.createElement('div',null,
+            React.createElement('div',{style:{fontSize:22,fontWeight:800}},'عصر بخیر'),
+            React.createElement('div',{style:{fontSize:13,color:'#5D665B',marginTop:2}},'پنجشنبه ۲۹ مرداد')),
+          React.createElement('span',{onClick:this.startSearch, role:'button', tabIndex:0, 'aria-label':'جست‌وجو', style:{width:44,height:44,borderRadius:14,background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+            React.createElement('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,'aria-hidden':'true'}, React.createElement('circle',{cx:11,cy:11,r:7}), React.createElement('path',{d:'M16 16l4 4'})))),
+        resumeCard ? React.createElement('div',{onClick:this.resume, role:'button', tabIndex:0, style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:24,padding:16,marginBottom:12,cursor:'pointer'}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:14}},
+            React.createElement('svg',{width:46,height:46,viewBox:'0 0 46 46',style:{flex:'none'},'aria-hidden':'true'},
+              React.createElement('circle',{cx:23,cy:23,r:19,fill:'none',stroke:'#E4E0D2',strokeWidth:4}),
+              React.createElement('circle',{cx:23,cy:23,r:19,fill:'none',stroke:'#2F6D4B',strokeWidth:4,strokeDasharray:'119.4',strokeDashoffset:String(119.4*(1-(this.state.savedBlock+1)/BLOCKS.length)),transform:'rotate(-90 23 23) scale(-1,1) translate(-46,0)'}),
+              React.createElement('text',{x:23,y:27,textAnchor:'middle',fontSize:11,fontWeight:700,fill:'#1F241E',fontFamily:'YekanBakh,sans-serif'}, fa(Math.round((this.state.savedBlock+1)/BLOCKS.length*100))+'٪')),
+            React.createElement('div',{style:{flex:1,minWidth:0}},
+              React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#5D665B',marginBottom:4}}, this.state.online ? 'ادامه‌ی دانه' : 'ذخیره‌شده روی دستگاه'),
+              React.createElement('div',{style:{fontSize:16,fontWeight:700,lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'چرا آسمان شب کاملاً تاریک…'),
+              React.createElement('div',{style:{fontSize:12.5,color:'#5D665B',marginTop:3}},'بلوک '+fa(this.state.savedBlock+1)+' از '+fa(BLOCKS.length),DOT(),'ذخیره در '+(this.state.savedAt||'—'))),
+            React.createElement('span',{style:{flex:'none',width:44,height:44,borderRadius:14,background:'#2F6D4B',display:'flex',alignItems:'center',justifyContent:'center'}},
+              React.createElement('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'#FFFDF7','aria-hidden':'true'}, React.createElement('path',{d:'M8 5l11 7-11 7z'}))))) : null,
+        React.createElement('div',{style:{display:'flex',gap:10,marginBottom:22}},
+          React.createElement('div',{style:{flex:1,background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:20,padding:'14px 16px'}},
+            React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#5D665B',marginBottom:9}},'رشد این هفته'),
+            React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6}}, [0,1,2,3,4,5,6].map(i=>
+              React.createElement('span',{key:i,style:{width:11,height:11,borderRadius:6,background:i<1?'#2F6D4B':'transparent',border:i<1?'none':'1.5px solid #8C8778',boxSizing:'border-box'}}))),
+            React.createElement('div',{style:{fontSize:13,fontWeight:700,marginTop:9}},'۱ از ۷ روز')),
+          React.createElement('div',{onClick:this.startReview, role:'button', tabIndex:0, style:{flex:1,background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:20,padding:'14px 16px',cursor:'pointer'}},
+            React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#5D665B',marginBottom:9}},'آبیاری امروز'),
+            React.createElement('div',{style:{display:'flex',alignItems:'baseline',gap:5}},
+              React.createElement('span',{style:{fontSize:24,fontWeight:800,color:'#8A6100'}},'۳'),
+              React.createElement('span',{style:{fontSize:13,fontWeight:600,color:'#5D665B'}},'دانه برای مرور')),
+            React.createElement('div',{style:{fontSize:13,fontWeight:700,color:'#2F6D4B',marginTop:7}},'شروع مرور'))),
+        React.createElement('div',{style:{fontSize:12.5,fontWeight:700,color:'#5D665B',marginBottom:10}},'دانه‌ی پیشنهادی امروز'),
+        React.createElement('div',{style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:28,overflow:'hidden'}},
+          React.createElement('div',{style:{height:120,background:'repeating-linear-gradient(135deg,#EDE8D8 0 9px,#F4F0E2 9px 18px)',display:'flex',alignItems:'center',justifyContent:'center',borderBottom:'1px solid rgba(31,36,30,.08)'}},
+            React.createElement('span',{dir:'ltr',style:{fontFamily:'ui-monospace,Menlo,monospace',fontSize:10.5,color:'#5D665B'}}, this.state.online ? 'illustration · astronomy' : 'offline · asset deferred')),
+          React.createElement('div',{style:{padding:18}},
+            React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:11}},
+              React.createElement('span',{style:{fontSize:12,fontWeight:700,color:'#2F6D4B',background:'rgba(47,109,75,.10)',borderRadius:8,padding:'5px 9px'}},'اخترشناسی'),
+              React.createElement('span',{style:{fontSize:12.5,fontWeight:600,color:'#5D665B'}},'۸ دقیقه',DOT(),'متوسط')),
+            React.createElement('h3',{style:{margin:'0 0 8px',fontSize:21,lineHeight:1.5,fontWeight:800}},'نورِ ستاره چند سال است در راه؟'),
+            React.createElement('div',{style:{display:'flex',alignItems:'center',gap:6,fontSize:12.5,color:'#5D665B'}},
+              React.createElement('span',{style:{width:5,height:5,borderRadius:3,background:'#8A6100'}}),'چون اخترشناسی را انتخاب کردی')))),
+      React.createElement('div',{style:{flex:'none',height:84,background:'#FFFDF7',borderTop:'1px solid rgba(31,36,30,.10)',display:'flex',alignItems:'flex-start',paddingTop:11}},
+        [['خانه',true],['کاوش',false],['باغچه',false],['من',false]].map(([l,on],i)=>
+          React.createElement('div',{key:i, onClick:i===1?this.startSearch:null, style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:5,cursor:i===1?'pointer':'default'}},
+            React.createElement('svg',{width:23,height:23,viewBox:'0 0 24 24',fill:'none',stroke:on?'#2F6D4B':'#5D665B',strokeWidth:on?2.1:1.75,'aria-hidden':'true'},
+              i===0 ? [React.createElement('circle',{key:'a',cx:12,cy:12,r:10}),React.createElement('circle',{key:'b',cx:12,cy:12,r:3.6})] :
+              i===1 ? [React.createElement('circle',{key:'a',cx:11,cy:11,r:7}),React.createElement('path',{key:'b',d:'M16 16l4 4'})] :
+              i===2 ? [React.createElement('circle',{key:'a',cx:12,cy:12,r:9.5}),React.createElement('circle',{key:'b',cx:12,cy:12,r:5.5})] :
+                       [React.createElement('circle',{key:'a',cx:12,cy:8.5,r:4}),React.createElement('path',{key:'b',d:'M4.5 20c1.6-4 4.2-6 7.5-6s5.9 2 7.5 6'})]),
+            React.createElement('span',{style:{fontSize:11,fontWeight:on?700:600,color:on?'#2F6D4B':'#5D665B'}},l)))));
+  };
+
+  scrSearch = () => {
+    const q = this.state.query, res = this.results(), raw = normalize(q), ex = expand(raw);
+    const n = ex.q;
+    // The note fires only when matching actually needed normalization or a variant —
+    // i.e. a literal search on the typed string would have returned fewer results.
+    const typed = q.replace(/\s+/g,' ').trim();
+    const literal = typed ? SEARCH_INDEX.filter(s => (s.title + ' ' + s.norm).includes(typed)).length : 0;
+    const changed = typed && res.length > literal;
+    return React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+      React.createElement('div',{style:{flex:'none',padding:'0 20px 14px',display:'flex',alignItems:'center',gap:10}},
+        React.createElement('div',{style:{flex:1,background:'#FFFDF7',border:'1.5px solid #2F6D4B',borderRadius:18,height:52,display:'flex',alignItems:'center',gap:10,padding:'0 16px'}},
+          React.createElement('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'#2F6D4B',strokeWidth:1.75,style:{flex:'none'},'aria-hidden':'true'}, React.createElement('circle',{cx:11,cy:11,r:7}), React.createElement('path',{d:'M16 16l4 4'})),
+          React.createElement('input',{value:q, onChange:this.setQuery, placeholder:'جست‌وجو در دانه‌ها', dir:'rtl',
+            style:{flex:1,minWidth:0,border:'none',outline:'none',background:'transparent',fontFamily:'YekanBakh,sans-serif',fontSize:16,fontWeight:600,color:'#1F241E'}}),
+          q ? React.createElement('span',{onClick:()=>this.setState({query:''}), role:'button', tabIndex:0, 'aria-label':'پاک کردن جست‌وجو', style:{flex:'none',width:44,height:44,marginInlineEnd:-12,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+            React.createElement('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:'#5D665B',strokeWidth:1.75,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M6 6l12 12M18 6L6 18'}))) : null),
+        React.createElement('span',{onClick:()=>this.go('home'), role:'button', tabIndex:0, style:{flex:'none',minWidth:44,height:44,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,color:'#2F6D4B',cursor:'pointer'}},'لغو')),
+      React.createElement('div',{style:{flex:'none',padding:'0 20px 8px',display:'flex',gap:8,overflow:'hidden'}},
+        ['همه','زیر ۵ دقیقه','مقدماتی','دانلود‌شده'].map((t,i)=>
+          React.createElement('div',{key:i,style:{flex:'none',background:i===0?'#1F241E':'#FFFDF7',border:i===0?'none':'1px solid rgba(31,36,30,.14)',color:i===0?'#FFFDF7':'#1F241E',borderRadius:14,height:44,padding:'0 16px',display:'flex',alignItems:'center',fontSize:13,fontWeight:i===0?700:600}},t))),
+      React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'8px 20px 0'}},
+        !q ? React.createElement('div',{style:{paddingTop:8}},
+              React.createElement('div',{style:{fontSize:12.5,fontWeight:700,color:'#5D665B',marginBottom:12}},'جست‌وجوهای اخیر'),
+              ['آسمون شب','اثر لنگر','احتمال'].map((t,i)=>
+                React.createElement('div',{key:i, onClick:()=>this.setState({query:t}), role:'button', tabIndex:0, style:{minHeight:48,display:'flex',alignItems:'center',gap:10,fontSize:15,fontWeight:600,cursor:'pointer',borderBottom:'1px solid rgba(31,36,30,.07)'}},
+                  React.createElement('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#8C8778',strokeWidth:1.75,'aria-hidden':'true'}, React.createElement('circle',{cx:12,cy:12,r:9}), React.createElement('path',{d:'M12 7v5l3 2'})), t)))
+        : React.createElement('div',null,
+            changed ? React.createElement('div',{'aria-live':'polite',style:{display:'flex',alignItems:'flex-start',gap:8,background:'rgba(47,109,75,.07)',borderRadius:14,padding:'11px 14px',marginBottom:14}},
+              React.createElement('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#2F6D4B',strokeWidth:1.75,style:{flex:'none',marginTop:2},'aria-hidden':'true'}, React.createElement('circle',{cx:12,cy:12,r:9}), React.createElement('path',{d:'M12 8v.01M12 11v5'})),
+              React.createElement('span',{style:{fontSize:13,lineHeight:1.65}}, ex.changed ? ('«'+typed+'» را شکل گفتاری «'+n+'» گرفتیم') : ('«'+typed+'» را نرمال کردیم به «'+n+'»'), DOT(), fa(res.length)+' نتیجه')) : null,
+            res.length === 0 ? React.createElement('div',{style:{paddingTop:20}},
+                React.createElement('svg',{width:52,height:52,viewBox:'0 0 52 52',style:{marginBottom:18},'aria-hidden':'true'},
+                  React.createElement('circle',{cx:26,cy:26,r:24,fill:'none',stroke:'#8C8778',strokeWidth:1.5}),
+                  React.createElement('circle',{cx:26,cy:26,r:14,fill:'none',stroke:'#8C8778',strokeWidth:1.5,strokeDasharray:'4 6'})),
+                React.createElement('h2',{style:{margin:'0 0 10px',fontSize:21,fontWeight:800,lineHeight:1.45}},'برای این عبارت دانه‌ای نداریم'),
+                React.createElement('p',{style:{margin:'0 0 20px',fontSize:15,lineHeight:1.72,color:'#5D665B'}},'هنوز روی این موضوع کار نکرده‌ایم. این‌ها نزدیک‌ترین چیزهایی است که داریم.'),
+                React.createElement('div',{style:{display:'flex',flexWrap:'wrap',gap:9}}, ['اخترشناسی','احتمال','نور و رنگ'].map((t,i)=>
+                  React.createElement('div',{key:i, onClick:()=>this.setState({query:t}), role:'button', tabIndex:0, style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.14)',borderRadius:14,minHeight:44,padding:'0 16px',display:'flex',alignItems:'center',fontSize:14,fontWeight:600,cursor:'pointer'}},t))))
+              : res.map((r,i)=> React.createElement('div',{key:i, onClick:()=>this.setState({screen:'player',block:0,picked:null,submitted:false,msPicked:[],savedBlock:0,savedAt:this.stamp()}), role:'button', tabIndex:0,
+                  style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:22,padding:16,marginBottom:11,cursor:'pointer'}},
+                  React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:9}},
+                    React.createElement('span',{style:{fontSize:11.5,fontWeight:700,color:FAMILY[r.topic],background:'rgba(47,109,75,.10)',borderRadius:7,padding:'4px 8px'}},r.topic),
+                    r.downloaded ? React.createElement('span',{style:{display:'flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:700,color:'#2F6D4B'}},
+                      React.createElement('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'#2F6D4B',strokeWidth:2.4,'aria-hidden':'true'}, React.createElement('path',{d:'M5 13l4 4L19 7'})),'دانلود شده')
+                      : React.createElement('span',{style:{fontSize:12,fontWeight:600,color:'#5D665B'}}, r.min, DOT(), r.diff)),
+                  React.createElement('div',{style:{fontSize:17,fontWeight:700,lineHeight:1.5,marginBottom:r.promise?6:0}},r.title),
+                  r.promise ? React.createElement('div',{style:{fontSize:13.5,lineHeight:1.7,color:'#5D665B'}},r.promise) : null)))));
+  };
+
+  scrRevQueue = () => React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+    React.createElement('div',{style:{flex:'none',height:44,padding:'0 20px',display:'flex',alignItems:'center',gap:12}},
+      React.createElement('span',{onClick:()=>this.go('home'), role:'button', tabIndex:0, 'aria-label':'بازگشت', style:{flex:'none',width:44,height:44,display:'flex',alignItems:'center',justifyContent:'center',marginInlineStart:-10,cursor:'pointer'}},
+        React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M9 5l7 7-7 7'}))),
+      React.createElement('span',{style:{fontSize:15,fontWeight:700}},'آبیاری')),
+    React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'12px 20px 0'}},
+      React.createElement('h1',{style:{margin:'0 0 8px',fontSize:26,fontWeight:800,lineHeight:1.42}},'۳ دانه آماده‌ی مرور است'),
+      React.createElement('p',{style:{margin:'0 0 22px',fontSize:15,lineHeight:1.74,color:'#5D665B'}},'حدود ۳ دقیقه. یادآوری فعال بهتر از خواندن دوباره جواب می‌دهد، پس این‌بار خودت باید به‌یاد بیاوری.'),
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:10}}, REVIEW.map((r,i)=>
+        React.createElement('div',{key:i,style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:20,padding:15,display:'flex',alignItems:'center',gap:13}},
+          React.createElement('span',{style:{flex:'none',width:34,height:34,borderRadius:17,background:'rgba(47,109,75,.10)',color:FAMILY[r.topic],display:'flex',alignItems:'center',justifyContent:'center',fontSize:12.5,fontWeight:800}}, fa(i+1)+'ر'),
+          React.createElement('div',{style:{flex:1,minWidth:0}},
+            React.createElement('div',{style:{fontSize:15.5,fontWeight:700,lineHeight:1.5}}, r.q.length>44 ? r.q.slice(0,44)+'…' : r.q),
+            React.createElement('div',{style:{fontSize:12.5,color:'#5D665B',marginTop:3}}, r.topic, DOT(), 'مرور '+['اول','دوم','سوم'][i])))))),
+    React.createElement('div',{style:{flex:'none',padding:'14px 20px 26px'}},
+      this.cta('شروع مرور', ()=>this.go('revRecall')),
+      React.createElement('div',{style:{height:8}}),
+      this.ghost('بعداً مرور می‌کنم', ()=>this.go('home'))));
+
+  scrRevRecall = () => {
+    const r = REVIEW[this.state.revIdx], st = this.state;
+    const cRow = (t,sub,val) => React.createElement('div',{key:val, onClick:()=>this.rate(val), role:'button', tabIndex:0,
+      style:{background:st.confidence===val?'rgba(47,109,75,.10)':'#FFFDF7',border:st.confidence===val?'2px solid #2F6D4B':'1.5px solid rgba(31,36,30,.14)',borderRadius:18,minHeight:56,display:'flex',alignItems:'center',gap:13,padding:'11px 16px',boxSizing:'border-box',cursor:'pointer'}},
+      React.createElement('span',{style:{flex:'none',width:22,height:22,borderRadius:11,border:'1.75px solid '+(st.confidence===val?'#2F6D4B':'rgba(31,36,30,.28)'),display:'flex',alignItems:'center',justifyContent:'center'}},
+        st.confidence===val ? React.createElement('span',{style:{width:11,height:11,borderRadius:6,background:'#2F6D4B'}}) : null),
+      React.createElement('div',null,
+        React.createElement('div',{style:{fontSize:15.5,fontWeight:700}},t),
+        React.createElement('div',{style:{fontSize:12.5,color:'#5D665B',marginTop:2}},sub)));
+    return React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+      React.createElement('div',{style:{flex:'none',height:56,padding:'0 12px',display:'flex',alignItems:'center',gap:4}},
+        React.createElement('span',{onClick:()=>this.go('home'), role:'button', tabIndex:0, 'aria-label':'بستن مرور', style:{flex:'none',width:44,height:44,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+          React.createElement('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M6 6l12 12M18 6L6 18'}))),
+        React.createElement('div',{style:{flex:1,minWidth:0,padding:'0 4px'}},
+          React.createElement('div',{style:{fontSize:13,fontWeight:700,marginBottom:6}},'آبیاری امروز'),
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:7}},
+            React.createElement('div',{style:{flex:1,display:'flex',gap:4}}, REVIEW.map((_,i)=>React.createElement('span',{key:i,style:{flex:1,height:4,borderRadius:2,background:i<=st.revIdx?'#2F6D4B':'#E4E0D2'}}))),
+            React.createElement('span',{style:{flex:'none',fontSize:11.5,fontWeight:700,color:'#5D665B'}}, fa(st.revIdx+1)+' از '+fa(REVIEW.length)))),
+        React.createElement('span',{style:{flex:'none',width:44,height:44}})),
+      React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'18px 24px 0'}},
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},
+          React.createElement('span',{style:{fontSize:11.5,fontWeight:700,color:'#8A6100',background:'rgba(233,169,40,.16)',borderRadius:7,padding:'5px 9px'}},'یادآوری فعال'),
+          React.createElement('span',{style:{fontSize:12,color:'#5D665B'}},r.topic)),
+        React.createElement('h2',{style:{margin:'0 0 '+(st.revealed?'14px':'20px'),fontSize:st.revealed?19:22,lineHeight:1.55,fontWeight:800}},r.q),
+        st.revealed
+          ? React.createElement('div',null,
+              React.createElement('div',{'aria-live':'polite',style:{background:'#FFFDF7',border:'1px solid rgba(31,36,30,.10)',borderRadius:20,padding:14,marginBottom:16}},
+                React.createElement('div',{style:{fontSize:11.5,fontWeight:700,color:'#5D665B',marginBottom:7}},'پاسخ'),
+                React.createElement('p',{style:{margin:0,fontSize:15.5,lineHeight:1.76}},r.a)),
+              React.createElement('h3',{style:{margin:'0 0 4px',fontSize:19,fontWeight:800}},'چقدر به‌یاد آوردی؟'),
+              React.createElement('p',{style:{margin:'0 0 12px',fontSize:13.5,lineHeight:1.65,color:'#5D665B'}},'جدا از درست/غلط ثبت می‌شود و فاصله‌ی مرور بعدی را تعیین می‌کند.'),
+              React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:9}},
+                cRow('کامل، بی‌زحمت','مرور بعدی: ۱۴ روز دیگر','full'),
+                cRow('با کمی فکر','مرور بعدی: ۷ روز دیگر','some'),
+                cRow('نصفه‌نیمه','مرور بعدی: ۳ روز دیگر','half'),
+                cRow('یادم نبود','فردا دوباره می‌پرسیم','none')))
+          : React.createElement('div',null,
+              React.createElement('p',{style:{margin:'0 0 22px',fontSize:14.5,lineHeight:1.72,color:'#5D665B'}},'در ذهنت جواب بده، بعد پاسخ را ببین. نوشتن لازم نیست.'),
+              React.createElement('div',{style:{background:'#FFFDF7',border:'1.5px dashed rgba(31,36,30,.22)',borderRadius:22,padding:24,display:'flex',flexDirection:'column',alignItems:'center',gap:14}},
+                React.createElement('svg',{width:40,height:40,viewBox:'0 0 40 40','aria-hidden':'true'},
+                  React.createElement('circle',{cx:20,cy:20,r:18,fill:'none',stroke:'#8C8778',strokeWidth:1.5,strokeDasharray:'4 6'}),
+                  React.createElement('path',{d:'M13 20h14',stroke:'#8C8778',strokeWidth:2,strokeLinecap:'round'})),
+                React.createElement('span',{style:{fontSize:14,fontWeight:600,color:'#5D665B',textAlign:'center',lineHeight:1.7}},'پاسخ پوشیده است تا خودت اول به‌یاد بیاوری')))),
+      React.createElement('div',{style:{flex:'none',padding:'16px 24px 28px'}},
+        st.revealed
+          ? this.cta(this.state.revIdx >= REVIEW.length-1 ? 'دیدن نتیجه' : 'بعدی', this.nextReview, !st.confidence)
+          : this.cta('پاسخ را نشان بده', this.reveal)));
+  };
+
+  scrRevDone = () => React.createElement('div',{style:{flex:1,minHeight:0,display:'flex',flexDirection:'column'}},
+    React.createElement('div',{style:{flex:1,minHeight:0,overflow:'hidden',padding:'18px 24px 0'}},
+      React.createElement('div',{style:{display:'flex',justifyContent:'flex-start'}},
+        React.createElement('span',{onClick:()=>this.go('home'), role:'button', tabIndex:0, 'aria-label':'بستن', style:{width:44,height:44,marginInlineStart:-10,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+          React.createElement('svg',{width:19,height:19,viewBox:'0 0 24 24',fill:'none',stroke:'#1F241E',strokeWidth:1.75,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:'M6 6l12 12M18 6L6 18'})))),
+      React.createElement('h1',{style:{margin:'6px 0 8px',fontSize:26,fontWeight:800,lineHeight:1.42}},'آبیاری امروز تمام شد'),
+      React.createElement('p',{style:{margin:'0 0 22px',fontSize:15,lineHeight:1.74,color:'#5D665B'}},'۳ دانه مرور شد. دفعه‌ی بعد، دو تا از این‌ها دیرتر برمی‌گردند.'),
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:10,marginBottom:22}}, RESULTS.map((r,i)=>
+        React.createElement('div',{key:i,style:{background:'#FFFDF7',border:'1px solid '+(r.good?'rgba(31,36,30,.10)':'rgba(233,169,40,.5)'),borderRadius:18,padding:'14px 15px',display:'flex',alignItems:'center',gap:12}},
+          React.createElement('span',{style:{flex:'none',width:24,height:24,borderRadius:12,background:r.good?'#2F6D4B':'#8A6100',display:'flex',alignItems:'center',justifyContent:'center'}},
+            React.createElement('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none',stroke:'#FFFDF7',strokeWidth:3,strokeLinecap:'round','aria-hidden':'true'}, React.createElement('path',{d:r.good?'M5 13l4 4L19 7':'M6 12h12'}))),
+          React.createElement('div',{style:{flex:1,minWidth:0}},
+            React.createElement('div',{style:{fontSize:14.5,fontWeight:700,lineHeight:1.5}},r.t),
+            React.createElement('div',{style:{fontSize:12,color:'#5D665B',marginTop:2}},r.c,DOT(),r.next))))),
+      React.createElement('div',{style:{background:'rgba(47,109,75,.07)',borderRadius:20,padding:18}},
+        React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#5D665B',marginBottom:11}},'رشد این هفته'),
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:11}}, [0,1,2,3,4,5,6].map(i=>
+          React.createElement('span',{key:i,style:{width:13,height:13,borderRadius:7,background:i<2?'#2F6D4B':'transparent',border:i<2?'none':'1.5px solid #8C8778',boxSizing:'border-box'}}))),
+        React.createElement('div',{style:{fontSize:14,fontWeight:700}},'۲ روز از ۷'))),
+    React.createElement('div',{style:{flex:'none',padding:'14px 24px 26px'}}, this.cta('برگشت به خانه', ()=>this.go('home'))));
+}
+</script>
+</body>
+</html>

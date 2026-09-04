@@ -1,33 +1,38 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { I18nManager } from 'react-native';
-import * as Localization from 'expo-localization';
 
-// Import translation files
-import fa from './locales/fa.json';
 import en from './locales/en.json';
+import fa from './locales/fa.json';
+
+export const SUPPORTED_LOCALES = ['fa', 'en'] as const;
+export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
+
+export const RTL_LOCALES: readonly AppLocale[] = ['fa'];
 
 const resources = {
   fa: { translation: fa },
   en: { translation: en },
 };
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: 'fa', // default to Farsi
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false, // react already safes from xss
-    },
-  });
-
-// Force RTL layout if Farsi is selected
-if (i18n.language === 'fa' && !I18nManager.isRTL) {
-  I18nManager.forceRTL(true);
-} else if (i18n.language !== 'fa' && I18nManager.isRTL) {
-  I18nManager.forceRTL(false);
+/**
+ * Initialises i18next for a resolved locale.
+ *
+ * Nothing here touches layout direction, and nothing runs on import — see
+ * `src/lib/locale.ts`, which owns the bootstrap. Forcing RTL at import time is
+ * what made the old version need a reload to switch direction.
+ */
+export function initI18n(locale: AppLocale) {
+  if (!i18n.isInitialized) {
+    i18n.use(initReactI18next).init({
+      resources,
+      lng: locale,
+      fallbackLng: 'en',
+      interpolation: { escapeValue: false },
+    });
+  } else if (i18n.language !== locale) {
+    i18n.changeLanguage(locale);
+  }
+  return i18n;
 }
 
 export default i18n;

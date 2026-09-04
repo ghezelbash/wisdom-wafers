@@ -17,12 +17,12 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
       <Pressable
         style={({ pressed }) => [styles.heading, pressed && styles.pressedHeading]}
         onPress={() => setIsOpen((value) => !value)}>
-        <ThemedView type="backgroundElement" style={styles.button}>
+        <ThemedView type="card" style={styles.button}>
           <SymbolView
             name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
             size={14}
             weight="bold"
-            tintColor={theme.text}
+            tintColor={theme.textPrimary}
             style={{ transform: [{ rotate: isOpen ? '-90deg' : '90deg' }] }}
           />
         </ThemedView>
@@ -31,7 +31,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
       </Pressable>
       {isOpen && (
         <Animated.View entering={FadeIn.duration(200)}>
-          <ThemedView type="backgroundElement" style={styles.content}>
+          <ThemedView type="card" style={styles.content}>
             {children}
           </ThemedView>
         </Animated.View>
@@ -50,16 +50,16 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   button: {
-    width: Spacing.four,
-    height: Spacing.four,
+    width: Spacing.six,
+    height: Spacing.six,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
-    marginTop: Spacing.three,
-    borderRadius: Spacing.three,
-    marginLeft: Spacing.four,
-    padding: Spacing.four,
+    marginTop: Spacing.four,
+    borderRadius: Spacing.four,
+    marginLeft: Spacing.six,
+    padding: Spacing.six,
   },
 });

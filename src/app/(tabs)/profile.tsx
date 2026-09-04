@@ -1,37 +1,150 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/context/AuthContext';
-import { auth } from '@/firebase';
-import { signOut } from 'firebase/auth';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/button';
+import { BrandMark, Icon } from '@/components/icon';
+import { MetaDot } from '@/components/meta-dot';
+import { Text } from '@/components/Text';
+import { BottomTabInset, MinTouchTarget } from '@/constants/theme';
+import { useIdentity } from '@/context/AuthContext';
+import { useCatalog } from '@/context/CatalogContext';
+import { useSession } from '@/context/SessionContext';
+import { usedBytes } from '@/lib/catalog-store';
+import { formatMegabytes } from '@/lib/format-bytes';
+import { localizeDigits } from '@/lib/format';
+
+function SettingsRow({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  onPress?: () => void;
+}) {
+  const Row = onPress ? Pressable : View;
+  return (
+    <Row
+      accessibilityRole={onPress ? 'button' : undefined}
+      onPress={onPress}
+      className="flex-row items-center gap-3 border-b border-hairline px-4"
+      style={{ minHeight: MinTouchTarget + 8 }}>
+      <Text variant="bodySm" className="min-w-0 flex-1">
+        {label}
+      </Text>
+      <Text variant="bodySm" color="secondary">
+        {value}
+      </Text>
+      <Icon name="chevronBack" size={17} color="textSecondary" />
+    </Row>
+  );
+}
+
+/** Profile — an account offer, never a wall. */
 export default function ProfileScreen() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
+  const { t, i18n } = useTranslation();
+  const router = useRouter();
+  const { identity, isGuest, signOut } = useIdentity();
+  const { session } = useSession();
+  const { snapshot } = useCatalog();
 
-  const handleSignOut = () => {
-    signOut(auth);
-  };
+  const paceLabel = session.pace ? t(`onboarding.pace.${session.pace}`) : t('profile.paceNone');
 
   return (
-    <View className="flex-1 items-center justify-center bg-surface-light dark:bg-surface-dark p-4">
-      <Text className="text-3xl font-extrabold text-gray-900 dark:text-white mb-6">
-        {t('profile')}
-      </Text>
-      <View className="bg-white dark:bg-gray-900 p-8 rounded-4xl shadow-sm w-full mb-6">
-        <Text className="text-gray-600 dark:text-gray-300 text-center font-semibold text-lg mb-4">
-          Logged in as:
+    <SafeAreaView className="flex-1 bg-canvas" edges={['top']}>
+      <View className="px-5 pb-[18px] pt-2">
+        <Text variant="titleLg" className="mb-1">
+          {t('profile.title')}
         </Text>
-        <Text className="text-brand-600 dark:text-brand-400 text-center font-bold text-xl">
-          {user?.email}
-        </Text>
+        <View className="flex-row items-center gap-[7px]">
+          {!isGuest ? (
+            <Text variant="caption" color="secondary" ltr>
+              {identity?.email}
+            </Text>
+          ) : (
+            <>
+              <Text variant="caption" color="secondary">
+                {t('profile.guest')}
+              </Text>
+              <MetaDot />
+              <Text variant="caption" color="secondary">
+                {t('profile.guestData')}
+              </Text>
+            </>
+          )}
+        </View>
       </View>
 
-      <TouchableOpacity 
-        className="bg-red-50 dark:bg-red-900/30 border-2 border-red-100 dark:border-red-800/50 py-4 px-8 rounded-full w-full items-center shadow-sm"
-        onPress={handleSignOut}
-      >
-        <Text className="text-red-600 dark:text-red-400 font-bold text-xl">Sign Out</Text>
-      </TouchableOpacity>
-    </View>
+      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: BottomTabInset + 24 }}>
+        {isGuest ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/auth')}
+            className="mb-5 flex-row items-center gap-[13px] rounded-[20px] bg-brand-tint p-4">
+            <BrandMark size={40} />
+            <View className="min-w-0 flex-1">
+              <Text variant="bodySm" weight="bold">
+                {t('profile.upgradeTitle')}
+              </Text>
+              <Text variant="caption" color="secondary">
+                {t('profile.upgradeBody')}
+              </Text>
+            </View>
+            <Icon name="chevronBack" size={17} color="brand" />
+          </Pressable>
+        ) : null}
+
+        <Text variant="caption" weight="bold" color="secondary" className="mb-2 px-1">
+          {t('profile.settings')}
+        </Text>
+        <View className="overflow-hidden rounded-card border border-hairline bg-card">
+          <SettingsRow
+            label={t('profile.interests')}
+            value={t('profile.interestsValue', {
+              count: localizeDigits(session.interests.length, i18n.language),
+            })}
+          />
+          <SettingsRow label={t('profile.pace')} value={paceLabel} />
+          <SettingsRow label={t('profile.language')} value={t('profile.languageValue')} />
+          <SettingsRow
+            label={t('profile.notifications')}
+            value={
+              session.notificationsEnabled
+                ? (session.reminderTime ?? '')
+                : t('profile.paceNone')
+            }
+            onPress={() => router.push('/settings/notifications')}
+          />
+          <SettingsRow
+            label={t('profile.storage')}
+            value={formatMegabytes(usedBytes(snapshot), i18n.language)}
+            onPress={() => router.push('/settings/storage')}
+          />
+        </View>
+
+        {!isGuest ? (
+          <>
+            <Button
+              variant="destructive"
+              label={t('auth.signOut')}
+              onPress={() => signOut()}
+              className="mt-6"
+            />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/settings/delete-account')}
+              className="mt-3 items-center justify-center"
+              style={{ minHeight: MinTouchTarget }}>
+              <Text variant="caption" weight="bold" color="error">
+                {t('profile.deleteAccount')}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 }

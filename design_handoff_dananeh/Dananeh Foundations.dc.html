@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Light.woff2') format('woff2');font-weight:300;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-ExtraBold.woff2') format('woff2');font-weight:800;font-display:swap}
+@font-face{font-family:'YekanBakh';src:url('fonts/YekanBakhFaNum-Black.woff2') format('woff2');font-weight:900;font-display:swap}
+body{margin:0;background:#EFEBDD}
+[dir="rtl"]{font-family:'YekanBakh',system-ui,sans-serif}
+a{color:#2F6D4B}
+a:hover{color:#1F241E}
+</style>
+</helmet>
+
+<div style="min-height:100%;background:#EFEBDD;font-family:system-ui,-apple-system,'Helvetica Neue',sans-serif;color:#1F241E;padding:0 0 120px">
+
+  <div style="max-width:1180px;margin:0 auto;padding:64px 48px 0">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:40px;padding-bottom:28px;border-bottom:1px solid rgba(31,36,30,.14)">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" fill="none" stroke="#2F6D4B" stroke-width="1.5"></circle><circle cx="17" cy="17" r="10.5" fill="none" stroke="#65A96B" stroke-width="1.5"></circle><circle cx="17" cy="17" r="4.5" fill="#2F6D4B"></circle></svg>
+          <span style="font-size:15px;font-weight:700;letter-spacing:.02em;font-family:'YekanBakh',system-ui,sans-serif">دانانه · Dananeh</span>
+        </div>
+        <h1 style="margin:0;font-size:46px;line-height:1.12;font-weight:800;max-width:15ch;text-wrap:pretty">Foundations: rationale, principles, tokens</h1>
+        <p style="margin:0;max-width:62ch;font-size:16px;line-height:1.7;color:#5D665B;text-wrap:pretty">Deliverables A, C, H and L of the brief, plus a faithful recreation of what the <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">wisdom-wafers</span> repo renders today. Screens live in <em>Dananeh Screens</em>; the clickable flow lives in <em>Dananeh Prototype</em>.</p>
+      </div>
+      <div style="flex:none;width:236px;display:flex;flex-direction:column;gap:10px;font-size:12.5px;line-height:1.6;color:#5D665B">
+        <div style="display:flex;justify-content:space-between;gap:10px"><span>Round</span><strong style="color:#1F241E;font-weight:700">1 of 3</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><span>Locale</span><strong style="color:#1F241E;font-weight:700">fa-IR, RTL first</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><span>Type</span><strong style="color:#1F241E;font-weight:700">Yekan Bakh FaNum</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><span>Target</span><span dir="ltr" style="color:#1F241E;font-weight:700">Expo 57 / RN 0.86</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:1180px;margin:0 auto;padding:0 48px">
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:26px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">A · 01</span><h2 style="margin:0;font-size:26px;font-weight:800">What I am designing for, and the tradeoffs</h2></div>
+      <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:28px">
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;padding:30px 32px">
+          <p style="margin:0 0 18px;font-size:16.5px;line-height:1.75;text-wrap:pretty">The blueprint's north-star metric is <strong>Weekly Meaningful Seeds</strong> — seeds finished with at least one real cognitive interaction. That single choice decides the entire interface. A design optimised for session time would look like a feed. A design optimised for meaningful completion looks like a short, finite, closable reading surface with recall built into it.</p>
+          <p style="margin:0 0 18px;font-size:16.5px;line-height:1.75;text-wrap:pretty">So the product surface is deliberately small: one hero seed per day, four finite rails, no infinite scroll, and a player that shows one block at a time and lets you leave without a guilt dialog. Everything competitive — format variety, AI tutor, social — is out of round one because none of it moves WMS before content quality does.</p>
+          <div style="height:1px;background:rgba(31,36,30,.10);margin:24px 0"></div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div><div style="font-size:13px;font-weight:700;color:#2F6D4B;margin-bottom:5px">Tradeoff · finite over infinite</div><div style="font-size:14.5px;line-height:1.7;color:#5D665B">Home ends. That costs sessions-per-day but protects the "not a feed" positioning and makes the Explore CTA meaningful rather than decorative.</div></div>
+            <div><div style="font-size:13px;font-weight:700;color:#2F6D4B;margin-bottom:5px">Tradeoff · metadata over imagery</div><div style="font-size:14.5px;line-height:1.7;color:#5D665B">Seed cards lead with topic, promise, duration and reason instead of a photo. Less scroll-stopping, far better for slow networks, offline, and 200% text.</div></div>
+            <div><div style="font-size:13px;font-weight:700;color:#2F6D4B;margin-bottom:5px">Tradeoff · weekly growth over daily streak</div><div style="font-size:14.5px;line-height:1.7;color:#5D665B">A 0–7 weekly ring with one grace day is less addictive than a midnight-reset streak. Accepted deliberately: the brief forbids shame mechanics, and a broken streak is the most common reason people uninstall this category.</div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;padding:26px 28px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:14px">THINGS I PUSHED BACK ON</div>
+            <div style="display:flex;flex-direction:column;gap:15px;font-size:14.5px;line-height:1.65">
+              <div><strong style="font-weight:700">«دانه کاشته شد» as the completion headline.</strong><span style="color:#5D665B"> Poetic, but ambiguous for a first-time user who needs to know the lesson is over. Metaphor moves to the visual (the growth ring) and the sub-line; headline stays literal: «تمام شد».</span></div>
+              <div><strong style="font-weight:700">Sprout green <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">#65A96B</span> as progress fill.</strong><span style="color:#5D665B"> 1.88:1 against its track — invisible to a lot of people. Progress fills use brand primary; sprout is decorative only. Details in §04.</span></div>
+              <div><strong style="font-weight:700">Sun accent as text.</strong><span style="color:#5D665B"> 1.88:1 on canvas. It becomes a fill-only token with an ink label, plus a separate darker <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">accent.sunInk</span> for type.</span></div>
+              <div><strong style="font-weight:700">Garden as literal illustration.</strong><span style="color:#5D665B"> Plant art on every row makes five list states unreadable. The metaphor lives in one artifact — the concentric ring — reused at four sizes.</span></div>
+            </div>
+          </div>
+          <div style="background:#2F6D4B;border-radius:24px;padding:26px 28px;color:#F4F3EB">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.08em;opacity:.72;margin-bottom:12px">THE ONE-SENTENCE PROMISE</div>
+            <p dir="rtl" style="margin:0;font-size:22px;line-height:1.65;font-weight:700;text-wrap:pretty">پنج دقیقه، یک ایده‌ی درست، با منبع مشخص — و هفته‌ی بعد هم یادت می‌ماند.</p>
+            <p style="margin:14px 0 0;font-size:13.5px;line-height:1.65;opacity:.78">Five minutes, one correct idea, sourced — and you still remember it next week. Every screen in round one is judged against this line.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:26px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">A · 02</span><h2 style="margin:0;font-size:26px;font-weight:800">Five design principles</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px">
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;color:rgba(31,36,30,.16);line-height:1">01</span>
+          <div dir="rtl" style="font-size:19px;font-weight:800">فارسی، اصل است</div>
+          <div style="font-size:13px;font-weight:700;color:#2F6D4B">Persian is the original</div>
+          <div style="font-size:13.5px;line-height:1.7;color:#5D665B">Every layout is composed right-to-left first. LTR is the port. Line height, نیم‌فاصله, Persian numerals and bidi isolation are correctness requirements, not polish.</div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;color:rgba(31,36,30,.16);line-height:1">02</span>
+          <div dir="rtl" style="font-size:19px;font-weight:800">یک بلوک، یک فکر</div>
+          <div style="font-size:13px;font-weight:700;color:#2F6D4B">One block, one thought</div>
+          <div style="font-size:13.5px;line-height:1.7;color:#5D665B">The viewport holds one meaningful unit. Nothing peeks from below to bait a scroll. Density is the reader's choice, never the layout's trick.</div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;color:rgba(31,36,30,.16);line-height:1">03</span>
+          <div dir="rtl" style="font-size:19px;font-weight:800">منبع، بخشی از محتواست</div>
+          <div style="font-size:13px;font-weight:700;color:#2F6D4B">The source is part of the content</div>
+          <div style="font-size:13.5px;line-height:1.7;color:#5D665B">Sources and a last-reviewed date sit one tap from every seed, and reporting an error is a normal action — not buried in settings.</div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;color:rgba(31,36,30,.16);line-height:1">04</span>
+          <div dir="rtl" style="font-size:19px;font-weight:800">آفلاین، حالت عادی است</div>
+          <div style="font-size:13px;font-weight:700;color:#2F6D4B">Offline is a normal state</div>
+          <div style="font-size:13.5px;line-height:1.7;color:#5D665B">Cached, stale, queued and missing each have a designed appearance. No screen is allowed to be a spinner that never resolves.</div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:26px;font-weight:700;color:rgba(31,36,30,.16);line-height:1">05</span>
+          <div dir="rtl" style="font-size:19px;font-weight:800">رشد، نه فشار</div>
+          <div style="font-size:13px;font-weight:700;color:#2F6D4B">Growth, not pressure</div>
+          <div style="font-size:13.5px;line-height:1.7;color:#5D665B">Progress is shown as accumulation, never as a loss you must prevent. No countdowns, no red streak, no shame copy anywhere in the string catalogue.</div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">03</span><h2 style="margin:0;font-size:26px;font-weight:800">Where the code is today</h2></div>
+      <p style="margin:0 0 26px;max-width:78ch;font-size:15.5px;line-height:1.75;color:#5D665B;text-wrap:pretty">Recreated from source — <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">src/app/auth.tsx</span>, <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">(tabs)/index.tsx</span>, <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">(tabs)/explore.tsx</span>, <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">lesson/[id].tsx</span> — using the real catalogue strings from <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">src/data/generatedData.ts</span> and <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">locales/fa.json</span>, with the values that are actually in <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">tailwind.config.js</span>: violet <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">#8b5cf6</span>, surface <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">#f9fafb</span>, radii 24/32. This is the baseline the rebrand replaces, and the reason the brief's "no purple-gradient startup visual" note exists.</p>
+      <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap">
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;background:#B5443C;color:#fff;padding:3px 7px;border-radius:4px">BEFORE</span><span style="font-size:12.5px;color:#5D665B">auth.tsx — login wall on first launch</span></div>
+          <div dir="rtl" style="width:300px;height:620px;background:#f9fafb;border:1px solid rgba(31,36,30,.14);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:0 18px;font-family:'YekanBakh',sans-serif">
+            <div style="text-align:center;margin-bottom:30px">
+              <div style="font-size:27px;font-weight:900;color:#7c3aed;margin-bottom:6px">به ویفر خرد خوش آمدید</div>
+              <div style="font-size:13.5px;color:#6b7280">خوش آمدید! برای ادامه وارد شوید.</div>
+            </div>
+            <div style="background:#fff;border:1px solid #f3f4f6;border-radius:32px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.05)">
+              <div style="font-size:12px;font-weight:700;color:#374151;margin:0 6px 6px">ایمیل</div>
+              <div dir="ltr" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:24px;padding:11px 15px;font-size:13px;color:#9ca3af;margin-bottom:12px">you@example.com</div>
+              <div style="font-size:12px;font-weight:700;color:#374151;margin:0 6px 6px">رمز عبور</div>
+              <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:24px;padding:11px 15px;font-size:13px;color:#9ca3af;margin-bottom:18px;letter-spacing:2px">••••••••</div>
+              <div style="background:#8b5cf6;border-radius:24px;padding:12px;text-align:center;color:#fff;font-weight:800;font-size:15px;margin-bottom:10px">ورود</div>
+              <div style="text-align:center;color:#7c3aed;font-weight:700;font-size:12.5px;padding:6px">حساب کاربری ندارید؟ ثبت نام کنید</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;background:#B5443C;color:#fff;padding:3px 7px;border-radius:4px">BEFORE</span><span style="font-size:12.5px;color:#5D665B">(tabs)/index.tsx — centred, no content model</span></div>
+          <div dir="rtl" style="width:300px;height:620px;background:#f9fafb;border:1px solid rgba(31,36,30,.14);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;font-family:'YekanBakh',sans-serif">
+            <div style="font-size:22px;font-weight:800;color:#111827;margin-bottom:22px">به ویفر خرد خوش آمدید</div>
+            <div style="width:100%;background:#f5f3ff;border-radius:32px;padding:26px 20px;margin-bottom:22px;box-shadow:0 1px 2px rgba(0,0,0,.05)">
+              <div style="font-size:18px;font-weight:700;color:#7c3aed;text-align:center;margin-bottom:10px">پیشنهادات روزانه</div>
+              <div style="font-size:14px;font-weight:600;color:rgba(124,58,237,.8);text-align:center;line-height:1.7">دانش کوچک و روزمره شما آماده است!</div>
+            </div>
+            <div style="width:100%;background:#8b5cf6;border-radius:999px;padding:13px;text-align:center;color:#fff;font-weight:700;font-size:16px;margin-bottom:14px">ادامه یادگیری</div>
+            <div style="border:1px solid #d1d5db;border-radius:999px;padding:7px 14px;font-size:12.5px;color:#4b5563;margin-top:20px">Switch to English</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;background:#B5443C;color:#fff;padding:3px 7px;border-radius:4px">BEFORE</span><span style="font-size:12.5px;color:#5D665B">explore.tsx — image-led cards, no metadata</span></div>
+          <div dir="rtl" style="width:300px;height:620px;background:#f9fafb;border:1px solid rgba(31,36,30,.14);border-radius:32px;overflow:hidden;font-family:'YekanBakh',sans-serif">
+            <div style="padding:32px 18px 8px">
+              <div style="font-size:27px;font-weight:800;color:#111827;margin-bottom:6px">جستجو</div>
+              <div style="font-size:13.5px;color:#6b7280">موضوعات جدید را کشف کنید و یادگیری را شروع کنید.</div>
+            </div>
+            <div style="display:flex;gap:9px;padding:12px 18px 14px;overflow:hidden">
+              <div style="flex:none;background:#8b5cf6;border:1px solid #8b5cf6;border-radius:999px;padding:8px 16px;font-size:12.5px;font-weight:700;color:#fff">روانشناسی</div>
+              <div style="flex:none;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:8px 16px;font-size:12.5px;font-weight:700;color:#374151">توسعه فردی</div>
+              <div style="flex:none;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:8px 16px;font-size:12.5px;font-weight:700;color:#374151">کسب و کار</div>
+            </div>
+            <div style="padding:0 18px;display:flex;flex-direction:column;gap:12px">
+              <div style="background:#fff;border:1px solid #f3f4f6;border-radius:24px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05)">
+                <div style="height:88px;background:repeating-linear-gradient(135deg,#e5e7eb 0 8px,#eef0f2 8px 16px);display:flex;align-items:center;justify-content:center"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#6b7280">unsplash url</span></div>
+                <div style="padding:14px">
+                  <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px">شناخت تله‌های ذهنی</div>
+                  <div style="font-size:12.5px;line-height:1.7;color:#4b5563">چگونه الگوهای مخرب فکری خود را شناسایی و با آنها مقابله کنیم. سفری به درون ذهن برای آرامش بیشتر.</div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #f3f4f6;border-radius:24px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05)">
+                <div style="height:88px;background:repeating-linear-gradient(135deg,#e5e7eb 0 8px,#eef0f2 8px 16px);display:flex;align-items:center;justify-content:center"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#6b7280">unsplash url</span></div>
+                <div style="padding:14px"><div style="font-size:15px;font-weight:700;color:#111827">هوش هیجانی (EQ)</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;background:#B5443C;color:#fff;padding:3px 7px;border-radius:4px">BEFORE</span><span style="font-size:12.5px;color:#5D665B">lesson/[id].tsx — colour-only feedback</span></div>
+          <div dir="rtl" style="width:300px;height:620px;background:#f9fafb;border:1px solid rgba(31,36,30,.14);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;font-family:'YekanBakh',sans-serif">
+            <div style="display:flex;align-items:center;gap:12px;padding:22px 14px 14px">
+              <div style="width:34px;height:34px;border-radius:999px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:17px">×</div>
+              <div style="flex:1;height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden"><div style="width:80%;height:100%;background:#8b5cf6;border-radius:999px"></div></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 18px">
+              <div style="font-size:17px;font-weight:800;color:#111827;text-align:center;line-height:1.7;margin-bottom:22px">هدف اصلی از یادگیری این مفاهیم چیست؟</div>
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <div style="border:3px solid #22c55e;background:#f0fdf4;border-radius:24px;padding:13px;text-align:center;font-size:14px;font-weight:800;color:#15803d">کاربرد در زندگی روزمره و بهبود کیفیت آن</div>
+                <div style="border:3px solid #f3f4f6;background:#f9fafb;border-radius:24px;padding:13px;text-align:center;font-size:14px;font-weight:600;color:#374151;opacity:.5">فقط حفظ کردن اطلاعات</div>
+                <div style="border:3px solid #f3f4f6;background:#f9fafb;border-radius:24px;padding:13px;text-align:center;font-size:14px;font-weight:600;color:#374151;opacity:.5">فراموش کردن آن‌ها پس از چند روز</div>
+              </div>
+              <div style="margin-top:20px;background:#f5f3ff;border:1px solid #ede9fe;border-radius:24px;padding:16px;font-size:13px;line-height:1.75;font-weight:600;color:rgba(91,33,182,.95);text-align:center">هدف اصلی، ایجاد تغییرات مثبت و ماندگار در رفتار و نگرش ماست.</div>
+            </div>
+            <div style="padding:18px"><div style="background:#8b5cf6;border-radius:32px;padding:14px;text-align:center;color:#fff;font-weight:700;font-size:16px">ادامه</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:26px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <div style="background:#FFFDF7;border:1px solid rgba(181,68,60,.35);border-radius:16px;padding:18px 20px"><div style="font-size:13px;font-weight:700;color:#B5443C;margin-bottom:7px">Login before value</div><div style="font-size:13.5px;line-height:1.65;color:#5D665B">First launch is a form. Guest-first anonymous auth moves the account ask to after the first completion.</div></div>
+        <div style="background:#FFFDF7;border:1px solid rgba(181,68,60,.35);border-radius:16px;padding:18px 20px"><div style="font-size:13px;font-weight:700;color:#B5443C;margin-bottom:7px">Everything centred</div><div style="font-size:13.5px;line-height:1.65;color:#5D665B">Centre-aligned Persian body text at 14–18px reads badly. New system: start-aligned, 17/30, line-height ≥ 1.65.</div></div>
+        <div style="background:#FFFDF7;border:1px solid rgba(181,68,60,.35);border-radius:16px;padding:18px 20px"><div style="font-size:13px;font-weight:700;color:#B5443C;margin-bottom:7px">Colour-only answers</div><div style="font-size:13.5px;line-height:1.65;color:#5D665B">Green/red borders with no icon or text label. Fails WCAG 1.4.1. Replaced by icon + label + explanation.</div></div>
+        <div style="background:#FFFDF7;border:1px solid rgba(181,68,60,.35);border-radius:16px;padding:18px 20px"><div style="font-size:13px;font-weight:700;color:#B5443C;margin-bottom:7px">No card metadata</div><div style="font-size:13.5px;line-height:1.65;color:#5D665B">Image + title only — no duration, difficulty, reason or offline state, so the user can't judge fit before tapping.</div></div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">C · 04</span><h2 style="margin:0;font-size:26px;font-weight:800">Colour tokens, measured</h2></div>
+      <p style="margin:0 0 24px;max-width:80ch;font-size:15.5px;line-height:1.75;color:#5D665B;text-wrap:pretty">Ratios below are computed WCAG 2.x values against the stated background, not estimates. Three tokens from the brief failed and were corrected; the rest passed unchanged. Semantic names are what ships — components never reference a hex.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;overflow:hidden">
+          <div style="padding:20px 24px 14px;border-bottom:1px solid rgba(31,36,30,.08);display:flex;align-items:center;gap:10px"><span style="width:11px;height:11px;border-radius:3px;background:#F7F4EA;border:1px solid rgba(31,36,30,.25)"></span><strong style="font-size:15px;font-weight:800">Light</strong><span style="font-size:12.5px;color:#5D665B">base <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace">#F7F4EA</span></span></div>
+          <div style="padding:8px 24px 20px">
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#F7F4EA;border:1px solid rgba(31,36,30,.14);flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">surface.canvas</div><div style="font-size:12px;color:#5D665B">page background</div></div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#F7F4EA</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#FFFDF7;border:1px solid rgba(31,36,30,.14);flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">surface.card</div><div style="font-size:12px;color:#5D665B">cards, sheets</div></div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">#FFFDF7</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#1F241E;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">text.primary</div><div style="font-size:12px;color:#5D665B">body, titles</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">14.4:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#5D665B;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">text.secondary</div><div style="font-size:12px;color:#5D665B">metadata, captions</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">5.4:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#2F6D4B;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">brand.primary</div><div style="font-size:12px;color:#5D665B">CTA fill, progress fill, links</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">5.6:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#65A96B;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">brand.sprout</div><div style="font-size:12px;color:#B5443C;font-weight:600">decorative only — see note</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#B5443C">2.6:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#E9A928;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">accent.sun</div><div style="font-size:12px;color:#5D665B">fill only; ink label on top = 7.7:1</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#B5443C">1.9:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#8A6100;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">accent.sunInk</div><div style="font-size:12px;color:#2F6D4B;font-weight:600">added — sun as type</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">5.0:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#6F5178;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">accent.plum</div><div style="font-size:12px;color:#5D665B">humanities topics</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">6.1:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#B5443C;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">feedback.error</div><div style="font-size:12px;color:#5D665B">incorrect, destructive — on canvas only</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">5.0:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#A03A33;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">feedback.errorInk</div><div style="font-size:12px;color:#2F6D4B;font-weight:600">added — error text on its own 9% tint</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">5.7:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(31,36,30,.06)"><span style="width:30px;height:30px;border-radius:8px;background:#8C8778;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">border.strong</div><div style="font-size:12px;color:#2F6D4B;font-weight:600">added — off switches, state graphics</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#2F6D4B">3.3:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0"><span style="width:30px;height:30px;border-radius:8px;background:#E4E0D2;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">border.track</div><div style="font-size:12px;color:#5D665B">progress track, dividers</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">4.7:1 vs fill</span></div>
+          </div>
+        </div>
+
+        <div style="background:#171A17;border:1px solid rgba(244,243,235,.14);border-radius:24px;overflow:hidden">
+          <div style="padding:20px 24px 14px;border-bottom:1px solid rgba(244,243,235,.12);display:flex;align-items:center;gap:10px"><span style="width:11px;height:11px;border-radius:3px;background:#171A17;border:1px solid rgba(244,243,235,.35)"></span><strong style="font-size:15px;font-weight:800;color:#F4F3EB">Dark</strong><span style="font-size:12.5px;color:#BBC2B8">base <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace">#171A17</span></span></div>
+          <div style="padding:8px 24px 20px">
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#171A17;border:1px solid rgba(244,243,235,.2);flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">surface.canvas</div><div style="font-size:12px;color:#BBC2B8">page background</div></div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#BBC2B8">#171A17</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#222722;border:1px solid rgba(244,243,235,.2);flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">surface.card</div><div style="font-size:12px;color:#BBC2B8">cards, sheets</div></div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#BBC2B8">#222722</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#F4F3EB;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">text.primary</div><div style="font-size:12px;color:#BBC2B8">body, titles</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#8BCB94">15.8:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#BBC2B8;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">text.secondary</div><div style="font-size:12px;color:#BBC2B8">metadata, captions</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#8BCB94">9.6:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#77B98A;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">brand.primary</div><div style="font-size:12px;color:#BBC2B8">CTA fill takes ink text, not white</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#8BCB94">7.6:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#8BCB94;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">brand.sprout</div><div style="font-size:12px;color:#BBC2B8">progress fill is safe in dark</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#8BCB94">9.3:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#F2C45F;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">accent.sun</div><div style="font-size:12px;color:#BBC2B8">usable as type in dark</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#8BCB94">10.7:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#F2C45F;opacity:.35;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">accent.sunInk</div><div style="font-size:12px;color:#BBC2B8">aliases accent.sun in dark</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#BBC2B8">alias</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#B99BC2;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">accent.plum</div><div style="font-size:12px;color:#BBC2B8">humanities topics</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#8BCB94">7.1:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(244,243,235,.08)"><span style="width:30px;height:30px;border-radius:8px;background:#EF8C84;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">feedback.error</div><div style="font-size:12px;color:#BBC2B8">incorrect, destructive</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;color:#8BCB94">7.3:1</span></div>
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0"><span style="width:30px;height:30px;border-radius:8px;background:#333A32;flex:none"></span><div style="flex:1;min-width:0"><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#F4F3EB">border.track</div><div style="font-size:12px;color:#BBC2B8">progress track, dividers</div></div><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#BBC2B8">3.4:1 vs fill</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;background:#FFFDF7;border:1px solid rgba(233,169,40,.5);border-radius:20px;padding:22px 26px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:26px">
+        <div><div style="font-size:13px;font-weight:800;color:#8A6100;margin-bottom:8px">Correction 1 — progress fill</div><div style="font-size:14px;line-height:1.7;color:#5D665B">Sprout on a warm track measures <strong style="color:#1F241E">1.88:1</strong>, under the 3:1 floor for meaningful graphics. Light-mode progress fills use <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">brand.primary</span> (4.7:1 against the track). Dark mode keeps sprout — it measures 9.3:1 there.</div></div>
+        <div><div style="font-size:13px;font-weight:800;color:#8A6100;margin-bottom:8px">Correction 2 — sun as type</div><div style="font-size:14px;line-height:1.7;color:#5D665B">Sun is a <strong style="color:#1F241E">fill-only</strong> token in light mode. Where the reward/curiosity colour must be text, use the added <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">accent.sunInk #8A6100</span> at 5.0:1. In dark mode the two collapse into one token.</div></div>
+        <div><div style="font-size:13px;font-weight:800;color:#8A6100;margin-bottom:8px">Correction 4 — measure on the real parent</div><div style="font-size:14px;line-height:1.7;color:#5D665B;margin-bottom:18px">A token validated on bare canvas can still fail where it is actually used. Error red is 5.0:1 on canvas but <strong style="color:#1F241E">4.4:1</strong> on its own 9% tint, and the pale neutral is 1.7:1 as an off-switch fill. Hence two added tokens: <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">feedback.errorInk</span> for text on tint and <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">border.strong</span> for state-carrying neutrals. Every pair ships with the background it was measured against.</div><div style="font-size:13px;font-weight:800;color:#8A6100;margin-bottom:8px">Correction 3 — dark CTA label</div><div style="font-size:14px;line-height:1.7;color:#5D665B">White on <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">#77B98A</span> is only 2.1:1. Dark-mode primary buttons carry <strong style="color:#1F241E">ink</strong> labels (8.2:1), which also reads as intentional rather than as a light-mode leftover.</div></div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">C · 05</span><h2 style="margin:0;font-size:26px;font-weight:800">Type scale — Yekan Bakh FaNum</h2></div>
+      <p style="margin:0 0 24px;max-width:80ch;font-size:15.5px;line-height:1.75;color:#5D665B;text-wrap:pretty">License confirmed by you, so the repo's existing <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:13px">YekanBakhFaNum</span> family is the system face — the FaNum cut also gives us Persian numerals inside a Latin-compatible metric, which removes a whole class of bidi bugs. Specimens below are rendered in it.</p>
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:22px">
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;padding:12px 28px">
+          <div style="display:flex;align-items:flex-end;gap:24px;padding:18px 0;border-bottom:1px solid rgba(31,36,30,.07)"><div style="flex:none;width:118px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#5D665B"><div style="font-weight:700;color:#1F241E">display</div><div>34 / 44 · 800</div></div><div dir="rtl" style="font-size:34px;line-height:1.29;font-weight:800">دانه‌ی امروز</div></div>
+          <div style="display:flex;align-items:flex-end;gap:24px;padding:18px 0;border-bottom:1px solid rgba(31,36,30,.07)"><div style="flex:none;width:118px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#5D665B"><div style="font-weight:700;color:#1F241E">title.lg</div><div>26 / 38 · 800</div></div><div dir="rtl" style="font-size:26px;line-height:1.46;font-weight:800">چرا آسمان شب کاملاً تاریک است؟</div></div>
+          <div style="display:flex;align-items:flex-end;gap:24px;padding:18px 0;border-bottom:1px solid rgba(31,36,30,.07)"><div style="flex:none;width:118px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#5D665B"><div style="font-weight:700;color:#1F241E">title.md</div><div>20 / 32 · 700</div></div><div dir="rtl" style="font-size:20px;line-height:1.6;font-weight:700">اثر لنگر در تصمیم‌های مالی</div></div>
+          <div style="display:flex;align-items:flex-end;gap:24px;padding:18px 0;border-bottom:1px solid rgba(31,36,30,.07)"><div style="flex:none;width:118px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#5D665B"><div style="font-weight:700;color:#1F241E">body</div><div>17 / 30 · 400</div></div><div dir="rtl" style="font-size:17px;line-height:1.76;font-weight:400;max-width:44ch">اگر جهان بی‌کران و پُر از ستاره باشد، آسمان شب باید در هر جهت روشن باشد. این‌که تاریک است، چیزی درباره‌ی سنّ و گسترش جهان به ما می‌گوید.</div></div>
+          <div style="display:flex;align-items:flex-end;gap:24px;padding:18px 0;border-bottom:1px solid rgba(31,36,30,.07)"><div style="flex:none;width:118px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#5D665B"><div style="font-weight:700;color:#1F241E">body.sm</div><div>15 / 26 · 400</div></div><div dir="rtl" style="font-size:15px;line-height:1.73;font-weight:400;color:#5D665B;max-width:48ch">توضیح پاسخ، متن کمکی و زیرنویس کارت‌ها با این اندازه نوشته می‌شوند.</div></div>
+          <div style="display:flex;align-items:flex-end;gap:24px;padding:18px 0;border-bottom:1px solid rgba(31,36,30,.07)"><div style="flex:none;width:118px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#5D665B"><div style="font-weight:700;color:#1F241E">label</div><div>14 / 20 · 700</div></div><div dir="rtl" style="font-size:14px;line-height:1.43;font-weight:700">شروع دانه</div></div>
+          <div style="display:flex;align-items:flex-end;gap:24px;padding:18px 0"><div style="flex:none;width:118px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#5D665B"><div style="font-weight:700;color:#1F241E">caption</div><div>13 / 22 · 600</div></div><div dir="rtl" style="font-size:13px;line-height:1.69;font-weight:600;color:#5D665B">اخترشناسی<span aria-hidden="true" style="display:inline-block;width:4px;height:4px;border-radius:2px;background:currentColor;opacity:.42;vertical-align:middle;margin:0 7px"></span>۶ دقیقه<span aria-hidden="true" style="display:inline-block;width:4px;height:4px;border-radius:2px;background:currentColor;opacity:.42;vertical-align:middle;margin:0 7px"></span>بازبینی ۱۴۰۵/۰۵/۲۹</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;padding:24px 26px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:14px">PERSIAN TYPESETTING RULES</div>
+            <div style="display:flex;flex-direction:column;gap:13px;font-size:14px;line-height:1.7;color:#5D665B">
+              <div><strong style="color:#1F241E;font-weight:700">Line height ≥ 1.65</strong> for anything body-sized. Persian descenders and dots collide below that.</div>
+              <div><strong style="color:#1F241E;font-weight:700">نیم‌فاصله is data, not styling.</strong> ZWNJ (U+200C) lives in the string; never faked with a space. Search normalises it, display preserves it.</div>
+              <div><strong style="color:#1F241E;font-weight:700">Persian punctuation:</strong> «…» not "…", ٬ ، ؛ ? — the Latin set is a content bug.</div>
+              <div><strong style="color:#1F241E;font-weight:700">Never a Latin middot next to a digit.</strong> In Yekan Bakh, U+00B7 is glyph-identical to ۰ — «۶ دقیقه · مقدماتی» reads as «۶ دقیقه ۰ مقدماتی» and «۳۴ دقیقه» becomes ۳۴۰. Metadata separators are a drawn 4pt dot element in a flex row, never a text character, which also keeps the screen-reader string clean.</div>
+              <div><strong style="color:#1F241E;font-weight:700">No underlines</strong> on Persian text. Links use weight + colour; focus uses a ring.</div>
+              <div><strong style="color:#1F241E;font-weight:700">Bidi isolation:</strong> Latin names, URLs, formulas and version numbers get <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px">dir="ltr"</span> + isolation, so «مقاله‌ی <span dir="ltr">Olbers (1826)</span> را ببینید» never reflows.</div>
+              <div><strong style="color:#1F241E;font-weight:700">Numerals:</strong> Persian digits in prose and UI (۶ دقیقه); Latin digits only inside LTR-isolated technical strings.</div>
+            </div>
+          </div>
+          <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;padding:24px 26px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:12px">200% DYNAMIC TYPE</div>
+            <div style="font-size:14px;line-height:1.7;color:#5D665B;margin-bottom:14px">Titles cap at 1.6× and switch to 3-line clamp; body scales fully. Buttons grow in height, never shrink their label. Answer options become full-width stacked blocks.</div>
+            <div dir="rtl" style="border:1px dashed rgba(31,36,30,.22);border-radius:14px;padding:14px;font-size:26px;line-height:1.6;font-weight:700">درست است ✓</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:26px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">C · 06</span><h2 style="margin:0;font-size:26px;font-weight:800">Space, radius, elevation, icons, breakpoints</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:14px">Spacing · 4pt</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:4px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">1 · 4 · hairline gaps</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:8px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">2 · 8 · chip padding</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">3 · 12 · in-card stack</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:16px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">4 · 16 · card padding</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:20px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">5 · 20 · screen gutter</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:24px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">6 · 24 · block rhythm</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">8 · 32 · section break</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="width:48px;height:14px;background:#2F6D4B"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">12 · 48 · rail break</span></div>
+          </div>
+          <div style="margin-top:16px;font-size:12.5px;line-height:1.65;color:#5D665B">Screen gutter is 20 on ≤375pt, 24 above. Vertical rhythm inside the player is a strict 24.</div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:14px">Radius</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;gap:12px"><span style="width:38px;height:30px;background:#F7F4EA;border:1px solid rgba(31,36,30,.2);border-radius:8px"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">8 · chip, badge</span></div>
+            <div style="display:flex;align-items:center;gap:12px"><span style="width:38px;height:30px;background:#F7F4EA;border:1px solid rgba(31,36,30,.2);border-radius:16px"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">16 · input, option</span></div>
+            <div style="display:flex;align-items:center;gap:12px"><span style="width:38px;height:30px;background:#F7F4EA;border:1px solid rgba(31,36,30,.2);border-radius:24px"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">24 · card, button</span></div>
+            <div style="display:flex;align-items:center;gap:12px"><span style="width:38px;height:30px;background:#F7F4EA;border:1px solid rgba(31,36,30,.2);border-radius:32px 32px 0 0"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">32 · sheet, hero</span></div>
+          </div>
+          <div style="margin-top:16px;font-size:12.5px;line-height:1.65;color:#5D665B">No pill buttons — full-round CTAs read as consumer-app and fight the editorial tone. 24 everywhere instead.</div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:14px">Elevation · 3 levels</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:12px"><span style="width:38px;height:30px;background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:10px"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">e0 · hairline only</span></div>
+            <div style="display:flex;align-items:center;gap:12px"><span style="width:38px;height:30px;background:#FFFDF7;border:1px solid rgba(31,36,30,.08);border-radius:10px;box-shadow:0 1px 2px rgba(31,36,30,.06)"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">e1 · 0 1 2 / 6%</span></div>
+            <div style="display:flex;align-items:center;gap:12px"><span style="width:38px;height:30px;background:#FFFDF7;border:1px solid rgba(31,36,30,.08);border-radius:10px;box-shadow:0 8px 28px rgba(31,36,30,.14)"></span><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#5D665B">e2 · 0 8 28 / 14%</span></div>
+          </div>
+          <div style="margin-top:16px;font-size:12.5px;line-height:1.65;color:#5D665B">Cards are e0 — separation comes from the canvas/card value step, not shadow. e2 is reserved for sheets and the offline banner. Dark mode replaces shadow with a lighter surface step.</div>
+        </div>
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;padding:24px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:14px">Icons &amp; breakpoints</div>
+          <div style="display:flex;flex-direction:column;gap:11px;font-size:13px;line-height:1.65;color:#5D665B">
+            <div><strong style="color:#1F241E;font-weight:700">Stroke 1.75, 24×24 grid</strong>, round caps, no fills except state indicators.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Mirror:</strong> back/forward chevrons, progress direction, list disclosure, indent.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Never mirror:</strong> play, check, download, clock, mark, the brand ring.</div>
+            <div style="height:1px;background:rgba(31,36,30,.08);margin:3px 0"></div>
+            <div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#1F241E">320–374</span> SE: gutter 20, 1-col rails, hero title clamps to 2 lines.</div>
+            <div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#1F241E">375–429</span> baseline. All specs are drawn here.</div>
+            <div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#1F241E">430–599</span> gutter 24, card metadata on one row.</div>
+            <div><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:#1F241E">≥600</span> web/tablet: content maxes at 720, rails become a 2-col grid.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">H · 07</span><h2 style="margin:0;font-size:26px;font-weight:800">Motion specs</h2></div>
+      <p style="margin:0 0 24px;max-width:80ch;font-size:15.5px;line-height:1.75;color:#5D665B;text-wrap:pretty">Motion exists to explain a change of state. Nothing loops, nothing celebrates by default, and every entry has a Reduce Motion equivalent that is a cross-fade or an instant swap — never just "the same animation, faster".</p>
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;font-size:12px;font-weight:700;letter-spacing:.06em;color:#5D665B;background:rgba(31,36,30,.04);padding:14px 26px"><div>MOMENT</div><div>DURATION</div><div>CURVE</div><div>WHAT MOVES</div><div>REDUCE MOTION</div></div>
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13.5px;line-height:1.6"><div style="font-weight:700">Block → block</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">200ms</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">standard</div><div style="color:#5D665B">Outgoing fades to 0 and drifts 8pt toward the start edge; incoming fades in from 12pt. Progress bar animates in the same frame.</div><div style="color:#5D665B">Cross-fade 120ms, no translation.</div></div>
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13.5px;line-height:1.6"><div style="font-weight:700">Answer feedback</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">180ms</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">decelerate</div><div style="color:#5D665B">Chosen option's border and icon resolve in place; explanation panel expands its height and fades in. No shake, no bounce.</div><div style="color:#5D665B">Panel appears at full height, 0ms.</div></div>
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13.5px;line-height:1.6"><div style="font-weight:700">Growth moment</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">700ms</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">emphasised</div><div style="color:#5D665B">Progress ring completes counter-clockwise (RTL), then the inner disc scales 0.9→1 as the ring's stroke thickens once. One gesture, then still.</div><div style="color:#5D665B">Completed ring fades in over 150ms. No scaling.</div></div>
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13.5px;line-height:1.6"><div style="font-weight:700">Sheet / sources</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">260ms</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">decelerate</div><div style="color:#5D665B">Rises from the bottom edge with a 24pt overshoot-free translate; scrim fades to 32%.</div><div style="color:#5D665B">Scrim + sheet fade, 140ms.</div></div>
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13.5px;line-height:1.6"><div style="font-weight:700">Download progress</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">continuous</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">linear</div><div style="color:#5D665B">Ring stroke tracks real bytes — never a fake indeterminate spinner once a byte total is known.</div><div style="color:#5D665B">Numeric percentage text only.</div></div>
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13.5px;line-height:1.6"><div style="font-weight:700">Skeleton → content</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">160ms</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">standard</div><div style="color:#5D665B">Skeleton pulses at 1.4s, 6%→12% opacity; content cross-fades in place with no layout shift.</div><div style="color:#5D665B">Static skeleton, instant swap.</div></div>
+        <div style="display:grid;grid-template-columns:1.1fr .7fr .9fr 1.5fr 1.3fr;gap:0;padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13.5px;line-height:1.6"><div style="font-weight:700">Tab change</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">0ms</div><div dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5D665B">—</div><div style="color:#5D665B">Instant. Tabs preserve scroll position; the icon's fill state animates 120ms, the screen does not.</div><div style="color:#5D665B">Identical.</div></div>
+        <div style="padding:16px 26px;border-top:1px solid rgba(31,36,30,.07);font-size:13px;line-height:1.7;color:#5D665B;background:rgba(31,36,30,.02)"><span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#1F241E;font-weight:700">standard cubic-bezier(.2,0,0,1)</span> · <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#1F241E;font-weight:700">decelerate cubic-bezier(0,0,0,1)</span> · <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#1F241E;font-weight:700">emphasised cubic-bezier(.2,0,0,1)</span> with a 120ms hold. Springs are allowed only on direct-manipulation drag (ordering, match pairs): <span dir="ltr" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#1F241E;font-weight:700">damping .8, stiffness 220</span>. Reduce Motion is read once at mount and re-read on app foreground.</div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;color:#8A6100;letter-spacing:.08em">L · 08</span><h2 style="margin:0;font-size:26px;font-weight:800">Do not do</h2></div>
+      <p style="margin:0 0 24px;max-width:80ch;font-size:15.5px;line-height:1.75;color:#5D665B;text-wrap:pretty">Each of these is a pattern this category defaults to, and each one is rejected for a stated reason. Sketched at small scale so the rejection is legible, not attractive.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;overflow:hidden">
+          <div style="height:130px;background:linear-gradient(135deg,#7c3aed,#c026d3);position:relative;display:flex;align-items:center;justify-content:center"><span dir="rtl" style="color:#fff;font-size:17px;font-weight:800">هوشمندتر شو! 🚀</span><span style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent 0 12px,rgba(0,0,0,.25) 12px 13px)"></span></div>
+          <div style="padding:18px 20px"><div style="font-size:14px;font-weight:800;color:#B5443C;margin-bottom:7px">Purple gradient + rocket</div><div style="font-size:13.5px;line-height:1.7;color:#5D665B">Signals "startup app", not "credible source". It is also exactly what the current skeleton does. Editorial credibility comes from paper, ink and restraint.</div></div>
+        </div>
+
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;overflow:hidden">
+          <div style="height:130px;background:#F0EEE7;display:flex;align-items:center;justify-content:center;gap:10px;position:relative"><div style="text-align:center"><div style="font-size:30px;font-weight:900;color:#B5443C">۰</div><div dir="rtl" style="font-size:11px;font-weight:700;color:#B5443C">استریک از دست رفت!</div></div><div style="position:absolute;bottom:12px;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#5D665B">۰۲:۱۴:۳۹ باقی مانده</div></div>
+          <div style="padding:18px 20px"><div style="font-size:14px;font-weight:800;color:#B5443C;margin-bottom:7px">Streak loss + countdown
+</div><div style="font-size:13.5px;line-height:1.7;color:#5D665B">Loss aversion works, and it is the top uninstall reason in this category. Weekly growth with one grace day keeps the habit without the punishment.</div></div>
+        </div>
+
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;overflow:hidden">
+          <div style="height:130px;background:#F0EEE7;display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:7px;padding:0 18px"><div style="height:26px;border:2px solid #22c55e;background:#f0fdf4;border-radius:8px"></div><div style="height:26px;border:2px solid #ef4444;background:#fef2f2;border-radius:8px"></div><div style="height:26px;border:2px solid rgba(31,36,30,.12);border-radius:8px"></div></div>
+          <div style="padding:18px 20px"><div style="font-size:14px;font-weight:800;color:#B5443C;margin-bottom:7px">Colour-only right/wrong</div><div style="font-size:13.5px;line-height:1.7;color:#5D665B">Fails WCAG 1.4.1 and is unreadable for the ~8% of men with red-green deficiency. Every state carries an icon and a text label as well as colour.</div></div>
+        </div>
+
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;overflow:hidden">
+          <div style="height:130px;background:#F0EEE7;overflow:hidden;padding:14px 18px 0"><div style="background:#fff;border-radius:14px;height:52px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.06)"></div><div style="background:#fff;border-radius:14px;height:52px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.06)"></div><div style="background:#fff;border-radius:14px;height:52px;opacity:.55"></div></div>
+          <div style="padding:18px 20px"><div style="font-size:14px;font-weight:800;color:#B5443C;margin-bottom:7px">Infinite feed</div><div style="font-size:13.5px;line-height:1.7;color:#5D665B">A bottomless list optimises time-in-app, the metric we explicitly rejected. Home ends after four finite rails and hands off to Explore.</div></div>
+        </div>
+
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;overflow:hidden">
+          <div style="height:130px;background:#F0EEE7;display:flex;align-items:center;justify-content:center"><div style="width:190px;background:rgba(255,255,255,.45);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.7);border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.12)"><div dir="rtl" style="font-size:12.5px;font-weight:700;color:rgba(31,36,30,.55)">کارت شیشه‌ای</div><div style="height:6px;background:rgba(31,36,30,.15);border-radius:3px;margin-top:9px"></div></div></div>
+          <div style="padding:18px 20px"><div style="font-size:14px;font-weight:800;color:#B5443C;margin-bottom:7px">Glass cards over imagery</div><div style="font-size:13.5px;line-height:1.7;color:#5D665B">Text contrast becomes a function of whatever photo loaded, which cannot be validated. Opaque card on flat canvas, always.</div></div>
+        </div>
+
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;overflow:hidden">
+          <div style="height:130px;background:#F0EEE7;display:flex;align-items:center;justify-content:center;gap:16px"><span style="font-size:34px">🌱</span><span style="font-size:34px">🪴</span><span style="font-size:34px">🌻</span></div>
+          <div style="padding:18px 20px"><div style="font-size:14px;font-weight:800;color:#B5443C;margin-bottom:7px">A plant on every row</div><div style="font-size:13.5px;line-height:1.7;color:#5D665B">Turns the metaphor into noise and makes five Garden states look identical. One artifact — the concentric ring — carries growth at four sizes.</div></div>
+        </div>
+
+        <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:20px;overflow:hidden">
+          <div style="height:130px;background:#F0EEE7;display:flex;align-items:center;justify-content:center;padding:0 16px"><div dir="rtl" style="background:#fff;border-radius:14px;padding:14px 16px;width:100%;box-shadow:0 1px 2px rgba(0,0,0,.06)"><div style="font-size:12.5px;font-weight:800;margin-bottom:6px">اجازه‌ی ارسال نوتیفیکیشن؟</div><div style="display:flex;gap:8px"><div style="flex:1;background:#2F6D4B;color:#fff;border-radius:8px;padding:6px;text-align:center;font-size:11px;font-weight:700">اجازه بده</div><div style="flex:1;border:1px solid rgba(31,36,30,.15);border-radius:8px;padding:6px;text-align:center;font-size:11px;color:#5D665B">نه</div></div></div></div>
+          <div style="padding:18px 20px"><div style="font-size:14px;font-weight:800;color:#B5443C;margin-bottom:7px">Permission ask on launch</div><div style="font-size:13.5px;line-height:1.7;color:#5D665B">Asked before any value is delivered, it gets denied — and iOS gives you one chance. The ask moves to after the first completion, with the reason stated first.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section style="padding:64px 0 0">
+      <div style="background:#FFFDF7;border:1px solid rgba(31,36,30,.10);border-radius:24px;padding:32px 36px;display:grid;grid-template-columns:1fr 1fr;gap:36px">
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:14px">WHAT COMES NEXT</div>
+          <div style="display:flex;flex-direction:column;gap:12px;font-size:14.5px;line-height:1.7;color:#5D665B">
+            <div><strong style="color:#1F241E;font-weight:700">Round 2 — screens.</strong> Every core flow, RTL first, light and dark: onboarding, Home, Explore, search, the eleven player blocks, feedback, completion, Garden, review, auth upgrade, offline, settings and the twelve system states.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Round 3 — prototype and handoff.</strong> Clickable first-run → first completion, offline resume and review; then the component library with the full state matrix, redlines at three widths, and React Native implementation notes.</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A6100;margin-bottom:14px">DECIDED</div>
+          <div style="display:flex;flex-direction:column;gap:12px;font-size:14.5px;line-height:1.7;color:#5D665B">
+            <div><strong style="color:#1F241E;font-weight:700">Calendar: Jalali only.</strong> No switcher in round one. Dates appear in three places — the review date, the last-reviewed line on sources, and the Garden queue — all Jalali. Foreign source years carry an era marker («۱۹۸۷ م.») so a Gregorian publication date can never be misread as Jalali.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Imagery: commissioned illustration.</strong> Every image slot in the screens is a labelled placeholder with its intended aspect ratio and subject. No stock photography, which keeps card anatomy metadata-led and means alt text can be written at commission time rather than retrofitted.</div>
+            <div><strong style="color:#1F241E;font-weight:700">Topic colour: six topics, three accent families.</strong> Sciences → <span style="color:#2F6D4B;font-weight:700">primary</span>, humanities → <span style="color:#6F5178;font-weight:700">plum</span>, practical → <span style="color:#8A6100;font-weight:700">sun</span>. Six distinct hues would collide with the correct / incorrect / offline semantics and leave no headroom for state colour.</div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div></x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}"></script>
+</body>
+</html>

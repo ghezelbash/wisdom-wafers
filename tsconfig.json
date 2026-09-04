@@ -8,14 +8,27 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@dananeh/content-schema": [
+        "./packages/content-schema/src/index.ts"
       ]
-    }
+    },
+    "types": [
+      "jest"
+    ]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "packages/*/src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "tests",
+    "functions",
+    "admin"
   ]
 }
