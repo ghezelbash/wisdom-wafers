@@ -58,13 +58,20 @@ export class LocalIdentityRepository implements IdentityRepository {
     return this.identity;
   }
 
+  /**
+   * Every credential action fails the same way, and says why.
+   *
+   * `notConfigured`, not `network`: there is no backend for this build to
+   * reach, which is a different problem from a connection that dropped. Saying
+   * "we could not connect" sends the reader to check their wifi for something
+   * only the person who built the app can fix.
+   */
   async linkEmailPassword(): Promise<Identity> {
-    // Nothing to link to: the caller shows the offline/unavailable state.
-    throw new AuthError('network');
+    throw new AuthError('notConfigured');
   }
 
   async signIn(): Promise<Identity> {
-    throw new AuthError('network');
+    throw new AuthError('notConfigured');
   }
 
   async signOut(): Promise<void> {
@@ -73,10 +80,10 @@ export class LocalIdentityRepository implements IdentityRepository {
   }
 
   async sendVerificationEmail(): Promise<void> {
-    throw new AuthError('network');
+    throw new AuthError('notConfigured');
   }
 
   async sendPasswordReset(): Promise<void> {
-    throw new AuthError('network');
+    throw new AuthError('notConfigured');
   }
 }

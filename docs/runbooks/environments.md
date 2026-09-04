@@ -41,10 +41,36 @@ fail. The npm scripts (`start`, `web`, `android`, `export:web`, `prebuild`) set
 it; EAS build profiles set it for a build. Running `npx expo start` directly
 needs `APP_VARIANT=development` in front of it.
 
-With `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1` no Firebase configuration is needed.
-A development build reaches a *real* project only with
-`EXPO_PUBLIC_ALLOW_LIVE_FIREBASE=1` — anonymous sign-in creates real accounts,
-so a stray `npm run web` must not do it by accident.
+### Signing in locally
+
+**A development build does not reach a real Firebase project unless told to.**
+Anonymous sign-in creates real accounts, so a stray `npm run web` must not do it
+by accident. With neither flag set, `isFirebaseConfigured` is false, the app
+runs on a device-local identity, and creating an account or signing in reports
+*"signing in is not available in this build"* — which is a configuration
+problem, not a connection one.
+
+Pick one:
+
+```bash
+# Recommended. Nothing real is created, and it works offline.
+EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1     # in .env
+npm run emulators                        # in another terminal
+npm run seed:emulator                    # editor/reviewer/admin + one draft
+
+# Or opt in to a real project, deliberately.
+EXPO_PUBLIC_ALLOW_LIVE_FIREBASE=1        # in .env
+```
+
+Both belong in **`.env`**, not the shell — and after changing either, restart
+Metro with `--clear`. It serves a stale bundle otherwise, and the flag appears
+to have no effect.
+
+The real project also needs **Anonymous** and **Email/Password** enabled, and
+Cloud Firestore actually created. A project where Firestore was never enabled
+answers `PERMISSION_DENIED — Cloud Firestore API has not been used in project …
+or it is disabled`, and content, progress and sync all fail while auth appears
+to work.
 
 `.env` is git-ignored and `tests/static/secrets.test.ts` fails if it is ever
 committed. Staging and production values live in the EAS environment, never in
