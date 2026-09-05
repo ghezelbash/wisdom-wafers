@@ -59,7 +59,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
   node -e "const i=require('./firestore.indexes.json');for(const x of i.indexes??[])console.log('    '+x.collectionGroup+': '+x.fields.map(f=>f.fieldPath).join(', '))"
   echo
   echo "  Already deployed there now:"
-  firebase functions:list --project "$PROJECT" 2>/dev/null || echo "    (cannot read — not authenticated, or the project does not exist yet)"
+  npx --no-install firebase functions:list --project "$PROJECT" 2>/dev/null || echo "    (cannot read — not authenticated, or the project does not exist yet)"
   echo
   echo "Re-run without --dry-run to apply."
   exit 0
@@ -67,7 +67,25 @@ fi
 
 # Only the real thing needs the CLI; the dry run above writes nothing and is
 # useful before anyone has installed or authenticated anything.
-command -v firebase >/dev/null || { echo "firebase-tools is not installed: npm i -g firebase-tools" >&2; exit 1; }
+#
+# `firebase-tools` is a dev dependency, so `npx firebase` works without a global
+# install — and a global install is a second copy that drifts out of step with
+# the one the lockfile pins.
+if command -v firebase >/dev/null; then
+  FIREBASE=(firebase)
+else
+  FIREBASE=(npx --no-install firebase)
+  "${FIREBASE[@]}" --version >/dev/null 2>&1 || {
+    echo "firebase-tools is not available. Run \`npm ci\`, or \`npm i -g firebase-tools\`." >&2
+    exit 1
+  }
+fi
+
+# Authenticated? A deploy that discovers this halfway has already built.
+"${FIREBASE[@]}" projects:list >/dev/null 2>&1 || {
+  echo "Not signed in to Firebase. Run: npx firebase login" >&2
+  exit 1
+}
 
 echo
 echo "→ Deploying to $PROJECT"
@@ -83,17 +101,17 @@ npm run build:functions >/dev/null
 # refuse is a bad deploy; a function that is live while the rules are still open
 # is a worse one.
 echo "· firestore rules and indexes"
-firebase deploy --project "$PROJECT" --only firestore:rules,firestore:indexes --non-interactive
+"${FIREBASE[@]}" deploy --project "$PROJECT" --only firestore:rules,firestore:indexes --non-interactive
 
 echo "· storage rules"
-firebase deploy --project "$PROJECT" --only storage --non-interactive
+"${FIREBASE[@]}" deploy --project "$PROJECT" --only storage --non-interactive
 
 echo "· functions"
-firebase deploy --project "$PROJECT" --only functions --non-interactive
+"${FIREBASE[@]}" deploy --project "$PROJECT" --only functions --non-interactive
 
 echo
 echo "· deployed functions"
-firebase functions:list --project "$PROJECT" || true
+"${FIREBASE[@]}" functions:list --project "$PROJECT" || true
 
 if [ "$WITH_CONTENT" -eq 1 ]; then
   echo

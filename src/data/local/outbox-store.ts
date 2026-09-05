@@ -55,9 +55,22 @@ export interface OutboxItem {
 }
 
 export interface OutboxStore {
-  add(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }): Promise<void>;
+  /**
+   * `now` is a parameter for the same reason it is on `recordFailure` and
+   * `defer`: a queue whose timestamps come from the wall clock cannot be tested
+   * against a fixed one. The SQL implementation always took it; the key-value
+   * one read `new Date()` and silently made every test that enqueued an item
+   * depend on the time of day it ran.
+   */
+  add(
+    item: { id: string; kind: OutboxKind; payload: Record<string, unknown> },
+    now?: Date
+  ): Promise<void>;
   /** Queues, or replaces what is queued under this id. See `STATEFUL_KINDS`. */
-  put(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }): Promise<void>;
+  put(
+    item: { id: string; kind: OutboxKind; payload: Record<string, unknown> },
+    now?: Date
+  ): Promise<void>;
   /** Not dead, and past its backoff. */
   due(now: Date): Promise<OutboxItem[]>;
   all(): Promise<OutboxItem[]>;
@@ -85,14 +98,28 @@ export interface OutboxStore {
 export class SqlOutboxStore implements OutboxStore {
   constructor(private readonly driver: SqlDriver) {}
 
-  async add(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }) {
+  async add(
+    item: { id: string; kind: OutboxKind; payload: Record<string, unknown> },
+    now = new Date()
+  ) {
     // INSERT OR IGNORE: enqueuing the same event id twice is a no-op, so a
     // double-tap cannot become two completions.
-    await local.enqueue(this.driver, { eventId: item.id, kind: item.kind, payload: item.payload });
+    await local.enqueue(
+      this.driver,
+      { eventId: item.id, kind: item.kind, payload: item.payload },
+      now
+    );
   }
 
-  async put(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }) {
-    await local.upsert(this.driver, { eventId: item.id, kind: item.kind, payload: item.payload });
+  async put(
+    item: { id: string; kind: OutboxKind; payload: Record<string, unknown> },
+    now = new Date()
+  ) {
+    await local.upsert(
+      this.driver,
+      { eventId: item.id, kind: item.kind, payload: item.payload },
+      now
+    );
   }
 
   async due(now: Date) {
@@ -176,20 +203,26 @@ export class KeyValueOutboxStore implements OutboxStore {
     await this.write(items.map((item) => (item.id === id ? change(item) : item)));
   }
 
-  async add(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }) {
+  async add(
+    item: { id: string; kind: OutboxKind; payload: Record<string, unknown> },
+    at = new Date()
+  ) {
     const items = await this.read();
     if (items.some((existing) => existing.id === item.id)) return;
 
-    const now = new Date().toISOString();
+    const now = at.toISOString();
     await this.write([
       ...items,
       { ...item, attempts: 0, nextAttemptAt: now, dead: false, queuedAt: now },
     ]);
   }
 
-  async put(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }) {
+  async put(
+    item: { id: string; kind: OutboxKind; payload: Record<string, unknown> },
+    at = new Date()
+  ) {
     const items = await this.read();
-    const now = new Date().toISOString();
+    const now = at.toISOString();
     const existing = items.find((candidate) => candidate.id === item.id);
 
     // A new intent, not a retry of the old one: the budget resets and a dead

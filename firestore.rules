@@ -28,11 +28,6 @@ service cloud.firestore {
       return staff('admin') || staff('editor') || staff('reviewer');
     }
 
-    function unchanged(field) {
-      return !(field in request.resource.data) ||
-             (field in resource.data && request.resource.data[field] == resource.data[field]);
-    }
-
     /**
      * The reminder settings, validated by value and not only by key name.
      *

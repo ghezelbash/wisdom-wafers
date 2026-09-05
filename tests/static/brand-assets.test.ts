@@ -130,3 +130,45 @@ describe('launch content', () => {
     }
   });
 });
+
+/**
+ * Localized strings, on the platform they belong to.
+ *
+ * `assets/locales/fa.json` held `CFBundleDisplayName` at the top level — an iOS
+ * Info.plist key. Expo wrote it into Android's `values-b+fa/strings.xml` too,
+ * where it does nothing (the launcher reads `app_name`) and where release lint
+ * refused it:
+ *
+ *     Error: "CFBundleDisplayName" is translated here but not found in
+ *     default locale [ExtraTranslation]
+ *
+ * `lintVitalRelease` treats that as fatal, so **every debug build passed and
+ * every release APK failed** — twenty minutes each to find out. The SDK 57
+ * config documents the fix: "Platform-specific locale strings should be nested
+ * under `ios` and `android` keys."
+ */
+describe('per-locale strings', () => {
+  const files = walk(join(ROOT, 'assets/locales')).filter((path) => path.endsWith('.json'));
+
+  it('ships at least one locale file', () => {
+    expect(files.length).toBeGreaterThan(0);
+  });
+
+  it.each(files)('%s nests every key under a platform', (path) => {
+    const parsed = JSON.parse(text(path)) as Record<string, unknown>;
+
+    expect(Object.keys(parsed).length).toBeGreaterThan(0);
+    for (const [key, value] of Object.entries(parsed)) {
+      expect([key, ['ios', 'android'].includes(key)]).toEqual([key, true]);
+      expect(typeof value).toBe('object');
+    }
+  });
+
+  /** The specific key that broke the build, on the specific platform it is for. */
+  it('keeps CFBundleDisplayName out of Android', () => {
+    for (const path of files) {
+      const parsed = JSON.parse(text(path)) as { android?: Record<string, unknown> };
+      expect(Object.keys(parsed.android ?? {})).not.toContain('CFBundleDisplayName');
+    }
+  });
+});

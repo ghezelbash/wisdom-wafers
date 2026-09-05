@@ -55,9 +55,10 @@ export function __setOutboxStore(next: OutboxStore | null) {
 export async function enqueue(
   kind: OutboxKind,
   id: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  now?: Date
 ): Promise<void> {
-  await (await store()).add({ id, kind, payload });
+  await (await store()).add({ id, kind, payload }, now);
 }
 
 /**
@@ -71,9 +72,10 @@ export async function enqueue(
 export async function enqueueState(
   kind: OutboxKind,
   id: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  now?: Date
 ): Promise<void> {
-  await (await store()).put({ id, kind, payload });
+  await (await store()).put({ id, kind, payload }, now);
 }
 
 export async function listOutbox(): Promise<OutboxItem[]> {
