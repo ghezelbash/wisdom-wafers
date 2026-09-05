@@ -87,10 +87,26 @@ describe('the policy URLs', () => {
   });
 
   /**
-   * This fails until the pages are actually published, and that is deliberate:
-   * a link to a 404 is worse than no link, because it looks answered.
+   * Whether they *resolve* is checked by `npm run check:legal`, not here.
    *
-   * Flip `PUBLISHED` when `docs/release/` records that both pages are live.
+   * A unit test that reaches the network is one that fails on a train, and a
+   * green build must not depend on somebody else's DNS. What this asserts is
+   * that the check exists, runs the same URLs, and has somewhere to run — the
+   * `release-readiness` workflow — so "we'll verify it by hand" cannot quietly
+   * become nobody's job.
    */
-  it.todo('resolve to a published page — verified by hand before the first external build');
+  it('has a release-time check that the pages actually resolve', () => {
+    const check = read('scripts/check-legal.mjs');
+
+    // Reads the links from the screen rather than from a list of its own, so a
+    // URL changed in one place and forgotten in the other cannot pass.
+    expect(check).toContain('src/app/settings/about.tsx');
+    expect(check).toContain('SUPPORT_EMAIL');
+    expect(read('package.json')).toContain('check:legal');
+    expect(read('.github/workflows/release-readiness.yml')).toContain('check-legal.mjs');
+  });
+
+  it('is not wired into the pull-request gate, where it would be flaky', () => {
+    expect(read('.github/workflows/ci.yml')).not.toContain('check:legal');
+  });
 });

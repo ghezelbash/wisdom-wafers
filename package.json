@@ -84,7 +84,8 @@
     "check:e2e": "node scripts/check-maestro.mjs",
     "verify:env": "node scripts/verify-env.mjs",
     "bootstrap:project": "npm run build:schema && node scripts/bootstrap-project.mjs",
-    "check:node": "node scripts/check-node.mjs"
+    "check:node": "node scripts/check-node.mjs",
+    "check:legal": "node scripts/check-legal.mjs"
   },
   "private": true,
   "workspaces": [

@@ -57,3 +57,11 @@ admin/dist/
 Expo app design brief.zip
 Concept-Logo.jpeg
 scripts/screenshot-*.png
+
+# Downloaded release artifacts. An APK is verified by checksum against the EAS
+# build record; the binary itself never belongs in the repository.
+/artifacts/
+*.apk
+*.aab
+*.keystore
+*.jks
