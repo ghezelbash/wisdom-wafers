@@ -132,6 +132,51 @@ and reads back what is deployed there now. The second prints the staff accounts,
 the config document and the seeds it would publish. Neither writes anything, and
 neither needs a credential.
 
+## 4b · Grant the build service account — new projects need this
+
+The first functions deploy into a fresh project fails like this:
+
+```
+Build failed with status: FAILURE. Could not build the function due to a
+missing permission on the build service account. If you didn't revoke that
+permission explicitly, this could be caused by a change in the organization
+policies.
+```
+
+It is not your code and not the deploy command. Since 2024 Cloud Functions
+builds run as the **Compute Engine default service account**, and a new project
+— particularly one inside a Workspace organisation — does not get the build role
+granted automatically.
+
+```bash
+gcloud projects add-iam-policy-binding dananeh-staging \
+  --member="serviceAccount:1066103901472-compute@developer.gserviceaccount.com" \
+  --role="roles/cloudbuild.builds.builder"
+```
+
+Or in the console: **IAM & Admin → IAM → Grant access**, principal
+`1066103901472-compute@developer.gserviceaccount.com`, role **Cloud Build
+Service Account**.
+
+Then redeploy. Wait a minute or two first — IAM changes take a moment to reach
+the build system, and an immediate retry can fail with the same message.
+
+### How to tell it is still wrong
+
+`firebase deploy` can print *"Functions successfully deployed"* on the same run
+that failed every function, because a later step's error replaces the earlier
+summary. The truthful signal is the state:
+
+```bash
+npx firebase functions:list --project dananeh-staging --debug 2>&1 \
+  | grep -oE '"state":"[A-Z_]+"' | sort -u
+```
+
+`ACTIVE` is deployed. `FAILED` with `CloudRunServiceNotFound` means the metadata
+exists and the Cloud Run service behind it does not — the callable URL returns a
+Google 404, and the app cannot reach its backend. `npm run verify:env` catches
+the same thing from outside, which is why it is the gate.
+
 ## 5 · Deploy
 
 ```bash
