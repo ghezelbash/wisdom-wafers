@@ -177,6 +177,65 @@ exists and the Cloud Run service behind it does not — the callable URL returns
 Google 404, and the app cannot reach its backend. `npm run verify:env` catches
 the same thing from outside, which is why it is the gate.
 
+## 4c · Make the callables invokable
+
+A 2nd-gen callable is a Cloud Run service, and it is reachable only if
+`allUsers` holds `roles/run.invoker`. `firebase deploy` normally grants that
+itself — but its `SetIamPolicy` can lose an etag race against the other policy
+writes the same deploy is making:
+
+```
+SetIamPolicy | Exception calling IAM: There were concurrent policy changes.
+The request's ETag ... did not match the current policy.
+```
+
+When that happens the deploy still reports success, the functions still reach
+`ACTIVE`, and every call returns **403 Forbidden** from Google's front end. The
+app looks like it has no network.
+
+Re-running `firebase deploy --only functions` usually fixes it. If it does not:
+
+```bash
+gcloud auth login
+gcloud config set project dananeh-staging
+
+for f in publish createContentDraft startCorrection submitForReview review \
+         publishApproved rollback ingestProgress submitReport deleteMyAccount \
+         beginDeleteMyAccount resumeDeleteMyAccount myAccountDeletionStatus \
+         recordTelemetryBatch; do
+  gcloud run services add-iam-policy-binding "$(echo "$f" | tr '[:upper:]' '[:lower:]')" \
+    --region=europe-west1 --member=allUsers --role=roles/run.invoker
+done
+```
+
+**Only the callables.** `dailyOpsDigest` and `sweepTelemetry` are scheduled:
+Cloud Scheduler invokes them with its own identity, and they must stay private.
+Check with `gcloud run services get-iam-policy sweeptelemetry` — no `allUsers`.
+
+### What "public" means here, and why it is right
+
+`allUsers` can *reach* the endpoint; it cannot *do* anything. Every callable
+checks `request.auth` first and answers `UNAUTHENTICATED` without it, on top of
+the payload caps and per-caller rate limits from release goal 7. The correct
+response to an anonymous request is what you should see:
+
+```
+$ curl -X POST .../ingestProgress -d '{"data":{"events":[]}}'
+{"error":{"message":"sign-in-required","status":"UNAUTHENTICATED"}}   401
+```
+
+A **403** means the invoker binding is missing. A **404** means the Cloud Run
+service behind the function was never built. Neither is an auth problem in the
+app.
+
+### A note on Domain Restricted Sharing
+
+`bashforward.nl` enforces `constraints/iam.allowedPolicyMemberDomains`, and the
+obvious guess is that it blocks `allUsers`. **It does not** — the grant above
+succeeds under it. If a future project *does* refuse with "one or more users
+named in the policy do not belong to a permitted customer", that is when an
+org-policy exception is needed, and not before.
+
 ## 5 · Deploy
 
 ```bash
