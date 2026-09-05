@@ -20,7 +20,26 @@ export type OutboxKind =
   | 'content-report'
   /** Analytics and crash reports, batched to `recordTelemetryBatch`. */
   | 'telemetry-event'
-  | 'telemetry-crash';
+  | 'telemetry-crash'
+  /**
+   * The reader's own choices, which are **state rather than events**.
+   *
+   * They used to be written straight to Firestore from the screen that changed
+   * them, with a failure logged and forgotten: a pace chosen on a train was
+   * simply never sent. They now travel in the same queue as everything else, so
+   * offline costs nothing and a restart costs nothing.
+   *
+   * Queued by upsert on a deterministic id, because only the last value is
+   * worth sending — see `upsert` in `local-store.ts`.
+   */
+  | 'account-preferences'
+  | 'account-saved';
+
+/** Kinds that are state: queued by upsert, so the last intent wins. */
+export const STATEFUL_KINDS: ReadonlySet<OutboxKind> = new Set([
+  'account-preferences',
+  'account-saved',
+]);
 
 export interface OutboxItem {
   /** The idempotency key. The server deduplicates on it, so a retry counts once. */
@@ -37,6 +56,8 @@ export interface OutboxItem {
 
 export interface OutboxStore {
   add(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }): Promise<void>;
+  /** Queues, or replaces what is queued under this id. See `STATEFUL_KINDS`. */
+  put(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }): Promise<void>;
   /** Not dead, and past its backoff. */
   due(now: Date): Promise<OutboxItem[]>;
   all(): Promise<OutboxItem[]>;
@@ -68,6 +89,10 @@ export class SqlOutboxStore implements OutboxStore {
     // INSERT OR IGNORE: enqueuing the same event id twice is a no-op, so a
     // double-tap cannot become two completions.
     await local.enqueue(this.driver, { eventId: item.id, kind: item.kind, payload: item.payload });
+  }
+
+  async put(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }) {
+    await local.upsert(this.driver, { eventId: item.id, kind: item.kind, payload: item.payload });
   }
 
   async due(now: Date) {
@@ -160,6 +185,27 @@ export class KeyValueOutboxStore implements OutboxStore {
       ...items,
       { ...item, attempts: 0, nextAttemptAt: now, dead: false, queuedAt: now },
     ]);
+  }
+
+  async put(item: { id: string; kind: OutboxKind; payload: Record<string, unknown> }) {
+    const items = await this.read();
+    const now = new Date().toISOString();
+    const existing = items.find((candidate) => candidate.id === item.id);
+
+    // A new intent, not a retry of the old one: the budget resets and a dead
+    // letter comes back to life.
+    const next: OutboxItem = {
+      ...item,
+      attempts: 0,
+      nextAttemptAt: now,
+      dead: false,
+      lastError: undefined,
+      queuedAt: existing?.queuedAt ?? now,
+    };
+
+    await this.write(
+      existing ? items.map((candidate) => (candidate.id === item.id ? next : candidate)) : [...items, next]
+    );
   }
 
   async due(now: Date) {

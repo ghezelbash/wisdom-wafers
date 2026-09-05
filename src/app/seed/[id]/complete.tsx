@@ -16,7 +16,8 @@ import { addDays, formatNumericDate } from '@/lib/date';
 import { localizeDigits } from '@/lib/format';
 import { listProgress, loadProgress, saveProgress, type SeedProgress } from '@/lib/progress-store';
 import { ASSESSED_TYPES, type SummaryBlock } from '@/models/seed';
-import { pushSaved, savedEntry } from '@/domain/account/push';
+import { savedEntry } from '@/domain/account/push';
+import { queueSaved } from '@/domain/account/intents';
 
 /** Days until the scheduler asks the summary points back. */
 const FIRST_REVIEW_IN_DAYS = 3;
@@ -74,10 +75,11 @@ export default function SeedCompleteScreen() {
     const updated = { ...progress, saved: !progress.saved };
     setProgress(updated);
     saveProgress(updated);
-    // Local first; the account hears about it if there is one.
-    void pushSaved(
+    // Local first, then queued — durably, so an un-save made offline still
+    // reaches the reader's other device.
+    void queueSaved(
       { uid: identity?.uid ?? null, isAccount: identity?.source === 'account' },
-      [savedEntry(updated.seedId, !!updated.saved)]
+      savedEntry(updated.seedId, !!updated.saved)
     );
   };
 

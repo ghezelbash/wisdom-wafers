@@ -243,6 +243,8 @@ describe('restoring an account onto a device', () => {
       applySaved: async (ids) => {
         saved = ids;
       },
+      readLocalPreferences: async () => null,
+      applyPreferences: async () => {},
     });
 
     expect(written.map((item) => item.seedId).sort()).toEqual(['from-account', 'on-device']);
@@ -272,6 +274,8 @@ describe('restoring an account onto a device', () => {
         { seedId: 'a', saved: false, updatedAt: '2026-09-04T10:00:00.000Z' },
         { seedId: 'b', saved: true, updatedAt: '2026-09-04T10:00:00.000Z' },
       ],
+      readLocalPreferences: async () => null,
+      applyPreferences: async () => {},
       writeLocal: async () => {},
       applySaved: async () => {},
       pushSaved: async (entries) => {
@@ -281,5 +285,104 @@ describe('restoring an account onto a device', () => {
 
     expect(pushed.map((entry) => entry.seedId).sort()).toEqual(['a', 'b']);
     expect(pushed.find((entry) => entry.seedId === 'a')?.saved).toBe(false);
+  });
+});
+
+/**
+ * The half that did not exist.
+ *
+ * `AccountSync.pull` returned the account's preferences and `mergePreferences`
+ * knew what to do with them — and **nothing called either**. Signing in on a
+ * second phone restored the garden and then showed the default pace, no
+ * interests and no reminder. Every one of these would have passed before the
+ * ports existed, which is exactly why they are written against the ports.
+ */
+describe('preferences, on a device that has just signed in', () => {
+  const prefs = (updatedAt: string, pace: string): AccountPreferences => ({
+    locale: 'fa-IR',
+    timezone: 'Asia/Tehran',
+    interests: ['psychology'],
+    notificationPreferences: { pace, timeOfDay: 'evening', reminderTime: '21:00', enabled: true },
+    updatedAt,
+  });
+
+  const remotePrefs = prefs('2026-09-05T12:00:00.000Z', 'two');
+  const localPrefs = prefs('2026-09-01T12:00:00.000Z', 'one');
+
+  const emptyAccount = (preferences: AccountPreferences | null) => ({
+    preferences,
+    progress: [],
+    saved: [],
+    reviews: [],
+  });
+
+  const run = async (
+    remote: AccountPreferences | null,
+    local: AccountPreferences | null,
+    applied: AccountPreferences[] = [],
+    pushed: AccountPreferences[] = []
+  ) => ({
+    result: await restoreAccount('account-1', {
+      pull: async () => emptyAccount(remote),
+      readLocal: async () => [],
+      readLocalSaved: async () => [],
+      writeLocal: async () => {},
+      applySaved: async () => {},
+      readLocalPreferences: async () => local,
+      applyPreferences: async (value) => {
+        applied.push(value);
+      },
+      pushPreferences: async (value) => {
+        pushed.push(value);
+      },
+    }),
+    applied,
+    pushed,
+  });
+
+  it('applies the account\u2019s settings to a device that has none', async () => {
+    const { result, applied } = await run(remotePrefs, null);
+
+    expect(result.preferences).toBe('remote');
+    expect(applied).toEqual([remotePrefs]);
+  });
+
+  it('applies the newer of the two, by timestamp', async () => {
+    const { result, applied } = await run(remotePrefs, localPrefs);
+
+    expect(result.preferences).toBe('remote');
+    expect(applied[0].notificationPreferences.pace).toBe('two');
+  });
+
+  /** The device decided more recently, so the account has not heard it. */
+  it('keeps this device\u2019s settings when they are newer, and sends them up', async () => {
+    const newerLocal = prefs('2026-09-06T12:00:00.000Z', 'whenever');
+    const { result, applied, pushed } = await run(remotePrefs, newerLocal);
+
+    expect(result.preferences).toBe('local');
+    expect(applied).toEqual([newerLocal]);
+    expect(pushed).toEqual([newerLocal]);
+  });
+
+  it('sends nothing up when the account already had the newer copy', async () => {
+    const { pushed } = await run(remotePrefs, localPrefs);
+    expect(pushed).toEqual([]);
+  });
+
+  it('does nothing at all when neither side has any', async () => {
+    const { result, applied, pushed } = await run(null, null);
+
+    expect(result.preferences).toBe('none');
+    expect(applied).toEqual([]);
+    expect(pushed).toEqual([]);
+  });
+
+  /**
+   * The regression this exists to catch: a restore that ignores the remote
+   * copy still returns a perfectly healthy-looking result for progress.
+   */
+  it('would fail if the remote preferences were ignored', async () => {
+    const { applied } = await run(remotePrefs, null);
+    expect(applied).toHaveLength(1);
   });
 });

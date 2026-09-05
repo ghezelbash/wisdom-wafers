@@ -426,6 +426,31 @@ the safe one.*
       one-way and that it does not exist, and the export row matches the
       implementation, which pulls the account half as well
 
+### Two-device sync, finished (gap-closure goal 14)
+
+- [x] **The restore ignored the account's preferences.** `pull` returned them
+      and `mergePreferences` knew the policy, and nothing called either — so a
+      second phone restored the garden and then showed the default pace, no
+      interests and no reminder (ADR 26)
+- [x] **A preference change could be lost silently.** It was a direct Firestore
+      write with the failure logged: a pace chosen on a train was never sent, and
+      nothing afterwards could tell. Backgrounding the app right after a change
+      lost it outright, because the debounce timer was cleared on unmount
+- [x] Preferences and bookmarks now travel in the **one** outbox — same retry,
+      backoff, dead-letter and acknowledgement rules, surviving a force-stop, and
+      `reassignQueuedUid` moves them when a guest links an account
+- [x] Queued by upsert on `prefs:{uid}` / `saved:{uid}:{seedId}`, because they
+      are state and not events: thirty slider drags leave one row
+- [x] The debounce is flushed on background and unmount, and the queue makes
+      losing it harmless anyway
+- [x] `preferencesUpdatedAt` on the session, so the documented whole-object
+      last-write-wins has a timestamp to compare
+- [x] `restoreAccount` reports which side won (`remote` / `local` / `none`), and
+      a test would fail if the remote copy were ignored
+- [x] **The smoke script hung** when the emulators were absent: the Admin SDK
+      talks gRPC, so a bounded `fetch` wrapper never reached it. Reachability is
+      now a hard stop with the command to run
+
 ### Staging environment and release disclosures (release goals 11–12, code side)
 
 - [x] **The emulator flag exempted every variant.** A staging build setting
