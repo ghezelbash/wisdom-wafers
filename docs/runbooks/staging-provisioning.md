@@ -236,6 +236,39 @@ succeeds under it. If a future project *does* refuse with "one or more users
 named in the policy do not belong to a permitted customer", that is when an
 org-policy exception is needed, and not before.
 
+## 4d · Give the runtime service account its data roles
+
+A 2nd-gen function runs as the **Compute Engine default service account**, and
+in a new project that account holds nothing but the build role. The functions
+deploy, they answer, and then every one of them fails inside:
+
+```
+Unhandled error Error: 7 PERMISSION_DENIED: Missing or insufficient permissions.
+```
+
+That reads like a security-rules denial and is not one — the Admin SDK bypasses
+rules. It is IAM: the identity the code runs as cannot touch Firestore.
+
+Least privilege, not Editor:
+
+```bash
+SA="serviceAccount:1066103901472-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding dananeh-staging --member="$SA" --role=roles/datastore.user
+gcloud projects add-iam-policy-binding dananeh-staging --member="$SA" --role=roles/storage.objectAdmin
+gcloud projects add-iam-policy-binding dananeh-staging --member="$SA" --role=roles/firebaseauth.admin
+```
+
+| role | what needs it |
+|---|---|
+| `datastore.user` | every function — progress, telemetry, drafts, the rate-limit counters |
+| `storage.objectAdmin` | writing a bundle on publish, deleting a reader's files on account deletion |
+| `firebaseauth.admin` | deleting the Auth record, the last step of account deletion |
+
+**Then wait.** IAM took roughly four minutes to reach the running services here;
+a retry after forty-five seconds still failed with the same error, which is
+exactly how somebody concludes the grant did not work and starts changing
+things that were already correct. Retry once, slowly, before believing it.
+
 ## 5 · Deploy
 
 ```bash
@@ -260,6 +293,36 @@ history, a CI log, or both. Send each person a reset link from
 **Authentication → Users → ⋮ → Reset password**, out of band.
 
 ## 6 · Verify
+
+Both of these should end green. They did, on 2026-09-05:
+
+```
+$ APP_VARIANT=staging npm run verify:env
+  ✓ nothing resolves to the pre-rebrand project
+  ✓ not addressing the emulator suite
+  ✓ serving published content rather than the seeds in the binary
+  ✓ not a demo project
+  ✓ the configuration says staging and the build is staging
+  ✓ client and functions agree on europe-west1
+  ✓ the package is com.dananeh.app.staging
+  ✓ anonymous sign-in is enabled
+  ✓ and the account it created was removed again
+  ✓ email/password sign-in is enabled
+  ✓ Firestore answers (200)
+  ✓ Storage answers (403)
+  ✓ ingestProgress is deployed in europe-west1 (401)
+  ✓ and refuses an unauthenticated call
+
+$ npm run diagnose
+  ✓ sign-in works
+  ✓ a callable answers — ingestProgress
+  ✓ a callable still refuses what it should — batch limit enforced
+  ✓ published content is downloadable — seed-anchoring@1
+  ✓ a synthetic crash reaches the operator — staging@1.0.0 at /diagnostics
+  ✓ the crash is visible in the day it happened — 1 crash(es), 1 session(s)
+  ✓ the synthetic crash is cleaned up — removed
+```
+
 
 Put the six web values in **`.env.staging`** — git-ignored, like every `.env.*`
 that is not `.env.example` — and the verifier picks it up by variant:
