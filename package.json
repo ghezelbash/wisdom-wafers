@@ -56,7 +56,7 @@
   "scripts": {
     "admin": "npm --workspace @dananeh/admin run dev",
     "android": "APP_VARIANT=development expo run:android",
-    "build:functions": "npm run build:schema && npm --workspace @dananeh/functions run build",
+    "build:functions": "npm run check:node && npm run build:schema && npm --workspace @dananeh/functions run build",
     "build:schema": "npm --workspace @dananeh/content-schema run build",
     "check:android": "node scripts/check-android-native.mjs",
     "check:config": "node scripts/check-config.mjs",
@@ -83,12 +83,16 @@
     "ux:audit": "node scripts/ux-audit.mjs",
     "check:e2e": "node scripts/check-maestro.mjs",
     "verify:env": "node scripts/verify-env.mjs",
-    "bootstrap:project": "npm run build:schema && node scripts/bootstrap-project.mjs"
+    "bootstrap:project": "npm run build:schema && node scripts/bootstrap-project.mjs",
+    "check:node": "node scripts/check-node.mjs"
   },
   "private": true,
   "workspaces": [
     "packages/*",
     "functions",
     "admin"
-  ]
+  ],
+  "engines": {
+    "node": ">=22 <23"
+  }
 }

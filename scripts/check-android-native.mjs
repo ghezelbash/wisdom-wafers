@@ -50,6 +50,12 @@ if (!androidDir) {
 
   for (const entry of readdirSync(process.cwd())) {
     if (['node_modules', '.git', 'android', 'ios', '.expo', 'dist'].includes(entry)) continue;
+    // `.env` is the developer's machine, not the build under test. Copying it
+    // put `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1` into a *staging* evaluation,
+    // which the environment guard refuses — correctly, and the checker then
+    // failed with a stack trace instead of an answer. CI never saw it: there
+    // is no `.env` there.
+    if (entry.startsWith('.env')) continue;
     cpSync(join(process.cwd(), entry), join(workspace, entry), { recursive: true });
   }
   // The prebuild needs the module graph; link rather than reinstall.
@@ -61,13 +67,23 @@ if (!androidDir) {
   execFileSync('npx', ['expo', 'prebuild', '--platform', 'android', '--no-install', '--clean'], {
     cwd: workspace,
     stdio: 'inherit',
-    env: { ...process.env, APP_VARIANT: VARIANT, EXPO_PUBLIC_ENV_NAME: VARIANT,
+    // A fixed environment: whatever is exported in this shell must not change
+    // what the generated project says.
+    env: { ...process.env, EXPO_NO_DOTENV: '1',
+      EXPO_PUBLIC_USE_FIREBASE_EMULATOR: '',
+      EXPO_PUBLIC_FIREBASE_EMULATOR_HOST: '',
+      APP_VARIANT: VARIANT, EXPO_PUBLIC_ENV_NAME: VARIANT,
       EXPO_PUBLIC_FIREBASE_API_KEY: 'AIzaSyPrebuildCheckPlaceholderNotARealKey',
       EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: 'example.firebaseapp.com',
       EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'example-project',
       EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: 'example-project.appspot.com',
       EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000',
-      EXPO_PUBLIC_FIREBASE_APP_ID: '1:000000000000:android:0000' },
+      EXPO_PUBLIC_FIREBASE_APP_ID: '1:000000000000:android:0000',
+      // A release variant serves published content, and the environment guard
+      // refuses a build without it — which is what this checker is standing in
+      // for. Missing it here made the prebuild fail with a stack trace rather
+      // than an answer.
+      EXPO_PUBLIC_CONTENT_SOURCE: 'remote' },
   });
   androidDir = join(workspace, 'android');
 }

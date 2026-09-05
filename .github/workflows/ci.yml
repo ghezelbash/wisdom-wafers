@@ -46,7 +46,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test -- --ci --coverage
+      # `--detectOpenHandles` is not diagnostics here: a leaked timer is a leak
+      # on a device too, and the config refresh leaked one per foreground.
+      - run: npm test -- --ci --coverage --detectOpenHandles
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-coverage
+          retention-days: 7
+          if-no-files-found: ignore
+          path: coverage/**
 
   backend:
     name: Rules, pipeline and local store
@@ -118,6 +129,22 @@ jobs:
       # light and a dark splash, RTL, POST_NOTIFICATIONS, and auto-backup off
       # so private reflections do not reach cloud backup.
       - run: node scripts/check-android-native.mjs android
+
+      # A Gradle failure is a wall of output that GitHub truncates. The reports
+      # say which task failed and why; the manifest says what was generated.
+      # Nothing here is a secret — no keystore, no google-services.json, no APK.
+      - name: Upload native build reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-reports
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            android/build/reports/**
+            android/app/build/reports/**
+            android/app/build/outputs/logs/**
+            android/app/src/main/AndroidManifest.xml
 
   doctor:
     name: Expo Doctor

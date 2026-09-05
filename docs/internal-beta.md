@@ -27,12 +27,20 @@ Fill in after `eas build` returns.
 | APK SHA-256 | `shasum -a 256 dananeh-staging.apk` |
 
 ```bash
+nvm use                                     # Node 22 — the Functions runtime
+npm ci
 npx expo install --check
-npm run typecheck && npm run lint && npm test -- --ci && npm run test:emulator
+npm run typecheck && npm run lint && npm test -- --ci --detectOpenHandles
+npm run test:emulator
 npm run check:config && npm run check:events && npm run check:e2e && npm run check:android
+npm run export:web && npm run export:android
 APP_VARIANT=staging npm run verify:env      # every line must be a ✓
 npx eas-cli@latest build --platform android --profile internal-apk
 ```
+
+Node 22 is not optional: it is what Cloud Functions provisions, and building the
+functions on a different major is a substitution that works here and may not
+there. `npm run check:node` fails rather than letting it happen quietly.
 
 `verify:env` is the gate. Against the `.env` in this checkout it currently
 reports the pre-rebrand project with **both sign-in methods off, Firestore 403,

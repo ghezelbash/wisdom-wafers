@@ -426,6 +426,29 @@ the safe one.*
       one-way and that it does not exist, and the export row matches the
       implementation, which pulls the account half as well
 
+### The release-candidate gate, frozen (gap-closure goal 15)
+
+- [x] **Local builds were on the wrong Node.** Cloud Functions runs Node 22 and
+      everything here ran on Node 26 — a silent substitution. `.nvmrc`,
+      `engines`, and `npm run check:node` as the first step of
+      `build:functions`, so it is an error rather than a habit
+- [x] Every gate re-run under Node 22 after a clean `npm ci`
+- [x] `firebase-functions` pinned to **6.6.0** exactly (latest is 7.3.2, a
+      major) with `firebase-admin` at 13.6.0. A major SDK upgrade days before
+      the first signed artifact is what the goal warns against; the reasoning
+      and the upgrade procedure are in
+      `docs/followups/2026-09-05-firebase-functions-7.md`, dated for review
+- [x] **`check:android` copied the developer's `.env` into a staging prebuild**,
+      so `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1` reached it and the goal-11
+      environment guard refused the build — with a stack trace rather than an
+      answer. CI never saw it: there is no `.env` there. The workspace is now
+      isolated and `EXPO_NO_DOTENV=1`
+- [x] CI runs `--detectOpenHandles` on the unit job and uploads Gradle reports,
+      the generated manifest and coverage on failure. No secrets, 7-day
+      retention
+- [x] No required job uses `continue-on-error`, `forceExit`, `|| true` or a
+      skipped suite
+
 ### Two-device sync, finished (gap-closure goal 14)
 
 - [x] **The restore ignored the account's preferences.** `pull` returned them
