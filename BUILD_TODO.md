@@ -399,6 +399,33 @@ the safe one.*
       `maestro` are absent, so the suite has never been executed. Owner action,
       on a clean emulator and one real device, before beta sign-off
 
+### Security and quality defects closed (gap-closure goal 13)
+
+- [x] **The deletion receipt was not a capability.** It came from `Math.random`
+      — not a CSPRNG — as 32 hex characters (128 predictable bits), was stored
+      **in plaintext** beside the job, and the comments called it a 256-bit
+      secret. Now: 256 bits from `crypto.randomBytes`, base64url (43 chars),
+      and only a versioned SHA-256 digest is stored. Compared with
+      `timingSafeEqual`, every digest checked rather than returning on the first
+      match, and the callable boundary accepts the exact shape instead of
+      `length < 16`
+- [x] A job carries at most three live digests, so `begin` called twice can
+      neither return the first receipt (nothing stores it) nor invalidate it
+- [x] Threat model — theft, guessing, replay across uids, timing, logging,
+      response loss — written down in `docs/runbooks/account-deletion.md`
+- [x] **The config timeout leaked a timer.** `Promise.race` settles on the first
+      result and abandons the loser, but the `setTimeout` stayed armed: eight
+      open `Timeout` handles per unit run and a forced exit, and on a device one
+      timer per foreground. Cleared on every path, covered with fake timers
+- [x] **`notificationPreferences` was validated by key name only** — `pace`
+      could be a map, `enabled` a string, `reminderTime` `"99:99"`. Full value
+      validation mirroring `NotificationPreferencesSchema`, including the 24-hour
+      range, and a dotted single-field update cannot slip past it. Rules tests
+      48 → 77
+- [x] `docs/internal-beta.md` no longer claims both that preference sync is
+      one-way and that it does not exist, and the export row matches the
+      implementation, which pulls the account half as well
+
 ### Staging environment and release disclosures (release goals 11–12, code side)
 
 - [x] **The emulator flag exempted every variant.** A staging build setting

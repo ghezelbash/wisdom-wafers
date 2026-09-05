@@ -7,7 +7,11 @@ import {
   deleteAccount,
   DeletionError,
   isRecentLogin,
+  isWellFormedReceipt,
+  MAX_RECEIPT_DIGESTS,
   mintReceipt,
+  receiptDigest,
+  RECEIPT_VERSION,
   RECENT_LOGIN_WINDOW_SECONDS,
   USER_SUBCOLLECTIONS,
 } from '../../functions/src/account/delete';
@@ -273,22 +277,53 @@ describe('a deletion whose response went missing', () => {
 
     const begun = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
 
-    expect(begun.receipt.length).toBeGreaterThanOrEqual(16);
+    // 256 bits, base64url — exactly 43 characters, URL and callable safe.
+    expect(begun.receipt).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(begun.state).toBe('requested');
     // Nothing is gone yet: this step only proves who is asking.
     expect((await db.doc(`users/${UID}`).get()).exists).toBe(true);
     expect(await remaining(`users/${UID}/progress`)).toBe(1);
   });
 
-  it('keeps the first receipt when the request is made twice', async () => {
+  /**
+   * The receipt itself is never stored, so a second `begin` cannot hand back
+   * the first one — and must not invalidate it either. Both stay valid on the
+   * same job.
+   */
+  it('keeps the first receipt working when the request is made twice', async () => {
     await seedAccount();
 
     const first = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
     const again = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
 
-    // The device may already have stored it; a new one would strand exactly
-    // the case the receipt exists for.
-    expect(again.receipt).toBe(first.receipt);
+    expect(again.receipt).not.toBe(first.receipt);
+    expect(await accountDeletionStatus(deps, { uid: UID, receipt: first.receipt })).not.toBeNull();
+    expect(await accountDeletionStatus(deps, { uid: UID, receipt: again.receipt })).not.toBeNull();
+
+    // The same job, continued — not a second one started.
+    const job = (await db.doc(`deletionJobs/${UID}`).get()).data();
+    expect(job?.startedAt).toBe(NOW.toISOString());
+    expect(job?.receiptDigests).toHaveLength(2);
+  });
+
+  it('keeps at most three live capabilities', async () => {
+    await seedAccount();
+
+    const receipts = [];
+    for (let round = 0; round < 5; round += 1) {
+      receipts.push((await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth })).receipt);
+    }
+
+    const job = (await db.doc(`deletionJobs/${UID}`).get()).data();
+    expect(job?.receiptDigests).toHaveLength(MAX_RECEIPT_DIGESTS);
+
+    // The three most recent still work; the two it dropped do not.
+    for (const receipt of receipts.slice(-MAX_RECEIPT_DIGESTS)) {
+      expect(await accountDeletionStatus(deps, { uid: UID, receipt })).not.toBeNull();
+    }
+    for (const receipt of receipts.slice(0, 2)) {
+      expect(await accountDeletionStatus(deps, { uid: UID, receipt })).toBeNull();
+    }
   });
 
   it('finishes with the receipt after the session is gone', async () => {
@@ -316,10 +351,51 @@ describe('a deletion whose response went missing', () => {
 
   it('says nothing at all to a wrong receipt', async () => {
     await seedAccount();
+    const { receipt } = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    // A guess, a truncation, a re-encoding, and the right receipt against the
+    // wrong uid. Every one of them gets the same answer as "no such job".
+    expect(await accountDeletionStatus(deps, { uid: UID, receipt: mintReceipt() })).toBeNull();
+    expect(await accountDeletionStatus(deps, { uid: UID, receipt: receipt.slice(0, 42) })).toBeNull();
+    expect(await accountDeletionStatus(deps, { uid: UID, receipt: `${receipt}A` })).toBeNull();
+    expect(await accountDeletionStatus(deps, { uid: UID, receipt: '' })).toBeNull();
+    expect(await accountDeletionStatus(deps, { uid: 'someone-else', receipt })).toBeNull();
+  });
+
+  /**
+   * The property the plaintext version did not have: a reader of the database
+   * — a backup, an export, an operator with console access — holds something
+   * that cannot be replayed.
+   */
+  it('stores a digest and never the receipt', async () => {
+    await seedAccount();
+    const { receipt } = await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
+
+    const job = (await db.doc(`deletionJobs/${UID}`).get()).data();
+    const serialised = JSON.stringify(job);
+
+    expect(serialised).not.toContain(receipt);
+    expect(job?.receipt).toBeUndefined();
+    expect(job?.receiptVersion).toBe(RECEIPT_VERSION);
+    expect(job?.receiptDigests).toEqual([receiptDigest(receipt)]);
+    expect(job?.receiptDigests[0]).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('refuses a receipt that is not the shape a receipt has', async () => {
+    await seedAccount();
     await beginAccountDeletion(deps, { uid: UID, authTimeSeconds: recentAuth });
 
-    expect(await accountDeletionStatus(deps, { uid: UID, receipt: mintReceipt() })).toBeNull();
-    expect(await accountDeletionStatus(deps, { uid: 'someone-else', receipt: 'x' })).toBeNull();
+    for (const value of [undefined, null, 42, {}, 'x', 'A'.repeat(44), 'A'.repeat(42), 'a/b+c']) {
+      expect(isWellFormedReceipt(value)).toBe(false);
+      expect(await accountDeletionStatus(deps, { uid: UID, receipt: value as string })).toBeNull();
+    }
+  });
+
+  it('mints a different receipt every time', () => {
+    // `Math.random` produced 128 predictable bits described in the comments as
+    // 256 bits of secret. Both halves of that were wrong.
+    const minted = new Set(Array.from({ length: 200 }, () => mintReceipt()));
+    expect(minted.size).toBe(200);
   });
 
   it('refuses to delete for a receipt that does not match', async () => {

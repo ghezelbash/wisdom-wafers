@@ -1,3 +1,5 @@
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+
 import type { Deps } from '../shared/deps';
 
 /**
@@ -43,26 +45,85 @@ export interface DeletionJob {
   completed: string[];
   error?: string;
   /**
-   * The capability that outlives the account.
+   * Digests of the capabilities that outlive the account — **never the
+   * capabilities themselves**.
    *
    * The Auth record is deleted last, so a response lost after that step leaves
    * a device that can no longer authenticate and therefore cannot ask what
-   * happened — it would have to guess whether its data is gone. The receipt is
-   * minted by an authenticated, recently-signed-in request *before* anything
-   * is destroyed, handed to the device, and remains a valid way to ask about
-   * this one job afterwards.
+   * happened. The receipt is minted before anything is destroyed, handed to
+   * the device, and stays a valid way to ask about this one job afterwards.
    *
-   * It is a bearer token for exactly two operations, both of which are
-   * idempotent and neither of which reveals anything about the account beyond
-   * how far its own deletion got.
+   * What is stored is the SHA-256 of the receipt, so a reader of the database
+   * — a backup, an export, an operator with console access — holds something
+   * that cannot be replayed. The previous version stored the bearer secret in
+   * plaintext, and minted it from `Math.random`, which is not a CSPRNG: 128
+   * bits of predictable output, described in the comments as 256 bits of
+   * secret. Both halves of that were wrong.
+   *
+   * A list because `begin` called twice must not invalidate a receipt the
+   * device has already stored — that is exactly the case the receipt exists
+   * for. Capped, oldest dropped first.
    */
-  receipt: string;
+  receiptDigests?: string[];
+  /** The digest scheme in use, so it can be changed without guessing. */
+  receiptVersion?: number;
 }
 
-/** Long enough that guessing one is not a strategy. */
-export function mintReceipt(random: () => number = Math.random): string {
-  const chunk = () => Math.floor(random() * 0xffffffff).toString(16).padStart(8, '0');
-  return `${chunk()}${chunk()}${chunk()}${chunk()}`;
+/** The only scheme there has ever been that stores a digest rather than the secret. */
+export const RECEIPT_VERSION = 1;
+
+/** 256 bits. base64url of 32 bytes is exactly 43 characters, no padding. */
+export const RECEIPT_BYTES = 32;
+export const RECEIPT_LENGTH = 43;
+
+/** At most three live capabilities per job — see `receiptDigests`. */
+export const MAX_RECEIPT_DIGESTS = 3;
+
+/**
+ * A receipt: 256 bits from the platform CSPRNG, base64url so it survives a URL,
+ * a JSON body and a callable argument without escaping.
+ */
+export function mintReceipt(): string {
+  return randomBytes(RECEIPT_BYTES).toString('base64url');
+}
+
+/** Exactly what `mintReceipt` produces, and nothing else. */
+export function isWellFormedReceipt(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
+}
+
+export function receiptDigest(receipt: string): string {
+  return createHash('sha256').update(receipt, 'utf8').digest('hex');
+}
+
+/**
+ * Compares two digests without letting the time taken describe the difference.
+ *
+ * Both are fixed-length hex of the same hash, so lengths never disagree in
+ * practice; the guard is there because `timingSafeEqual` throws on a mismatch,
+ * and a thrown comparison would be an oracle of a different kind.
+ */
+function digestsMatch(a: string, b: string): boolean {
+  const left = Buffer.from(a, 'hex');
+  const right = Buffer.from(b, 'hex');
+  if (left.length !== right.length || left.length === 0) return false;
+  return timingSafeEqual(left, right);
+}
+
+/** Whether a presented receipt is one of the capabilities this job issued. */
+export function receiptMatches(job: DeletionJob | undefined, presented: unknown): boolean {
+  if (!job || !isWellFormedReceipt(presented)) return false;
+
+  const digests = job.receiptDigests ?? [];
+  if (!digests.length) return false;
+
+  const candidate = receiptDigest(presented);
+  // Every digest is compared: returning early on the first match would make the
+  // time taken describe which capability was used.
+  return digests.reduce<boolean>(
+    (found, stored) => (digestsMatch(stored, candidate) ? true : found),
+    false
+  );
 }
 
 export class DeletionError extends Error {
@@ -130,8 +191,7 @@ export interface DeleteAccountResult {
  */
 export async function beginAccountDeletion(
   deps: Deps,
-  input: { uid: string; authTimeSeconds?: number },
-  random?: () => number
+  input: { uid: string; authTimeSeconds?: number }
 ): Promise<{ receipt: string; state: DeletionState }> {
   if (!isRecentLogin(input.authTimeSeconds, deps.now())) {
     throw new DeletionError('requires-recent-login');
@@ -139,24 +199,30 @@ export async function beginAccountDeletion(
 
   const jobRef = deps.db.collection('deletionJobs').doc(input.uid);
   const existing = (await jobRef.get()).data() as DeletionJob | undefined;
+  const resuming = Boolean(existing && existing.state !== 'done');
 
-  // A request made twice keeps the first receipt: the device may already have
-  // stored it, and invalidating it would strand exactly the case this exists
-  // for. A finished job starts a fresh one.
-  if (existing && existing.state !== 'done' && existing.receipt) {
-    return { receipt: existing.receipt, state: existing.state };
-  }
+  /**
+   * A second `begin` continues the same job and issues another capability.
+   *
+   * It cannot return the first one — nothing stores it, which is the point —
+   * and it must not invalidate it either, because a device that already holds
+   * one is precisely the case this exists for. So the earlier digests stay,
+   * capped, and a job carries at most three live receipts.
+   */
+  const receipt = mintReceipt();
+  const digests = [...(resuming ? (existing?.receiptDigests ?? []) : []), receiptDigest(receipt)]
+    .slice(-MAX_RECEIPT_DIGESTS);
 
-  const receipt = mintReceipt(random);
   await jobRef.set({
     uid: input.uid,
-    state: 'requested' satisfies DeletionState,
-    startedAt: deps.now().toISOString(),
-    completed: [],
-    receipt,
+    state: (resuming ? (existing?.state ?? 'requested') : 'requested') satisfies DeletionState,
+    startedAt: resuming ? (existing?.startedAt ?? deps.now().toISOString()) : deps.now().toISOString(),
+    completed: resuming ? (existing?.completed ?? []) : [],
+    receiptDigests: digests,
+    receiptVersion: RECEIPT_VERSION,
   });
 
-  return { receipt, state: 'requested' };
+  return { receipt, state: resuming ? (existing?.state ?? 'requested') : 'requested' };
 }
 
 /**
@@ -172,8 +238,9 @@ export async function accountDeletionStatus(
   const snapshot = await deps.db.collection('deletionJobs').doc(input.uid).get();
   const job = snapshot.data() as DeletionJob | undefined;
 
-  if (!job || !job.receipt || job.receipt !== input.receipt) return null;
-  return { state: job.state, completed: job.completed ?? [] };
+  // One answer for "no such job", "wrong uid" and "wrong receipt": null.
+  if (!receiptMatches(job, input.receipt)) return null;
+  return { state: job!.state, completed: job!.completed ?? [] };
 }
 
 export async function deleteAccount(
@@ -191,9 +258,7 @@ export async function deleteAccount(
    * gone — at which point there is no session left to prove anything with, and
    * refusing would leave the account permanently half-deleted.
    */
-  const hasReceipt = Boolean(
-    input.receipt && existing?.receipt && input.receipt === existing.receipt
-  );
+  const hasReceipt = receiptMatches(existing, input.receipt);
   if (!hasReceipt && !isRecentLogin(input.authTimeSeconds, deps.now())) {
     throw new DeletionError('requires-recent-login');
   }
@@ -208,7 +273,12 @@ export async function deleteAccount(
       state: 'running' satisfies DeletionState,
       startedAt: existing?.startedAt ?? deps.now().toISOString(),
       completed: [...completed],
-      ...(existing?.receipt ? {} : { receipt: input.receipt ?? mintReceipt() }),
+      // A job created here — `deleteMyAccount` called without `begin` — carries
+      // no capability, because there is nobody to hand one to. That caller
+      // proved a recent sign-in, which is the other way in.
+      ...(existing?.receiptDigests?.length
+        ? {}
+        : { receiptDigests: [], receiptVersion: RECEIPT_VERSION }),
     },
     { merge: true }
   );
