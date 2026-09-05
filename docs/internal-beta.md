@@ -1,6 +1,11 @@
 # Internal beta — release notes and install checklist
 
-**Status: not built.** Everything the repository can do is done and green. The
+**Status: built, not verified on a device.** The first signed APK is
+`docs/release/2026-09-06-internal-apk.md` — `com.dananeh.app.staging` 1.0.0
+(versionCode 1) against `dananeh-staging`. It has not been installed on a
+phone, and the Maestro suite has still never run.
+
+**Previously:** not built. Everything the repository can do is done and green. The
 build itself needs credentials only the project owner has; the exact list is at
 the end of `docs/runbooks/environments.md` and repeated at the bottom here.
 
