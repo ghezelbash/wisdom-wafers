@@ -189,6 +189,10 @@ keystore); and the emails holding `admin` / `editor` / `reviewer`.
 and terms page at the two URLs in `src/app/settings/about.tsx`, and a support
 address that is actually monitored.
 
+**Never run:** `npm run check:legal` passes only when
+`https://dananeh.app/privacy` and `/terms` resolve. Today neither does, so the
+build is not ready for anyone outside the team however green everything else is.
+
 **Never run:** the Maestro suite. There is no Android SDK in the environment
 this was built in — neither `adb` nor `maestro` — so every flow is repaired and
 statically checked (`npm run check:e2e`) but none has been executed. Same for

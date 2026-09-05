@@ -426,6 +426,35 @@ the safe one.*
       one-way and that it does not exist, and the export row matches the
       implementation, which pulls the account half as well
 
+### Staging, the artifact and device QA (gap-closure goals 16–18)
+
+- [x] Region agreement: `europe-west1` was at four call sites; one constant now,
+      and `verify:env` fails if the client and the functions disagree
+- [x] `firebase.json` predeploy runs `npm run build:functions`, so the schema
+      package is compiled and the Node check runs before a deploy
+- [x] `--dry-run` on both the deploy and the bootstrap: what would change,
+      written by nothing, needing no credential
+- [x] `docs/runbooks/staging-provisioning.md` — the ordered owner checklist, with
+      a verification command and a pass condition per step, opening with the
+      real `verify:env` output against the retired project
+- [x] App Check settled for the beta: register Play Integrity, measure, do not
+      enforce — with the reason it is currently *impossible* (the JS SDK attests
+      with reCAPTCHA; Android has no DOM), the rollout order and the rollback
+- [x] `check:config` asserts `internal-apk` is an APK on staging identity and
+      the preview channel, and that no release profile sets the emulator flag
+- [x] `npm run check:legal` reads the URLs out of the About screen and fails
+      unless each resolves over HTTPS and serves HTML. In a `release-readiness`
+      workflow, not the PR gate — a test that reaches the network fails on a
+      train
+- [x] APKs, AABs and keystores ignored; the release template gained the signing
+      rows
+- [ ] **Provisioning `dananeh-staging`** — console and credentials
+- [ ] **The signed APK** — an EAS account and Android signing
+- [ ] **Device QA and the Go/No-Go** — an Android device, and the Maestro suite
+      has still never been executed
+- [ ] **Publish the privacy and terms pages.** `npm run check:legal` fails today:
+      neither URL resolves
+
 ### The release-candidate gate, frozen (gap-closure goal 15)
 
 - [x] **Local builds were on the wrong Node.** Cloud Functions runs Node 22 and
