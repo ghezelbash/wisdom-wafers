@@ -96,6 +96,20 @@ export function currentEnvironmentIssues(variant: Variant): EnvIssue[] {
       // against itself is the point here. The build already proved the two
       // agree; this only asks whether the configuration is complete.
       [ENV_NAME_KEY]: variant,
+      /**
+       * Every key the validator inspects has to be supplied here.
+       *
+       * This one was not, and the omission bricked the first APK. The rule was
+       * added to `validateEnvironment` — which is shared between the build and
+       * the device — and only the build-time callers were updated. On a device
+       * the value read as absent, so a correctly configured staging build
+       * reported itself misconfigured, on every launch, forever.
+       *
+       * `env.test.ts` now asserts this object satisfies the validator, so a
+       * rule added without a matching input fails a unit test rather than a
+       * phone.
+       */
+      EXPO_PUBLIC_CONTENT_SOURCE: process.env.EXPO_PUBLIC_CONTENT_SOURCE,
     },
     usingEmulator: process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === '1',
   });

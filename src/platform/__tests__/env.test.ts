@@ -298,3 +298,70 @@ describe('the check that runs inside the app', () => {
     }
   });
 });
+
+/**
+ * The check that runs on the device must supply every input the validator asks
+ * for.
+ *
+ * This is the bug that bricked the first APK. `EXPO_PUBLIC_CONTENT_SOURCE` was
+ * added to `validateEnvironment` — which is shared between the build and the
+ * device — and only the build-time callers were updated.
+ * `currentEnvironmentIssues` passed six Firebase keys and the environment name,
+ * so on a device the content source read as absent and a **correctly
+ * configured** staging build reported itself misconfigured, on every launch.
+ *
+ * The app then rendered the misconfiguration screen, which mounts none of the
+ * providers — including the one that hides the native splash. The phone showed
+ * the logo and nothing else, forever.
+ */
+describe('what a release build actually validates on the device', () => {
+  /** Exactly the object `currentEnvironmentIssues` builds, fully populated. */
+  const onDevice = {
+    EXPO_PUBLIC_FIREBASE_API_KEY: 'AIzaSyExample',
+    EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: 'dananeh-staging.firebaseapp.com',
+    EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'dananeh-staging',
+    EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: 'dananeh-staging.firebasestorage.app',
+    EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '1066103901472',
+    EXPO_PUBLIC_FIREBASE_APP_ID: '1:1066103901472:web:abc',
+    [ENV_NAME_KEY]: 'staging',
+    EXPO_PUBLIC_CONTENT_SOURCE: 'remote',
+  };
+
+  it('passes for a correctly configured staging build', () => {
+    expect(validateEnvironment({ variant: 'staging', env: onDevice })).toEqual([]);
+  });
+
+  it('passes for a correctly configured production build', () => {
+    expect(
+      validateEnvironment({
+        variant: 'production',
+        env: { ...onDevice, [ENV_NAME_KEY]: 'production' },
+      })
+    ).toEqual([]);
+  });
+
+  /**
+   * The guard that generalises it: every key the validator can complain about
+   * has to be one the runtime check supplies. A rule added without a matching
+   * input fails here rather than on a phone.
+   */
+  it('supplies an input for every key the validator can reject', () => {
+    const complaints = validateEnvironment({ variant: 'staging', env: {} })
+      .map((issue) => issue.key)
+      .filter((key) => key !== 'EAS_PROJECT_ID'); // build-time only, by design
+
+    expect(complaints.length).toBeGreaterThan(0);
+    for (const key of complaints) {
+      expect([key, Object.keys(onDevice)]).toEqual([key, expect.arrayContaining([key])]);
+    }
+  });
+
+  it('still refuses a release build that is genuinely incomplete', () => {
+    expect(
+      validateEnvironment({
+        variant: 'staging',
+        env: { ...onDevice, EXPO_PUBLIC_CONTENT_SOURCE: 'mock' },
+      }).map((issue) => issue.key)
+    ).toContain('EXPO_PUBLIC_CONTENT_SOURCE');
+  });
+});
