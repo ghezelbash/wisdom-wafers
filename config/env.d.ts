@@ -7,7 +7,14 @@ export type Variant = 'development' | 'staging' | 'production';
 
 export interface EnvIssue {
   key: string;
-  problem: 'missing' | 'placeholder' | 'variant-mismatch' | 'demo-project';
+  problem:
+    | 'missing'
+    | 'placeholder'
+    | 'variant-mismatch'
+    | 'demo-project'
+    | 'retired-project'
+    | 'not-remote'
+    | 'emulator-in-release';
   detail: string;
 }
 
@@ -15,10 +22,12 @@ export interface EnvInput {
   variant: Variant;
   env: Record<string, string | undefined>;
   usingEmulator?: boolean;
+  requireEasProject?: boolean;
 }
 
 export const VARIANTS: Variant[];
 export const REQUIRED_FIREBASE_KEYS: readonly string[];
+export const RETIRED_PROJECT_IDS: readonly string[];
 export const ENV_NAME_KEY: string;
 
 export function readVariant(value: string | undefined): Variant;

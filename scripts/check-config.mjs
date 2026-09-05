@@ -23,6 +23,10 @@ const COMPLETE = {
   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: 'example-project.appspot.com',
   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000',
   EXPO_PUBLIC_FIREBASE_APP_ID: '1:000000000000:android:0000',
+  // A release build serves published content. Without this it serves the seeds
+  // compiled into the binary — full catalogue, no errors, and nothing anyone
+  // publishes ever arrives.
+  EXPO_PUBLIC_CONTENT_SOURCE: 'remote',
 };
 
 const EXPECTED = {
@@ -115,6 +119,32 @@ mustFail('a real variant pointed at a demo project', {
 mustFail('a build that does not declare its environment', {
   ...COMPLETE,
   APP_VARIANT: 'production',
+});
+
+// The four ways a release build can look healthy and reach the wrong thing.
+mustFail('a release build serving the seeds in the binary', {
+  ...COMPLETE,
+  EXPO_PUBLIC_CONTENT_SOURCE: 'mock',
+  APP_VARIANT: 'staging',
+  EXPO_PUBLIC_ENV_NAME: 'staging',
+});
+mustFail('a release build with no content source at all', {
+  ...COMPLETE,
+  EXPO_PUBLIC_CONTENT_SOURCE: '',
+  APP_VARIANT: 'staging',
+  EXPO_PUBLIC_ENV_NAME: 'staging',
+});
+mustFail('a release build addressing the emulator suite', {
+  ...COMPLETE,
+  EXPO_PUBLIC_USE_FIREBASE_EMULATOR: '1',
+  APP_VARIANT: 'staging',
+  EXPO_PUBLIC_ENV_NAME: 'staging',
+});
+mustFail('a release build pointed at the pre-rebrand project', {
+  ...COMPLETE,
+  EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'wisdom-wafers',
+  APP_VARIANT: 'staging',
+  EXPO_PUBLIC_ENV_NAME: 'staging',
 });
 
 console.log('\nDevelopment still works with nothing configured');

@@ -24,6 +24,7 @@ const complete = {
   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: 'dananeh-staging.appspot.com',
   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '1234567890',
   EXPO_PUBLIC_FIREBASE_APP_ID: '1:1234567890:android:abc',
+  EXPO_PUBLIC_CONTENT_SOURCE: 'remote',
   [ENV_NAME_KEY]: 'staging',
 };
 
@@ -45,9 +46,104 @@ describe('development', () => {
 });
 
 describe('the emulator', () => {
-  it('is a complete answer on its own, whatever the variant', () => {
+  it('is a complete answer for development', () => {
     expect(
-      validateEnvironment({ variant: 'staging', env: {}, usingEmulator: true })
+      validateEnvironment({ variant: 'development', env: {}, usingEmulator: true })
+    ).toEqual([]);
+  });
+
+  /**
+   * The exemption used to apply to every variant, and it skipped this function
+   * entirely: a staging build that set the emulator flag needed no Firebase
+   * configuration, could name the retired project, and could serve the seeds in
+   * the binary — without one complaint.
+   */
+  it('is not an exemption for a release build', () => {
+    const issues = validateEnvironment({
+      variant: 'staging',
+      env: { ...complete, EXPO_PUBLIC_USE_FIREBASE_EMULATOR: '1' },
+      usingEmulator: true,
+    });
+
+    expect(issues.map((issue) => issue.problem)).toContain('emulator-in-release');
+  });
+
+  it('refuses an emulator host on a release build too', () => {
+    const issues = validateEnvironment({
+      variant: 'production',
+      env: {
+        ...complete,
+        [ENV_NAME_KEY]: 'production',
+        EXPO_PUBLIC_FIREBASE_EMULATOR_HOST: '127.0.0.1',
+      },
+    });
+
+    expect(issues.map((issue) => issue.key)).toContain('EXPO_PUBLIC_FIREBASE_EMULATOR_HOST');
+  });
+});
+
+describe('the ways a release build can look healthy and be wrong', () => {
+  /**
+   * A binary serving the seeds compiled into it has a full catalogue and no
+   * errors. It simply never fetches, so nothing anyone publishes arrives — and
+   * that is invisible until someone asks why a correction did not appear.
+   */
+  it('refuses a release build that serves the seeds in the binary', () => {
+    for (const value of ['mock', '', undefined]) {
+      const issues = validateEnvironment({
+        variant: 'staging',
+        env: { ...complete, EXPO_PUBLIC_CONTENT_SOURCE: value },
+      });
+      expect(issues.map((issue) => issue.key)).toContain('EXPO_PUBLIC_CONTENT_SOURCE');
+    }
+  });
+
+  /** There is no reader data in it and no compatibility to keep. */
+  it('refuses the pre-rebrand project', () => {
+    const issues = validateEnvironment({
+      variant: 'staging',
+      env: { ...complete, EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'wisdom-wafers' },
+    });
+
+    expect(issues.map((issue) => issue.problem)).toContain('retired-project');
+  });
+
+  it('refuses it however it is spelled in a longer id', () => {
+    const issues = validateEnvironment({
+      variant: 'production',
+      env: {
+        ...complete,
+        [ENV_NAME_KEY]: 'production',
+        EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'wisdom-wafers-prod-2',
+      },
+    });
+
+    expect(issues.map((issue) => issue.problem)).toContain('retired-project');
+  });
+
+  /** Without it, `eas build` creates a new project instead of joining one. */
+  it('requires the EAS project identity when the build needs it', () => {
+    expect(
+      validateEnvironment({ variant: 'staging', env: complete, requireEasProject: true })
+        .map((issue) => issue.key)
+    ).toContain('EAS_PROJECT_ID');
+
+    expect(
+      validateEnvironment({
+        variant: 'staging',
+        env: { ...complete, EAS_PROJECT_ID: '0000-1111' },
+        requireEasProject: true,
+      })
+    ).toEqual([]);
+  });
+
+  it('does not ask development for any of it', () => {
+    expect(
+      validateEnvironment({
+        variant: 'development',
+        env: { EXPO_PUBLIC_CONTENT_SOURCE: 'mock', EXPO_PUBLIC_USE_FIREBASE_EMULATOR: '1' },
+        requireEasProject: true,
+      })
     ).toEqual([]);
   });
 });
@@ -72,7 +168,12 @@ describe('staging and production', () => {
 
   it('report every problem at once, not one per build', () => {
     const issues = validateEnvironment({ variant: 'staging', env: {} });
-    expect(issues.length).toBe(REQUIRED_FIREBASE_KEYS.length + 1);
+
+    // Six Firebase keys, the environment name, and the content source.
+    expect(issues.length).toBe(REQUIRED_FIREBASE_KEYS.length + 2);
+    expect(issues.map((issue) => issue.key)).toEqual(
+      expect.arrayContaining([...REQUIRED_FIREBASE_KEYS, ENV_NAME_KEY, 'EXPO_PUBLIC_CONTENT_SOURCE'])
+    );
   });
 
   it('treat a placeholder as missing', () => {

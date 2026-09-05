@@ -39,6 +39,16 @@ const REQUIRED_FIREBASE_KEYS = [
  */
 const ENV_NAME_KEY = 'EXPO_PUBLIC_ENV_NAME';
 
+/**
+ * The project this app used to be, before the rebrand.
+ *
+ * There is no live reader data in it and no compatibility to keep, so a staging
+ * or production build pointing at it is a mistake rather than a choice — and it
+ * is the kind of mistake that looks like it works, because the project exists
+ * and answers.
+ */
+const RETIRED_PROJECT_IDS = ['wisdom-wafers'];
+
 const PLACEHOLDERS = ['', 'undefined', 'null', 'changeme', 'todo', 'xxx', 'your-api-key'];
 
 const isPlaceholder = (value) =>
@@ -58,9 +68,18 @@ function validateEnvironment(input) {
   const env = input.env || {};
   const issues = [];
 
-  // Development may have no backend at all — that is the guest-first promise,
-  // and the emulator is the other supported shape.
-  if (variant === 'development' || input.usingEmulator) return issues;
+  /**
+   * Development may have no backend at all — that is the guest-first promise —
+   * and the emulator is the other shape it supports.
+   *
+   * The emulator exemption used to apply to **every** variant: a staging build
+   * that set `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1` skipped this function
+   * entirely, so it needed no Firebase configuration, could name the retired
+   * project, and could serve the seeds in the binary — all without a single
+   * complaint. The flag now exempts development only, and is an error anywhere
+   * else.
+   */
+  if (variant === 'development') return issues;
 
   for (const key of REQUIRED_FIREBASE_KEYS) {
     if (isPlaceholder(env[key])) {
@@ -81,6 +100,63 @@ function validateEnvironment(input) {
       key: 'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
       problem: 'demo-project',
       detail: `A "demo-" project is never backed by a real one; ${variant} cannot use ${projectId}.`,
+    });
+  }
+
+  if (projectId && RETIRED_PROJECT_IDS.some((retired) => projectId.includes(retired))) {
+    issues.push({
+      key: 'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
+      problem: 'retired-project',
+      detail: `${projectId} is the pre-rebrand project. The beta uses a clean dananeh environment; see docs/runbooks/environments.md.`,
+    });
+  }
+
+  /**
+   * A release build that serves the seeds compiled into the binary looks
+   * perfectly healthy: the catalogue is full, the seeds open, nothing errors.
+   * It just never reaches the published content, so nothing anyone publishes
+   * arrives — and that is invisible until someone asks why a correction did
+   * not appear.
+   */
+  const contentSource = env.EXPO_PUBLIC_CONTENT_SOURCE
+    ? String(env.EXPO_PUBLIC_CONTENT_SOURCE).trim()
+    : undefined;
+
+  if (contentSource !== 'remote') {
+    issues.push({
+      key: 'EXPO_PUBLIC_CONTENT_SOURCE',
+      problem: contentSource ? 'not-remote' : 'missing',
+      detail: `${variant} builds serve published content: set EXPO_PUBLIC_CONTENT_SOURCE=remote. It is ${contentSource ?? 'unset'}, which ships the seeds in the binary and never fetches.`,
+    });
+  }
+
+  // Two ways to point a release binary at something that is not the backend.
+  if (String(env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR ?? '').trim() === '1') {
+    issues.push({
+      key: 'EXPO_PUBLIC_USE_FIREBASE_EMULATOR',
+      problem: 'emulator-in-release',
+      detail: `A ${variant} build cannot address the emulator suite. Unset it for this profile.`,
+    });
+  }
+
+  if (env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST) {
+    issues.push({
+      key: 'EXPO_PUBLIC_FIREBASE_EMULATOR_HOST',
+      problem: 'emulator-in-release',
+      detail: `Set for a ${variant} build; it belongs to development only.`,
+    });
+  }
+
+  /**
+   * EAS identity. Without it the build has no project to belong to: channels,
+   * the update runtime and the build record all hang off it, and `eas build`
+   * would create a *new* project rather than failing.
+   */
+  if (input.requireEasProject && isPlaceholder(env.EAS_PROJECT_ID)) {
+    issues.push({
+      key: 'EAS_PROJECT_ID',
+      problem: 'missing',
+      detail: 'Run `eas init` and set EAS_PROJECT_ID, or a build creates a new project instead of joining the existing one.',
     });
   }
 
@@ -127,6 +203,7 @@ function assertEnvironment(input) {
 module.exports = {
   VARIANTS,
   REQUIRED_FIREBASE_KEYS,
+  RETIRED_PROJECT_IDS,
   ENV_NAME_KEY,
   readVariant,
   validateEnvironment,

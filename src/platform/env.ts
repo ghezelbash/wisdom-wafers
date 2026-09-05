@@ -22,12 +22,25 @@ export interface EnvIssue {
 export interface EnvInput {
   variant: Variant;
   env: Record<string, string | undefined>;
-  /** True when the build is deliberately pointed at the emulator suite. */
+  /**
+   * True when the build is deliberately pointed at the emulator suite.
+   *
+   * Only development may be. It used to exempt a build of any variant from
+   * every check below — see `config/env.js`.
+   */
   usingEmulator?: boolean;
+  /**
+   * Whether the EAS project identity is required. It is for anything `eas
+   * build` will run, because without it a build creates a new project rather
+   * than joining the existing one.
+   */
+  requireEasProject?: boolean;
 }
 
 export const VARIANTS = rules.VARIANTS as Variant[];
 export const REQUIRED_FIREBASE_KEYS = rules.REQUIRED_FIREBASE_KEYS as readonly string[];
+/** The project this app used to be. A release build naming it is a mistake. */
+export const RETIRED_PROJECT_IDS = rules.RETIRED_PROJECT_IDS as readonly string[];
 export const ENV_NAME_KEY: string = rules.ENV_NAME_KEY;
 
 export const readVariant = (value: string | undefined): Variant =>

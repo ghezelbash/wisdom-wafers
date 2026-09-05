@@ -14,6 +14,7 @@ import { useCatalog } from '@/context/CatalogContext';
 import { useSession } from '@/context/SessionContext';
 import { usedBytes } from '@/lib/catalog-store';
 import { formatMegabytes } from '@/lib/format-bytes';
+import { appVersion } from '@/platform/app-info';
 import { localizeDigits } from '@/lib/format';
 
 function SettingsRow({
@@ -123,6 +124,13 @@ export default function ProfileScreen() {
             label={t('profile.storage')}
             value={formatMegabytes(usedBytes(snapshot), i18n.language)}
             onPress={() => router.push('/settings/storage')}
+          />
+          {/* Version, build, the two policies, the support address and how to
+              delete an account — none of which a tester could find before. */}
+          <SettingsRow
+            label={t('profile.about')}
+            value={appVersion()}
+            onPress={() => router.push('/settings/about')}
           />
         </View>
 

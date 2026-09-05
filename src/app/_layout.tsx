@@ -165,6 +165,7 @@ function RootNavigator() {
         <Stack.Screen name="settings/notifications" />
         <Stack.Screen name="settings/storage" />
         <Stack.Screen name="settings/delete-account" />
+        <Stack.Screen name="settings/about" />
         <Stack.Screen name="search" />
         <Stack.Screen name="topic/[id]" />
         <Stack.Screen name="path/[id]" />

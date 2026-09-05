@@ -399,6 +399,33 @@ the safe one.*
       `maestro` are absent, so the suite has never been executed. Owner action,
       on a clean emulator and one real device, before beta sign-off
 
+### Staging environment and release disclosures (release goals 11–12, code side)
+
+- [x] **The emulator flag exempted every variant.** A staging build setting
+      `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1` skipped *all* environment validation:
+      no Firebase configuration needed, any project id, any content source
+      (ADR 25)
+- [x] A release build now also fails on a missing or non-remote
+      `EXPO_PUBLIC_CONTENT_SOURCE` (it would serve the seeds in the binary and
+      never fetch), on an emulator host, on the retired `wisdom-wafers` project,
+      and on a missing `EAS_PROJECT_ID` where the build needs one
+- [x] `npm run verify:env` — identity and service health, no secrets. Run against
+      the current `.env` it reports the pre-rebrand project with **both sign-in
+      methods off, Firestore 403, the bucket 404 and no function deployed** —
+      the entire explanation for "I cannot make an account"
+- [x] `./scripts/deploy-staging.sh` and `npm run bootstrap:project`, both
+      idempotent; rules and indexes deploy before functions, and content is
+      published through `publishSeed` rather than written by hand
+- [x] **The disclosures a build cannot ship without**: an About screen with the
+      version *and* build number, environment, privacy policy, terms, support
+      address, what leaves the device, and account deletion described next to
+      the control that does it
+- [x] `docs/release/TEMPLATE.md` — the record a build is signed off with
+- [ ] **Provisioning itself**: create `dananeh-staging`, enable both sign-in
+      methods, deploy, bootstrap, `eas init`, build. Needs credentials —
+      `docs/runbooks/environments.md` has the ordered checklist
+- [ ] Publish the privacy policy and terms pages the About screen links to
+
 ## K · CI/CD and release — done
 
 - [x] GitHub Actions: static checks, unit tests, emulator suite on a JDK, a web
