@@ -2,10 +2,30 @@
 
 The first signed artifact this project has produced.
 
-> **SUPERSEDED — do not install `dd4a1956`.** It opened to the logo screen and
-> stayed there. Root cause and fix below; a replacement build was made from
-> `8eee35f`. This record is kept because the failure is the most useful thing
-> in it.
+> **`dd4a1956` is superseded — do not install it.** It opened to the logo screen
+> and stayed there. The replacement is `c9125fa5`, below. This record keeps the
+> failure because it is the most useful thing in it.
+
+## The artifact to install
+
+| | |
+|---|---|
+| EAS build id | `c9125fa5-5e79-4542-9244-eb16eca01909` |
+| Install / QR | https://expo.dev/accounts/ghezelbash/projects/dananeh/builds/c9125fa5-5e79-4542-9244-eb16eca01909 |
+| Commit | `8eee35fe136cbb9c443308d33a108d2efe4422f1` |
+| Artifact URL | https://expo.dev/artifacts/eas/CH3h2QoL13Z9nrNSHnf-B-SCuE2iUuVix5NswDjp9II.apk |
+| APK SHA-256 | `9bafe6d8005455d0874a9f771106c2b9b1d2eb63a3613f184586190da9c55ac3` |
+| Size | 116.4 MB · versionCode 1 · v1.0.0 |
+| Built at | 2026-09-06 01:37:23 → 01:54:32 (+02:00), 17m 09s |
+| Signed | APK Signing Block present, same EAS-managed keystore |
+
+Verified by unpacking the artifact rather than trusting the build: the runtime
+check now carries `EXPO_PUBLIC_CONTENT_SOURCE`, the splash watchdog is in the
+bundle, the backend is `dananeh-staging`, and the four Yekan Bakh faces are
+present.
+
+**Still unverified on a device.** Whether it starts is the first thing to find
+out, and nobody has yet.
 
 ## The build
 
