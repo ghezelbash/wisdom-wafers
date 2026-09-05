@@ -32,7 +32,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { build } from 'esbuild';
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -56,8 +56,38 @@ if (!confirmed && !dryRun) {
   );
   process.exit(1);
 }
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && !dryRun) {
-  console.error('Set GOOGLE_APPLICATION_CREDENTIALS to a service-account key file.');
+/**
+ * Credentials, without necessarily a key file.
+ *
+ * The Firebase console's "Generate new private key" is disabled in a lot of
+ * projects — a Workspace organisation enforcing
+ * `constraints/iam.disableServiceAccountKeyCreation` is the usual reason, and
+ * it is a *good* policy: a downloaded key is a long-lived secret that cannot be
+ * revoked by signing out.
+ *
+ * Application Default Credentials are the better path anyway. `gcloud auth
+ * application-default login` writes a short-lived, user-scoped credential that
+ * `applicationDefault()` picks up, and there is no file anybody can leak.
+ */
+const adcPath = join(
+  process.env.HOME ?? '',
+  '.config/gcloud/application_default_credentials.json'
+);
+const hasKeyFile = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+const hasAdc = existsSync(adcPath);
+
+if (!hasKeyFile && !hasAdc && !dryRun) {
+  console.error(
+    '\nNo credentials. Either works — the first needs no key file:\n\n' +
+      '  1. Application Default Credentials (recommended)\n' +
+      '       brew install --cask google-cloud-sdk\n' +
+      '       gcloud auth application-default login\n' +
+      `       gcloud auth application-default set-quota-project ${projectId}\n\n` +
+      '  2. A service-account key, if your organisation allows creating one\n' +
+      '       Firebase console -> Project settings -> Service accounts\n' +
+      '       export GOOGLE_APPLICATION_CREDENTIALS=~/.config/dananeh/staging-sa.json\n\n' +
+      'Neither belongs in this repository.\n'
+  );
   process.exit(1);
 }
 
@@ -95,6 +125,10 @@ if (dryRun) {
 const BUCKET = process.env.FIREBASE_STORAGE_BUCKET ?? `${projectId}.firebasestorage.app`;
 
 const app = initializeApp({ credential: applicationDefault(), projectId, storageBucket: BUCKET });
+
+console.log(
+  `  credentials    ${hasKeyFile ? 'service-account key file' : 'gcloud application default'}`
+);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const bucket = getStorage(app).bucket();

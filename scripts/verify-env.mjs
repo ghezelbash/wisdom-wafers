@@ -29,8 +29,8 @@ const root = new URL('..', import.meta.url);
  * they were all present — a false all-clear, which is the one answer a
  * verifier must never give.
  */
-function loadDotEnv(path = '.env') {
-  if (!existsSync(path)) return;
+function loadDotEnv(path) {
+  if (!existsSync(path)) return false;
 
   for (const line of readFileSync(path, 'utf8').split('\n')) {
     const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
@@ -40,11 +40,26 @@ function loadDotEnv(path = '.env') {
     if (process.env[key] !== undefined) continue;   // the shell wins
     process.env[key] = raw.trim().replace(/^["']|["']$/g, '');
   }
+  return true;
 }
 
-loadDotEnv();
-
 const VARIANT = process.env.APP_VARIANT ?? 'development';
+
+/**
+ * One environment file, chosen by variant — never two layered on top of each
+ * other.
+ *
+ * `.env` is the developer's machine and carries
+ * `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1`. Loaded underneath a staging check it
+ * supplied exactly the values the staging values did not mention, and the
+ * verifier reported a staging build that addresses the emulator suite — a true
+ * statement about a build nobody was making.
+ *
+ * So: `.env.staging` if it exists, `.env` otherwise, and `EXPO_NO_DOTENV=1`
+ * passed down so Expo cannot add a third layer of its own.
+ */
+const envFile = existsSync(`.env.${VARIANT}`) ? `.env.${VARIANT}` : '.env';
+const loaded = loadDotEnv(envFile);
 
 let failures = 0;
 const rows = [];
@@ -67,7 +82,10 @@ try {
   config = JSON.parse(
     execFileSync('npx', ['expo', 'config', '--type', 'public', '--json'], {
       encoding: 'utf8',
-      env: { ...process.env, APP_VARIANT: VARIANT },
+      // Everything this check should see is already in `process.env`. Letting
+      // Expo load a file of its own is how a developer's machine gets to
+      // change the answer.
+      env: { ...process.env, APP_VARIANT: VARIANT, EXPO_NO_DOTENV: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
   );
@@ -81,6 +99,7 @@ const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
 const bucket = process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET;
 
 fact('variant', VARIANT);
+fact('configuration', loaded ? envFile : 'the shell only');
 fact('app name', config.name);
 fact('version', config.version);
 fact('android package', config.android?.package ?? '—');
@@ -151,22 +170,69 @@ async function reachable(label, url, accept = (status) => status < 500) {
 if (projectId && !String(projectId).startsWith('demo-')) {
   const key = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
 
-  // Which sign-in methods are on. Public, keyed, and carries no user data.
+  /**
+   * Which sign-in methods are on, established by using them.
+   *
+   * The first version read `signIn.anonymous.enabled` off
+   * `identitytoolkit/v1/projects` — a field that endpoint does not return. It
+   * returns a project number and the authorised domains, so the check reported
+   * "anonymous sign-in is not enabled" for a project where it was, every time.
+   * A verifier that answers a question it cannot answer is worse than one that
+   * declines to.
+   *
+   * So both are exercised. Anonymous sign-in creates a real account, which is
+   * the only way to prove it works — and it is deleted immediately with the
+   * token it just returned, like the synthetic crash in `diagnose`.
+   */
   if (key) {
-    const response = await reachable(
-      'Identity Toolkit',
-      `https://identitytoolkit.googleapis.com/v1/projects?key=${key}`,
-      (status) => status === 200
-    );
+    const identity = (path, body) =>
+      fetch(`https://identitytoolkit.googleapis.com/v1/accounts:${path}?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(async (response) => ({ status: response.status, body: await response.json() }));
 
-    if (response?.ok) {
-      const data = await response.json().catch(() => ({}));
-      const providers = (data.signIn ?? {});
-      say(providers.anonymous?.enabled === true, 'anonymous sign-in is enabled');
-      say(providers.email?.enabled === true, 'email/password sign-in is enabled');
+    try {
+      const anon = await identity('signUp', { returnSecureToken: true });
+      const enabled = Boolean(anon.body?.idToken);
+
+      say(
+        enabled,
+        `anonymous sign-in is enabled${enabled ? '' : ` — ${anon.body?.error?.message ?? anon.status}`}`
+      );
+
+      if (enabled) {
+        // Never left behind: it would be an account nobody created on purpose.
+        const removed = await identity('delete', { idToken: anon.body.idToken });
+        say(removed.status === 200, 'and the account it created was removed again');
+      }
+    } catch (error) {
+      say(false, `anonymous sign-in could not be tested: ${error.message}`);
+    }
+
+    try {
+      /**
+       * An address that cannot exist, with a password that cannot be right.
+       * A disabled provider says `OPERATION_NOT_ALLOWED`; an enabled one says
+       * it does not know that account — which is the answer being looked for,
+       * and it creates nothing.
+       */
+      const probe = await identity('signInWithPassword', {
+        email: `verify-${Date.now()}@dananeh-verify.invalid`,
+        password: 'not-a-real-password',
+        returnSecureToken: true,
+      });
+
+      const reason = String(probe.body?.error?.message ?? '');
+      say(
+        !reason.includes('OPERATION_NOT_ALLOWED') && !reason.includes('PASSWORD_LOGIN_DISABLED'),
+        `email/password sign-in is enabled${reason.includes('OPERATION_NOT_ALLOWED') ? ' — it is not' : ''}`
+      );
+    } catch (error) {
+      say(false, `email/password sign-in could not be tested: ${error.message}`);
     }
   } else {
-    say(false, 'no API key in the environment, so auth providers cannot be read');
+    say(false, 'no API key in the environment, so sign-in cannot be tested');
   }
 
   await reachable(

@@ -53,17 +53,41 @@ Console → https://console.firebase.google.com
    - **Web**, any nickname. Its config is the six values the app reads.
 6. Copy the web config.
 
-## 2 · A service account for the bootstrap
+## 2 · Credentials for the bootstrap — no key file needed
 
-Console → **Project settings → Service accounts → Generate new private key**.
+**"Generate new private key" is often greyed out, and that is a good thing.** A
+Workspace organisation enforcing `constraints/iam.disableServiceAccountKeyCreation`
+is the usual reason: a downloaded key is a long-lived secret that cannot be
+revoked by signing out, and Google now discourages them by default.
 
-Save it **outside the repository** — `~/.config/dananeh/staging-sa.json` is
-fine. It is the one credential here that can do anything; it must never reach
-Git, a CI log or a chat message.
+Use Application Default Credentials instead. They are short-lived, scoped to
+your own account, and there is no file for anyone to leak:
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS=~/.config/dananeh/staging-sa.json
+brew install --cask google-cloud-sdk
+gcloud auth application-default login
+gcloud auth application-default set-quota-project dananeh-staging
 ```
+
+`applicationDefault()` in `firebase-admin` picks these up with no configuration,
+and `scripts/bootstrap-project.mjs` prints which of the two it used.
+
+If your organisation *does* allow key creation and you would rather use one:
+Console → **Project settings → Service accounts → Generate new private key**,
+saved **outside the repository** (`~/.config/dananeh/staging-sa.json`), then
+`export GOOGLE_APPLICATION_CREDENTIALS=…`. Never in Git, a CI log, or a message.
+
+## 2b · `google-services.json` is not used by this app
+
+The console offers it when you register an Android app. Download it if you like,
+but nothing here reads it: the app talks to Firebase through the **JS SDK**,
+which is configured entirely from `EXPO_PUBLIC_FIREBASE_*`. That file belongs to
+the native SDKs — React Native Firebase, FCM, Crashlytics — and arrives with the
+native migration.
+
+It is git-ignored, along with `GoogleService-Info.plist`, because it is
+per-project: a staging file committed once is a file somebody later builds
+production against.
 
 ## 3 · EAS
 
@@ -133,23 +157,30 @@ history, a CI log, or both. Send each person a reset link from
 
 ## 6 · Verify
 
+Put the six web values in **`.env.staging`** — git-ignored, like every `.env.*`
+that is not `.env.example` — and the verifier picks it up by variant:
+
 ```bash
-APP_VARIANT=staging \
-EXPO_PUBLIC_ENV_NAME=staging \
-EXPO_PUBLIC_CONTENT_SOURCE=remote \
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=dananeh-staging \
-EXPO_PUBLIC_FIREBASE_API_KEY=… \
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=… \
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=… \
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=… \
-EXPO_PUBLIC_FIREBASE_APP_ID=… \
-EAS_PROJECT_ID=… \
-npm run verify:env
+APP_VARIANT=staging npm run verify:env
 ```
+
+It reads `.env.staging` when the variant is staging and `.env` otherwise, and
+evaluates the config with `EXPO_NO_DOTENV=1` so the two cannot be layered. That
+matters: `.env` carries `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1`, and underneath a
+staging check it produced "a staging build that addresses the emulator suite" —
+a true statement about a build nobody was making.
 
 **Every line must be a ✓.** It reports identity and service health and prints no
 secret — the API key is fingerprinted — so the output belongs in the release
 record verbatim.
+
+The sign-in checks *use* the providers rather than asking about them: anonymous
+sign-in creates an account and deletes it again with the token it just received,
+and email/password is probed with an address that cannot exist, which
+distinguishes a disabled provider from an unknown account without creating
+anything. An earlier version read a field off `identitytoolkit/v1/projects` that
+the endpoint does not return, and reported both providers as disabled on a
+project where both were on.
 
 Then a real round trip:
 
