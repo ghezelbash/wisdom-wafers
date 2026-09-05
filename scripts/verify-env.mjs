@@ -19,6 +19,9 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const root = new URL('..', import.meta.url);
 
 /**
  * Expo loads `.env` for the config it evaluates; this process does not get it.
@@ -87,6 +90,7 @@ fact('content source', process.env.EXPO_PUBLIC_CONTENT_SOURCE ?? '—');
 fact('firebase project', projectId ?? '—');
 fact('storage bucket', bucket ?? '—');
 fact('EAS project', process.env.EAS_PROJECT_ID ?? '—');
+fact('functions region', process.env.EXPO_PUBLIC_FIREBASE_REGION ?? 'europe-west1');
 fact('api key', fingerprint(process.env.EXPO_PUBLIC_FIREBASE_API_KEY));
 
 // ------------------------------------------------------------- what it is not
@@ -110,6 +114,23 @@ say(
 say(
   (process.env.EXPO_PUBLIC_ENV_NAME ?? VARIANT) === VARIANT,
   `the configuration says ${process.env.EXPO_PUBLIC_ENV_NAME ?? '—'} and the build is ${VARIANT}`
+);
+
+/**
+ * The client's callable region and the functions' own must agree, or every call
+ * is a 404 that reads on a device as "the network is down".
+ */
+const clientRegion = process.env.EXPO_PUBLIC_FIREBASE_REGION ?? 'europe-west1';
+const functionsRegion =
+  readFileSync(fileURLToPath(new URL('functions/src/index.ts', root)), 'utf8').match(
+    /region: '([^']+)'/
+  )?.[1] ?? 'unknown';
+
+say(clientRegion === functionsRegion, `client and functions agree on ${clientRegion}`);
+
+say(
+  VARIANT !== 'staging' || config.android?.package === 'com.dananeh.app.staging',
+  `the package is ${config.android?.package ?? '—'}`
 );
 
 // --------------------------------------------------------------- does it answer

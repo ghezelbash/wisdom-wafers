@@ -1,6 +1,7 @@
 import { getApps } from 'firebase/app';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 
+import { FUNCTIONS_REGION } from '@/platform/region';
 import { usingEmulator } from '@/data/remote/firebase-app';
 import { outcomeFor, ThrottledError, type BatchResult } from '@/lib/outbox-ack';
 import type { OutboxItem, SendOutcome } from '@/lib/outbox';
@@ -105,7 +106,7 @@ function getCallable(name: string) {
   const app = getApps()[0];
   if (!app) throw new Error('firebase-not-initialised');
 
-  const functions = getFunctions(app, 'europe-west1');
+  const functions = getFunctions(app, FUNCTIONS_REGION);
   if (usingEmulator) connectFunctionsEmulator(functions, '127.0.0.1', 5001);
 
   const callable = httpsCallable(functions, name);

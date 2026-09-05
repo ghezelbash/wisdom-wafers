@@ -38,6 +38,7 @@ import { join } from 'node:path';
 
 const projectId = process.env.FIREBASE_PROJECT;
 const confirmed = process.argv.includes('--confirm');
+const dryRun = process.argv.includes('--dry-run');
 
 if (!projectId) {
   console.error('Set FIREBASE_PROJECT to the project to bootstrap.');
@@ -47,13 +48,48 @@ if (projectId.startsWith('demo-')) {
   console.error(`"${projectId}" is an emulator project — use \`npm run seed:emulator\`.`);
   process.exit(1);
 }
-if (!confirmed) {
-  console.error(`This writes to the real project "${projectId}". Re-run with --confirm.`);
+if (!confirmed && !dryRun) {
+  console.error(
+    `This writes to the real project "${projectId}".\n` +
+      '  --dry-run   print exactly what it would change, and write nothing\n' +
+      '  --confirm   do it'
+  );
   process.exit(1);
 }
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && !dryRun) {
   console.error('Set GOOGLE_APPLICATION_CREDENTIALS to a service-account key file.');
   process.exit(1);
+}
+
+/**
+ * What it would change, before it changes anything.
+ *
+ * This publishes immutable revisions and sets custom claims — neither is a
+ * mutation an owner should first see in a progress log. The dry run needs no
+ * credentials, because it reads only the repository.
+ */
+if (dryRun) {
+  const { readFileSync } = await import('node:fs');
+  const seeds = readFileSync(new URL('../src/data/content-repository.ts', import.meta.url), 'utf8');
+  const ids = [...seeds.matchAll(/^\s*([a-zA-Z]+Seed),?$/gm)].map((match) => match[1]);
+
+  console.log(`\nDry run against "${projectId}" — nothing will be written.\n`);
+  console.log('  Staff accounts (created if absent, claims set every time):');
+  for (const person of [
+    ['editor', process.env.STAGING_EDITOR_EMAIL],
+    ['reviewer', process.env.STAGING_REVIEWER_EMAIL],
+    ['admin', process.env.STAGING_ADMIN_EMAIL],
+  ]) {
+    console.log(`    ${person[0].padEnd(9)} ${person[1] ?? '— not set, would be skipped'}`);
+  }
+  console.log('\n  appConfig/public (merged, never replaced):');
+  console.log(`    minimumVersion ${process.env.MINIMUM_VERSION ?? '1.0.0'}, maintenance false`);
+  console.log('\n  Launch catalogue, published through publishSeed:');
+  console.log(`    ${ids.length ? ids.join(', ') : 'LAUNCH_SEEDS'}`);
+  console.log('    A revision already published is immutable and is left alone.');
+  console.log('\n  Topics and paths written as published catalogue metadata.');
+  console.log('\nNo credential is read in a dry run. Re-run with --confirm to apply.\n');
+  process.exit(0);
 }
 
 const BUCKET = process.env.FIREBASE_STORAGE_BUCKET ?? `${projectId}.firebasestorage.app`;

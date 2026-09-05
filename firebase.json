@@ -31,7 +31,7 @@
       "codebase": "default",
       "runtime": "nodejs22",
       "predeploy": [
-        "npm --workspace @dananeh/functions run build"
+        "npm run build:functions"
       ],
       "ignore": [
         "node_modules",
