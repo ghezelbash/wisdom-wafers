@@ -13,7 +13,8 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { loadProgress, saveProgress, type SeedProgress } from '@/lib/progress-store';
 import { useIdentity } from '@/context/AuthContext';
 import { recordCompletion, recordContentReport, recordPosition } from '@/domain/progress/events';
-import { pushSaved, savedEntry } from '@/domain/account/push';
+import { savedEntry } from '@/domain/account/push';
+import { queueSaved } from '@/domain/account/intents';
 import { setAnalyticsContext, track } from '@/platform/analytics';
 import { ASSESSED_TYPES, isKnownBlock, type AnyBlock, type SeedBlock } from '@/models/seed';
 
@@ -280,10 +281,11 @@ export default function SeedPlayerScreen() {
         onToggleSave={() => {
           const saved = !progress.saved;
           persist({ ...progress, saved });
-          // Local first; the account hears about it if there is one.
-          void pushSaved(
+          // Local first, then queued — durably, so an un-save made offline
+          // still reaches the reader's other device.
+          void queueSaved(
             { uid: identity?.uid ?? null, isAccount: identity?.source === 'account' },
-            [savedEntry(seed.id, saved)]
+            savedEntry(seed.id, saved)
           );
         }}
         onMore={() => setSheet('sources')}

@@ -34,6 +34,43 @@ service cloud.firestore {
     }
 
     /**
+     * The reminder settings, validated by value and not only by key name.
+     *
+     * The allow-list said which keys could appear and nothing about what they
+     * could contain: `pace` could be a map, `enabled` could be a string, and
+     * `reminderTime` could be `"99:99"` or a megabyte of text. The scheduler
+     * reads all three, so a document like that is a reminder that never fires
+     * — written by the app itself, refused by nothing.
+     *
+     * This mirrors `NotificationPreferencesSchema` in
+     * `packages/content-schema/src/sync.ts`. Rules cannot import it, so the two
+     * are kept together by `firestore.test.ts`, which walks the same shapes.
+     *
+     * Firestore merges a dotted update into the existing map before the rule
+     * sees it, so validating the whole map here also covers
+     * `notificationPreferences.pace` written on its own.
+     */
+    function validReminderTime(value) {
+      return value == null
+        || (value is string
+            && value.matches('^[0-9]{2}:[0-9]{2}$')
+            && int(value[0:2]) < 24
+            && int(value[3:5]) < 60);
+    }
+
+    function validNotificationPreferences(prefs) {
+      return prefs is map
+        && prefs.keys().hasOnly(['pace', 'timeOfDay', 'reminderTime', 'enabled'])
+        && prefs.keys().hasAll(['enabled'])
+        && prefs.enabled is bool
+        && (!('pace' in prefs) || prefs.pace == null || prefs.pace in ['one', 'two', 'whenever'])
+        && (!('timeOfDay' in prefs)
+            || prefs.timeOfDay == null
+            || prefs.timeOfDay in ['morning', 'evening', 'night'])
+        && (!('reminderTime' in prefs) || validReminderTime(prefs.reminderTime));
+    }
+
+    /**
      * A profile a client may write.
      *
      * The key allow-list alone left every *value* unconstrained: a locale could
@@ -48,9 +85,7 @@ service cloud.firestore {
         && (!('interests' in data)
             || (data.interests is list && data.interests.size() <= 20))
         && (!('notificationPreferences' in data)
-            || (data.notificationPreferences is map
-                && data.notificationPreferences.keys().hasOnly(
-                     ['pace', 'timeOfDay', 'reminderTime', 'enabled'])))
+            || validNotificationPreferences(data.notificationPreferences))
         && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 32));
     }
 

@@ -50,13 +50,29 @@ export const firestoreConfigFetcher: ConfigFetcher = async () => {
  */
 export const CONFIG_TIMEOUT_MS = 4000;
 
-const withTimeout = <T,>(work: Promise<T>, ms: number): Promise<T> =>
-  Promise.race([
-    work,
-    new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error('config-timeout')), ms)
-    ),
-  ]);
+/**
+ * A race that cleans up after itself.
+ *
+ * `Promise.race` settles on the first result and abandons the rest — but the
+ * `setTimeout` behind the loser is still armed, and in Node it holds the event
+ * loop open until it fires. Eight of them survived every unit run, which Jest
+ * reported as eight open `Timeout` handles and a forced exit. On a device the
+ * same leak is a timer per refresh, and the app refreshes on every foreground.
+ *
+ * So the timer is cleared on every path out: the work resolving, the work
+ * rejecting, and the timeout firing.
+ */
+export function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const expiry = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error('config-timeout')), ms);
+  });
+
+  return Promise.race([work, expiry]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
+}
 
 export async function refreshRemoteConfig(
   appVersion: string,

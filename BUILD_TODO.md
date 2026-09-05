@@ -399,6 +399,110 @@ the safe one.*
       `maestro` are absent, so the suite has never been executed. Owner action,
       on a clean emulator and one real device, before beta sign-off
 
+### Security and quality defects closed (gap-closure goal 13)
+
+- [x] **The deletion receipt was not a capability.** It came from `Math.random`
+      — not a CSPRNG — as 32 hex characters (128 predictable bits), was stored
+      **in plaintext** beside the job, and the comments called it a 256-bit
+      secret. Now: 256 bits from `crypto.randomBytes`, base64url (43 chars),
+      and only a versioned SHA-256 digest is stored. Compared with
+      `timingSafeEqual`, every digest checked rather than returning on the first
+      match, and the callable boundary accepts the exact shape instead of
+      `length < 16`
+- [x] A job carries at most three live digests, so `begin` called twice can
+      neither return the first receipt (nothing stores it) nor invalidate it
+- [x] Threat model — theft, guessing, replay across uids, timing, logging,
+      response loss — written down in `docs/runbooks/account-deletion.md`
+- [x] **The config timeout leaked a timer.** `Promise.race` settles on the first
+      result and abandons the loser, but the `setTimeout` stayed armed: eight
+      open `Timeout` handles per unit run and a forced exit, and on a device one
+      timer per foreground. Cleared on every path, covered with fake timers
+- [x] **`notificationPreferences` was validated by key name only** — `pace`
+      could be a map, `enabled` a string, `reminderTime` `"99:99"`. Full value
+      validation mirroring `NotificationPreferencesSchema`, including the 24-hour
+      range, and a dotted single-field update cannot slip past it. Rules tests
+      48 → 77
+- [x] `docs/internal-beta.md` no longer claims both that preference sync is
+      one-way and that it does not exist, and the export row matches the
+      implementation, which pulls the account half as well
+
+### Staging, the artifact and device QA (gap-closure goals 16–18)
+
+- [x] Region agreement: `europe-west1` was at four call sites; one constant now,
+      and `verify:env` fails if the client and the functions disagree
+- [x] `firebase.json` predeploy runs `npm run build:functions`, so the schema
+      package is compiled and the Node check runs before a deploy
+- [x] `--dry-run` on both the deploy and the bootstrap: what would change,
+      written by nothing, needing no credential
+- [x] `docs/runbooks/staging-provisioning.md` — the ordered owner checklist, with
+      a verification command and a pass condition per step, opening with the
+      real `verify:env` output against the retired project
+- [x] App Check settled for the beta: register Play Integrity, measure, do not
+      enforce — with the reason it is currently *impossible* (the JS SDK attests
+      with reCAPTCHA; Android has no DOM), the rollout order and the rollback
+- [x] `check:config` asserts `internal-apk` is an APK on staging identity and
+      the preview channel, and that no release profile sets the emulator flag
+- [x] `npm run check:legal` reads the URLs out of the About screen and fails
+      unless each resolves over HTTPS and serves HTML. In a `release-readiness`
+      workflow, not the PR gate — a test that reaches the network fails on a
+      train
+- [x] APKs, AABs and keystores ignored; the release template gained the signing
+      rows
+- [ ] **Provisioning `dananeh-staging`** — console and credentials
+- [ ] **The signed APK** — an EAS account and Android signing
+- [ ] **Device QA and the Go/No-Go** — an Android device, and the Maestro suite
+      has still never been executed
+- [ ] **Publish the privacy and terms pages.** `npm run check:legal` fails today:
+      neither URL resolves
+
+### The release-candidate gate, frozen (gap-closure goal 15)
+
+- [x] **Local builds were on the wrong Node.** Cloud Functions runs Node 22 and
+      everything here ran on Node 26 — a silent substitution. `.nvmrc`,
+      `engines`, and `npm run check:node` as the first step of
+      `build:functions`, so it is an error rather than a habit
+- [x] Every gate re-run under Node 22 after a clean `npm ci`
+- [x] `firebase-functions` pinned to **6.6.0** exactly (latest is 7.3.2, a
+      major) with `firebase-admin` at 13.6.0. A major SDK upgrade days before
+      the first signed artifact is what the goal warns against; the reasoning
+      and the upgrade procedure are in
+      `docs/followups/2026-09-05-firebase-functions-7.md`, dated for review
+- [x] **`check:android` copied the developer's `.env` into a staging prebuild**,
+      so `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1` reached it and the goal-11
+      environment guard refused the build — with a stack trace rather than an
+      answer. CI never saw it: there is no `.env` there. The workspace is now
+      isolated and `EXPO_NO_DOTENV=1`
+- [x] CI runs `--detectOpenHandles` on the unit job and uploads Gradle reports,
+      the generated manifest and coverage on failure. No secrets, 7-day
+      retention
+- [x] No required job uses `continue-on-error`, `forceExit`, `|| true` or a
+      skipped suite
+
+### Two-device sync, finished (gap-closure goal 14)
+
+- [x] **The restore ignored the account's preferences.** `pull` returned them
+      and `mergePreferences` knew the policy, and nothing called either — so a
+      second phone restored the garden and then showed the default pace, no
+      interests and no reminder (ADR 26)
+- [x] **A preference change could be lost silently.** It was a direct Firestore
+      write with the failure logged: a pace chosen on a train was never sent, and
+      nothing afterwards could tell. Backgrounding the app right after a change
+      lost it outright, because the debounce timer was cleared on unmount
+- [x] Preferences and bookmarks now travel in the **one** outbox — same retry,
+      backoff, dead-letter and acknowledgement rules, surviving a force-stop, and
+      `reassignQueuedUid` moves them when a guest links an account
+- [x] Queued by upsert on `prefs:{uid}` / `saved:{uid}:{seedId}`, because they
+      are state and not events: thirty slider drags leave one row
+- [x] The debounce is flushed on background and unmount, and the queue makes
+      losing it harmless anyway
+- [x] `preferencesUpdatedAt` on the session, so the documented whole-object
+      last-write-wins has a timestamp to compare
+- [x] `restoreAccount` reports which side won (`remote` / `local` / `none`), and
+      a test would fail if the remote copy were ignored
+- [x] **The smoke script hung** when the emulators were absent: the Admin SDK
+      talks gRPC, so a bounded `fetch` wrapper never reached it. Reachability is
+      now a hard stop with the command to run
+
 ### Staging environment and release disclosures (release goals 11–12, code side)
 
 - [x] **The emulator flag exempted every variant.** A staging build setting

@@ -15,6 +15,7 @@
  * sign-in "does not work".
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const COMPLETE = {
   EXPO_PUBLIC_FIREBASE_API_KEY: 'AIzaSyCiCheckPlaceholderValueNotARealKey',
@@ -145,6 +146,44 @@ mustFail('a release build pointed at the pre-rebrand project', {
   EXPO_PUBLIC_FIREBASE_PROJECT_ID: 'wisdom-wafers',
   APP_VARIANT: 'staging',
   EXPO_PUBLIC_ENV_NAME: 'staging',
+});
+
+console.log('\nThe profile the release is built from');
+
+/**
+ * `internal-apk` is what produces the artifact testers install. A profile that
+ * quietly built an AAB, or resolved to development, would produce something
+ * that looks like a release and is not one.
+ */
+check('internal-apk builds a staging APK on the preview channel', () => {
+  const eas = JSON.parse(readFileSync(new URL('../eas.json', import.meta.url), 'utf8'));
+  const profile = eas.build['internal-apk'];
+
+  const wrong = [];
+  if (profile?.android?.buildType !== 'apk') wrong.push(`buildType ${profile?.android?.buildType}`);
+  if (profile?.env?.APP_VARIANT !== 'staging') wrong.push(`APP_VARIANT ${profile?.env?.APP_VARIANT}`);
+  if (profile?.env?.EXPO_PUBLIC_ENV_NAME !== 'staging')
+    wrong.push(`EXPO_PUBLIC_ENV_NAME ${profile?.env?.EXPO_PUBLIC_ENV_NAME}`);
+  if (profile?.channel !== 'preview') wrong.push(`channel ${profile?.channel}`);
+  if (profile?.distribution !== 'internal') wrong.push(`distribution ${profile?.distribution}`);
+
+  // Inherited from `base`, and the reason a release build fetches published
+  // content instead of serving the seeds compiled into it.
+  const source = profile?.env?.EXPO_PUBLIC_CONTENT_SOURCE ?? eas.build.base?.env?.EXPO_PUBLIC_CONTENT_SOURCE;
+  if (source !== 'remote') wrong.push(`content source ${source}`);
+
+  if (wrong.length) throw new Error(wrong.join(', '));
+});
+
+check('no release profile addresses the emulator', () => {
+  const eas = JSON.parse(readFileSync(new URL('../eas.json', import.meta.url), 'utf8'));
+
+  for (const [name, profile] of Object.entries(eas.build)) {
+    if (name === 'development' || name === 'base') continue;
+    if (profile.env?.EXPO_PUBLIC_USE_FIREBASE_EMULATOR) {
+      throw new Error(`${name} sets EXPO_PUBLIC_USE_FIREBASE_EMULATOR`);
+    }
+  }
 });
 
 console.log('\nDevelopment still works with nothing configured');

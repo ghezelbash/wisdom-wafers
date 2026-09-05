@@ -108,6 +108,25 @@ There is no reader data in that project and no compatibility to keep, so the
 beta uses a clean `dananeh-staging`. A release build naming the old id now
 **fails to build** (`retired-project`), and `verify:env` refuses it.
 
+## Node
+
+Cloud Functions runs **Node 22** (`functions/package.json`), and everything
+local was being built and tested on Node 26 — a silent substitution, and the
+kind only discovered when something that works on the newer runtime is missing
+from the older one. `.nvmrc` names it, `engines` records it, and
+`npm run check:node` fails the build rather than letting it happen quietly.
+`npm run build:functions` runs that check first.
+
+```bash
+nvm use                                            # or:
+export PATH="$(brew --prefix node@22)/bin:$PATH"
+```
+
+`firebase-functions` and `firebase-admin` are pinned to exact versions, not
+caret ranges, so a release candidate resolves to the same tree tomorrow. The
+emulator's "outdated firebase-functions" warning is a deliberate hold — see
+`docs/followups/2026-09-05-firebase-functions-7.md`.
+
 ## The three commands
 
 Everything in this section is one of these, and each is idempotent:

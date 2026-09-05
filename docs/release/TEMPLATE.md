@@ -32,7 +32,9 @@
 | Event coverage | `npm run check:events` | |
 | Flow validity | `npm run check:e2e` | |
 | Native manifest | `npm run check:android` | |
+| Node matches the Functions runtime | `npm run check:node` | |
 | Environment | `APP_VARIANT=staging npm run verify:env` | |
+| Legal and support endpoints | `npm run check:legal` | |
 
 Paste the `verify:env` output here — it is identity only, no secrets.
 
@@ -50,6 +52,17 @@ Paste the `verify:env` output here — it is identity only, no secrets.
 | End-to-end suite | `npm run smoke:android` | |
 | Backend round trip | `npm run diagnose` against staging | |
 | Internal-beta checklist | `docs/internal-beta.md` | |
+
+## Signing
+
+| | |
+|---|---|
+| Keystore | EAS-managed / owner-supplied |
+| SHA-1 fingerprint | `<eas credentials>` |
+| Backed up | where, and by whom — **never** in this repository |
+
+The same key must sign every build of `com.dananeh.app.staging`: a device
+refuses an update signed by a different one.
 
 ## Devices
 

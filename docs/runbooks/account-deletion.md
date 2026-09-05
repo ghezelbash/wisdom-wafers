@@ -76,16 +76,55 @@ and it is replaced with `deleted`.
   out and back in.
 - **Every step idempotent**, skipping what already finished.
 - **Nothing destroyed before the receipt exists.**
-- **A wrong receipt does nothing** and reveals nothing.
+- **A wrong receipt does nothing** and reveals nothing — wrong, malformed,
+  truncated, re-encoded, or valid-but-for-another-uid all get the same answer as
+  "no such job".
+- **The receipt is never stored**, only a digest of it.
 - **The device is wiped only on a terminal `done`.** A partial failure leaves
   the reader signed in and told.
 - **A fresh anonymous identity afterwards**, falling back to a device-local one
   if sign-in fails — likely right after a deletion, when the request that just
   succeeded may have been the last to get through.
 
-`deletionJobs` is unreadable by clients, including admins: it holds the receipt,
-which is a capability. Status comes from `myAccountDeletionStatus`, which
-requires the receipt and answers with a state and nothing else.
+`deletionJobs` is unreadable by clients, including admins. Status comes from
+`myAccountDeletionStatus`, which requires the receipt and answers with a state
+and nothing else.
+
+## The receipt
+
+**256 bits from `crypto.randomBytes`, base64url — exactly 43 characters.** The
+callable boundary accepts that shape and nothing else, so the rate limit guards
+a fixed-length secret rather than whatever a caller felt like sending.
+
+**Only a digest is stored.** `deletionJobs/{uid}` holds
+`receiptDigests: [sha256-hex]` and `receiptVersion`, never the bearer value. A
+backup, an export or an operator with console access therefore holds something
+that cannot be replayed.
+
+A job carries **at most three** live digests. `begin` called twice cannot return
+the first receipt — nothing stores it — and must not invalidate it either,
+because a device already holding one is the case the receipt exists for. So it
+issues another and keeps the earlier digests, oldest dropped first.
+
+### What this replaced, and why it mattered
+
+The first version minted the receipt from `Math.random` — not a CSPRNG — as 32
+hex characters, which is 128 bits of *predictable* output, and stored the bearer
+secret in plaintext beside the job. The comments described it as a 256-bit
+secret. Every part of that sentence was wrong.
+
+### Threat model
+
+| threat | what stops it |
+|---|---|
+| **Guessing.** An attacker tries receipts against a uid | 256 bits of CSPRNG output, and `resumeDeleteMyAccount` is rate-limited to 10 calls a minute per claimed uid, `myAccountDeletionStatus` to 20 |
+| **Theft from the database.** A backup, an export, a console reader | Only a SHA-256 digest is at rest. Nothing there can be presented as a receipt |
+| **Theft from the device.** Someone with the unlocked phone | The receipt can do exactly two things, both idempotent, both scoped to one already-requested deletion of that same device's account. It cannot start a deletion — `begin` needs a recent sign-in — and it reveals nothing but how far that job got |
+| **Replay against another account.** A valid receipt presented with a different uid | The digest is compared against *that uid's* job. A receipt for uid A matches nothing under uid B, and the answer is the same `null` as "no such job" |
+| **Malformed or truncated input** | Rejected at the callable boundary by exact shape, before any lookup |
+| **Timing.** Learning about a digest from how long a comparison took | `timingSafeEqual` on fixed-length buffers, and every stored digest is compared rather than returning on the first match |
+| **Logging.** A receipt in a log line, a crash report or an error | Nothing in `functions/src/account/delete.ts` or `index.ts` logs a receipt or a request payload. The client's PII guard refuses a parameter named `token`, and a crash message is scrubbed for token-shaped runs |
+| **Response loss after Auth deletion** | Unchanged, and the reason the capability exists: the device resumes or asks with the receipt it already holds |
 
 ## If a reader says deletion did not work
 

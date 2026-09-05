@@ -30,6 +30,11 @@ export const OWNED_KEYS = [
   CATALOG_KEY,
   'dananeh.outbox.v1',
   OUTBOX_KEY,
+  // The deletion receipt is the device's own bearer capability for one job.
+  // The flow clears it on a terminal state; a wipe must not leave one behind
+  // either, or a reinstall-less reset carries a secret for an account that is
+  // already gone.
+  'dananeh.deletionReceipt.v1',
   // The telemetry install id describes this installation's data, so it must
   // not outlive it: a reader who deletes their account and starts again is a
   // new installation, not the same one continuing.

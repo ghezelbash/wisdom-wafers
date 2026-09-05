@@ -16,6 +16,7 @@ import {
   listProgress,
   listSeeds,
   deferItem,
+  upsert,
   markFailed,
   markSent,
   open,
@@ -289,6 +290,40 @@ describe('the outbox', () => {
     expect(await dueItems(driver, now)).toHaveLength(0);
     const later = new Date(now.getTime() + 60_000);
     expect(await dueItems(driver, later)).toHaveLength(1);
+  });
+
+  /**
+   * Preferences and bookmarks are **state**, not events: only the last value is
+   * worth sending, and queueing every intermediate one is how a queue grows
+   * without bound.
+   */
+  it('replaces a queued intent rather than appending another', async () => {
+    const now = new Date('2026-09-03T10:00:00.000Z');
+
+    for (const pace of ['one', 'two', 'whenever']) {
+      await upsert(driver, { eventId: 'prefs:reader-1', kind: 'account-preferences', payload: { pace } }, now);
+    }
+
+    const due = await dueItems(driver, now);
+    expect(due).toHaveLength(1);
+    expect(due[0].payload).toEqual({ pace: 'whenever' });
+  });
+
+  /** A new intent is not a retry of the old one, and revives a dead letter. */
+  it('resets the retry budget and revives a dead intent', async () => {
+    const now = new Date('2026-09-03T10:00:00.000Z');
+    await upsert(driver, { eventId: 'prefs:reader-1', kind: 'account-preferences', payload: { pace: 'one' } }, now);
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      await markFailed(driver, 'prefs:reader-1', 'offline', now, () => 1);
+    }
+    expect(await deadLetters(driver)).toHaveLength(1);
+
+    await upsert(driver, { eventId: 'prefs:reader-1', kind: 'account-preferences', payload: { pace: 'two' } }, now);
+
+    const [due] = await dueItems(driver, now);
+    expect(due).toMatchObject({ attempts: 0, payload: { pace: 'two' } });
+    expect(await deadLetters(driver)).toHaveLength(0);
   });
 
   /**

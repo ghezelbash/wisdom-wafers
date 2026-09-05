@@ -60,6 +60,22 @@ export async function enqueue(
   await (await store()).add({ id, kind, payload });
 }
 
+/**
+ * Queues state, replacing whatever was queued under the same id.
+ *
+ * `enqueue` is for events — facts that happened, each of which has to arrive.
+ * This is for the reader's current answer to a question: a pace, or whether one
+ * seed is bookmarked. Only the last one is worth sending, and queueing every
+ * intermediate value is how a queue grows without bound.
+ */
+export async function enqueueState(
+  kind: OutboxKind,
+  id: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  await (await store()).put({ id, kind, payload });
+}
+
 export async function listOutbox(): Promise<OutboxItem[]> {
   return (await store()).all();
 }

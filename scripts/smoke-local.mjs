@@ -38,6 +38,35 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST = AUTH;
 
 const READER = { email: 'reader@example.com', password: 'dananeh-emulator' };
 
+/**
+ * Every request here is bounded.
+ *
+ * An emulator that is not running does not refuse a connection quickly in every
+ * case — a half-open socket, a port held by something else, a Functions
+ * emulator still compiling — and an unbounded `fetch` then hangs the script
+ * with no output at all. A bounded failure that names the host is the useful
+ * answer; waiting forever is not one.
+ */
+const REQUEST_TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_MS ?? 15000);
+
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (input, init = {}) => {
+  if (init.signal) return originalFetch(input, init);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await originalFetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`no answer from ${String(input).slice(0, 80)} within ${REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 let failures = 0;
 const results = [];
 
@@ -97,6 +126,25 @@ await step('Storage emulator is reachable', () =>
 await step('Functions emulator is reachable', () =>
   reachable('functions', `http://${FUNCTIONS}/${PROJECT}/${REGION}/ingestProgress`)
 );
+
+/**
+ * Stop here if nothing is listening.
+ *
+ * The Admin SDK talks gRPC, not `fetch`, so the bounded-request wrapper above
+ * does not reach it: the first `db.collection(...).get()` against a dead
+ * emulator hangs the script with no output at all. Every check below needs the
+ * stack, so an unreachable stack is the whole answer — printed, with what to
+ * run, rather than waited on.
+ */
+if (failures) {
+  console.log(results.join('\n'));
+  console.error(
+    `\n${failures} emulator(s) unreachable. Start them first:\n` +
+      '  npm run emulators        # full stack, including Functions\n' +
+      '  npm run seed:emulator    # accounts, config and the launch catalogue\n'
+  );
+  process.exit(1);
+}
 
 // -------------------------------------------------------------------- auth
 

@@ -1,0 +1,26 @@
+name: Release readiness
+
+# Not part of the pull-request gate, on purpose.
+#
+# These checks reach the network — the privacy and terms pages the app links to
+# have to actually resolve — and a test that reaches the network is one that
+# fails on a train. A green build must not depend on somebody else's DNS.
+#
+# Run it deliberately, before an artifact goes to anyone outside the team.
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  endpoints:
+    name: Legal and support endpoints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # A link to a 404 looks answered, which is worse than no link. Play asks
+      # for the policy and the terms; a tester who hits a bug needs the address.
+      - run: node scripts/check-legal.mjs

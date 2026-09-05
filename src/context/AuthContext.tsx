@@ -318,7 +318,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             saved: !!item.saved,
             updatedAt: item.updatedAt,
           })),
-        pushSaved: (entries) => sync.pushSaved(uid, entries),
+        // Queued, not written: a restore that runs on a bad connection must not
+        // lose the device's own newer state.
+        pushSaved: async (entries) => {
+          const { queueSaved } = await import('@/domain/account/intents');
+          for (const entry of entries) {
+            await queueSaved({ uid, isAccount: true }, entry);
+          }
+        },
+
+        /**
+         * The half that did not exist.
+         *
+         * `pull` returned the account's settings and `mergePreferences` knew
+         * what to do with them, and nothing called either — so signing in on a
+         * second phone restored the garden and then showed the default pace and
+         * no interests.
+         */
+        readLocalPreferences: async () => {
+          const [{ readSessionForSync }, { preferencesFromSession }, i18n] = await Promise.all([
+            import('@/context/SessionContext'),
+            import('@/domain/account/preferences'),
+            import('@/i18n'),
+          ]);
+
+          const current = readSessionForSync();
+          if (!current || !current.onboarded) return null;
+
+          return preferencesFromSession(
+            current,
+            i18n.default.language === 'en' ? 'en' : 'fa-IR',
+            Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+            current.preferencesUpdatedAt ?? new Date(0).toISOString()
+          );
+        },
+        applyPreferences: async (preferences) => {
+          const [{ applyAccountPreferences, readSessionForSync }, { sessionFromPreferences }] =
+            await Promise.all([
+              import('@/context/SessionContext'),
+              import('@/domain/account/preferences'),
+            ]);
+
+          const current = readSessionForSync();
+          if (!current) return;
+
+          applyAccountPreferences({
+            ...sessionFromPreferences(preferences, current),
+            // Kept so the next restore can tell which side is newer without
+            // asking the network again.
+            preferencesUpdatedAt: preferences.updatedAt,
+          });
+        },
+        pushPreferences: async (preferences) => {
+          const { queuePreferences } = await import('@/domain/account/intents');
+          await queuePreferences({ uid, isAccount: true }, preferences);
+        },
         writeLocal: async (merged) => {
           for (const item of merged) {
             const existing = await progressStore.loadProgress(item.seedId, item.revision);

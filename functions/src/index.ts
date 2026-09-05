@@ -7,6 +7,7 @@ import {
   beginAccountDeletion,
   deleteAccount,
   DeletionError,
+  isWellFormedReceipt,
 } from './account/delete';
 import { ingestProgressEvents } from './progress/ingest';
 import { submitReports } from './reports/submit';
@@ -244,7 +245,7 @@ export const deleteMyAccount = onCall(async (request) => {
     return await deleteAccount(deps(), {
       uid: request.auth.uid,
       authTimeSeconds: request.auth.token?.auth_time as number | undefined,
-      receipt: typeof request.data?.receipt === 'string' ? request.data.receipt : undefined,
+      receipt: isWellFormedReceipt(request.data?.receipt) ? request.data.receipt : undefined,
     });
   } catch (error) {
     if (error instanceof DeletionError) {
@@ -293,7 +294,12 @@ export const beginDeleteMyAccount = onCall(async (request) => {
 export const resumeDeleteMyAccount = onCall(async (request) => {
   const uid = request.data?.uid;
   const receipt = request.data?.receipt;
-  if (typeof uid !== 'string' || typeof receipt !== 'string' || receipt.length < 16) {
+
+  // Exactly the shape `mintReceipt` produces — 43 base64url characters — not
+  // "at least sixteen of something". A permissive check here is the difference
+  // between a rate limit that guards 256 bits and one that guards whatever the
+  // caller felt like sending.
+  if (typeof uid !== 'string' || !uid.length || !isWellFormedReceipt(receipt)) {
     throw new HttpsError('invalid-argument', 'receipt-required');
   }
 
@@ -320,7 +326,7 @@ export const resumeDeleteMyAccount = onCall(async (request) => {
 export const myAccountDeletionStatus = onCall(async (request) => {
   const uid = request.data?.uid;
   const receipt = request.data?.receipt;
-  if (typeof uid !== 'string' || typeof receipt !== 'string') {
+  if (typeof uid !== 'string' || !uid.length || !isWellFormedReceipt(receipt)) {
     throw new HttpsError('invalid-argument', 'receipt-required');
   }
 

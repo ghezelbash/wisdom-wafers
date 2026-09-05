@@ -52,6 +52,35 @@ const callableUrl = (name) =>
     ? `http://${FUNCTIONS_HOST}/${PROJECT}/${REGION}/${name}`
     : `https://${REGION}-${PROJECT}.cloudfunctions.net/${name}`;
 
+/**
+ * Every request here is bounded.
+ *
+ * An emulator that is not running does not refuse a connection quickly in every
+ * case — a half-open socket, a port held by something else, a Functions
+ * emulator still compiling — and an unbounded `fetch` then hangs the script
+ * with no output at all. A bounded failure that names the host is the useful
+ * answer; waiting forever is not one.
+ */
+const REQUEST_TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_MS ?? 15000);
+
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (input, init = {}) => {
+  if (init.signal) return originalFetch(input, init);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await originalFetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`no answer from ${String(input).slice(0, 80)} within ${REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 let failures = 0;
 const results = [];
 
@@ -70,6 +99,22 @@ const assert = (condition, message) => {
 };
 
 const db = getFirestore(initializeApp({ projectId: PROJECT }, 'diagnose'));
+
+/**
+ * The Admin SDK talks gRPC, not `fetch`, so the bounded-request wrapper above
+ * does not reach it. A read against a backend that is not there would otherwise
+ * hang with no output; this makes it an answer.
+ */
+const bounded = (work, what) =>
+  Promise.race([
+    work,
+    new Promise((_resolve, reject) =>
+      setTimeout(
+        () => reject(new Error(`no answer from ${what} within ${REQUEST_TIMEOUT_MS}ms`)),
+        REQUEST_TIMEOUT_MS
+      ).unref?.()
+    ),
+  ]);
 
 console.log(`\nDananeh diagnostics · project ${PROJECT} · ${EMULATED ? 'emulator' : 'live'}\n`);
 
@@ -129,7 +174,10 @@ await step('a callable still refuses what it should', async () => {
 // ------------------------------------------------------- 3 · content download
 
 await step('published content is downloadable', async () => {
-  const snapshot = await db.collection('seeds').where('status', '==', 'published').limit(1).get();
+  const snapshot = await bounded(
+    db.collection('seeds').where('status', '==', 'published').limit(1).get(),
+    'Firestore'
+  );
   assert(!snapshot.empty, 'no published seeds');
 
   const seed = snapshot.docs[0].data();
@@ -171,7 +219,7 @@ await step('a synthetic crash reaches the operator', async () => {
   assert(answer.ok, () => `recordTelemetryBatch answered ${answer.status}`);
   assert(answer.payload?.result?.applied === 1, () => JSON.stringify(answer.payload?.result));
 
-  const stored = await db.doc(`crashReports/${SYNTHETIC}`).get();
+  const stored = await bounded(db.doc(`crashReports/${SYNTHETIC}`).get(), 'Firestore');
   assert(stored.exists, 'the crash was accepted but never written');
 
   const report = stored.data();

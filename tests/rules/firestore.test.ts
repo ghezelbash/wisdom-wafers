@@ -138,24 +138,107 @@ describe('user documents', () => {
     await assertFails(updateDoc(doc(db, `users/${UID}`), { displayName: 'n'.repeat(81) }));
   });
 
-  it('accepts the notification preferences the app writes, and no others', async () => {
-    const db = reader(env);
+  /**
+   * The scheduler reads all four of these. A key allow-list said which names
+   * could appear and nothing about what they could hold — `pace` could be a
+   * map, `enabled` a string, `reminderTime` `"99:99"` — so a reminder that
+   * never fires could be written by the app and refused by nothing.
+   *
+   * These walk the same shapes as `NotificationPreferencesSchema`, because
+   * rules cannot import it.
+   */
+  const prefs = (overrides: Record<string, unknown> = {}) => ({
+    pace: 'one',
+    timeOfDay: 'evening',
+    reminderTime: '20:30',
+    enabled: true,
+    ...overrides,
+  });
+
+  it.each([
+    ['the shape the app writes', prefs()],
+    ['a reader with no pace chosen', prefs({ pace: null })],
+    ['no time of day chosen', prefs({ timeOfDay: null })],
+    ['reminders off, with no time', prefs({ enabled: false, reminderTime: null })],
+    ['every nullable field null', prefs({ pace: null, timeOfDay: null, reminderTime: null })],
+    ['midnight', prefs({ reminderTime: '00:00' })],
+    ['the last minute of the day', prefs({ reminderTime: '23:59' })],
+    ['each pace', prefs({ pace: 'whenever' })],
+    ['each time of day', prefs({ timeOfDay: 'morning' })],
+    ['only the required key', { enabled: true }],
+  ])('accepts %s', async (_what, value) => {
     await assertSucceeds(
-      updateDoc(doc(db, `users/${UID}`), {
-        notificationPreferences: {
-          pace: 'one',
-          timeOfDay: 'evening',
-          reminderTime: '20:30',
-          enabled: true,
-        },
-      })
+      updateDoc(doc(reader(env), `users/${UID}`), { notificationPreferences: value })
+    );
+  });
+
+  it.each([
+    ['a key nobody declared', prefs({ everything: 'else' })],
+    ['no enabled flag at all', { pace: 'one' }],
+    ['enabled as a string', prefs({ enabled: 'true' })],
+    ['enabled as null', prefs({ enabled: null })],
+    ['a pace outside the enum', prefs({ pace: 'hourly' })],
+    ['a pace that is a map', prefs({ pace: { one: true } })],
+    ['a time of day outside the enum', prefs({ timeOfDay: 'lunchtime' })],
+    ['an hour that does not exist', prefs({ reminderTime: '24:00' })],
+    ['a minute that does not exist', prefs({ reminderTime: '20:60' })],
+    ['a time with no padding', prefs({ reminderTime: '9:05' })],
+    ['a time with seconds', prefs({ reminderTime: '20:30:00' })],
+    ['a time that is not a time', prefs({ reminderTime: 'evening' })],
+    ['a time that is a number', prefs({ reminderTime: 2030 })],
+    ['a megabyte where a time goes', prefs({ reminderTime: '2'.repeat(4096) })],
+    ['the whole map as a string', 'on'],
+    ['the whole map as a list', ['enabled']],
+    ['the whole map as null', null],
+  ])('refuses %s', async (_what, value) => {
+    await assertFails(
+      updateDoc(doc(reader(env), `users/${UID}`), { notificationPreferences: value })
+    );
+  });
+
+  /**
+   * Firestore merges a dotted update into the existing map before the rule
+   * sees it, so a client cannot slip one bad field in beside three good ones.
+   */
+  it('refuses a single bad field written on its own', async () => {
+    const db = reader(env);
+    await assertSucceeds(updateDoc(doc(db, `users/${UID}`), { notificationPreferences: prefs() }));
+
+    await assertFails(
+      updateDoc(doc(db, `users/${UID}`), { 'notificationPreferences.reminderTime': '99:99' })
     );
     await assertFails(
-      updateDoc(doc(db, `users/${UID}`), {
-        notificationPreferences: { enabled: true, everything: 'else' },
+      updateDoc(doc(db, `users/${UID}`), { 'notificationPreferences.pace': 'hourly' })
+    );
+    await assertFails(
+      updateDoc(doc(db, `users/${UID}`), { 'notificationPreferences.smuggled': 1 })
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, `users/${UID}`), { 'notificationPreferences.reminderTime': '07:15' })
+    );
+  });
+
+  it('applies the same validation on create as on update', async () => {
+    const other = reader(env, OTHER);
+
+    await assertFails(
+      setDoc(doc(other, `users/${OTHER}`), {
+        createdAt: '2026-09-05T00:00:00.000Z',
+        notificationPreferences: prefs({ reminderTime: '99:99' }),
       })
     );
-    await assertFails(updateDoc(doc(db, `users/${UID}`), { notificationPreferences: 'on' }));
+    await assertSucceeds(
+      setDoc(doc(other, `users/${OTHER}`), {
+        createdAt: '2026-09-05T00:00:00.000Z',
+        notificationPreferences: prefs(),
+      })
+    );
+  });
+
+  it('still keeps one reader out of another reader\u2019s preferences', async () => {
+    await assertFails(
+      updateDoc(doc(reader(env, OTHER), `users/${UID}`), { notificationPreferences: prefs() })
+    );
   });
 
   it('caps the size of the interests list', async () => {

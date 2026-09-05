@@ -1,6 +1,7 @@
 import { getApps } from 'firebase/app';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 
+import { FUNCTIONS_REGION } from '@/platform/region';
 import { usingEmulator } from '@/data/remote/firebase-app';
 import { outcomeFor, ThrottledError, type BatchResult } from '@/lib/outbox-ack';
 import type { OutboxItem, SendOutcome } from '@/lib/outbox';
@@ -36,12 +37,65 @@ function throttleFrom(error: unknown): ThrottledError | null {
   );
 }
 
-const ENDPOINT: Record<OutboxItem['kind'], { name: string; field: string }> = {
+const ENDPOINT: Partial<Record<OutboxItem['kind'], { name: string; field: string }>> = {
   'progress-event': { name: 'ingestProgress', field: 'events' },
   'content-report': { name: 'submitReport', field: 'reports' },
   'telemetry-event': { name: 'recordTelemetryBatch', field: 'events' },
   'telemetry-crash': { name: 'recordTelemetryBatch', field: 'crashes' },
 };
+
+/**
+ * The reader's own choices go straight to their own documents.
+ *
+ * Not through a callable, because there is nothing for a server to derive: the
+ * rules already validate every field (`validPreferences`,
+ * `validNotificationPreferences`, the `saved` allow-list), and a callable would
+ * add a hop that could only repeat them.
+ *
+ * What *is* new is that these are queued rather than fired and forgotten. The
+ * old path called Firestore from the screen that changed the setting and logged
+ * the failure — so a pace chosen on a train was never sent, and nothing said so.
+ *
+ * The outcome mapping is the same contract as everywhere else: a rule refusing
+ * the shape is a rejection and will never succeed, so it dead-letters with its
+ * reason; anything else is the network and retries.
+ */
+const PERMANENT_FIRESTORE_CODES = new Set([
+  'permission-denied',
+  'invalid-argument',
+  'not-found',
+  'failed-precondition',
+]);
+
+async function sendAccountState(item: OutboxItem): Promise<SendOutcome> {
+  const uid = item.payload.uid;
+  if (typeof uid !== 'string' || !uid) {
+    // An envelope with no owner cannot be written under anyone, and never will
+    // be. Dead, with the reason, rather than retried forever.
+    return { status: 'rejected', reason: 'no-uid' };
+  }
+
+  const [{ AccountSync }, { getDb, isFirebaseConfigured }] = await Promise.all([
+    import('@/data/remote/account-sync'),
+    import('@/data/remote/firebase-app'),
+  ]);
+  if (!isFirebaseConfigured) throw new Error('firebase-not-configured');
+
+  const sync = new AccountSync(getDb());
+
+  try {
+    if (item.kind === 'account-preferences') {
+      await sync.pushPreferences(uid, item.payload.preferences as never);
+    } else {
+      await sync.pushSaved(uid, [item.payload.entry as never]);
+    }
+    return { status: 'applied' };
+  } catch (error) {
+    const code = String((error as { code?: string })?.code ?? '').replace(/^firestore\//, '');
+    if (PERMANENT_FIRESTORE_CODES.has(code)) return { status: 'rejected', reason: code };
+    throw error;
+  }
+}
 
 const callables = new Map<string, ReturnType<typeof httpsCallable>>();
 
@@ -52,7 +106,7 @@ function getCallable(name: string) {
   const app = getApps()[0];
   if (!app) throw new Error('firebase-not-initialised');
 
-  const functions = getFunctions(app, 'europe-west1');
+  const functions = getFunctions(app, FUNCTIONS_REGION);
   if (usingEmulator) connectFunctionsEmulator(functions, '127.0.0.1', 5001);
 
   const callable = httpsCallable(functions, name);
@@ -62,6 +116,10 @@ function getCallable(name: string) {
 
 /** Sends one item and reports what the server made of it. */
 export async function sendOutboxItem(item: OutboxItem): Promise<SendOutcome> {
+  if (item.kind === 'account-preferences' || item.kind === 'account-saved') {
+    return sendAccountState(item);
+  }
+
   const endpoint = ENDPOINT[item.kind];
   if (!endpoint) {
     // A kind this build does not know how to send is not a network problem, and

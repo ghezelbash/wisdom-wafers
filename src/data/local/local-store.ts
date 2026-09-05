@@ -250,6 +250,39 @@ export async function enqueue(
   );
 }
 
+/**
+ * Replaces a queued item's payload, or queues it.
+ *
+ * For the things that are **state rather than events**: a reader's pace, or
+ * whether one seed is bookmarked. An event is a fact that happened and every
+ * one of them has to arrive; state has exactly one correct value, and only the
+ * last is worth sending.
+ *
+ * Written as an upsert on a deterministic id so that dragging a slider thirty
+ * times leaves one row rather than thirty. Sending thirty would be correct and
+ * pointless; queueing thirty is how a queue grows without bound.
+ *
+ * The retry budget resets, because this is a new intent and not a retry of the
+ * old one — and a dead letter comes back to life for the same reason.
+ */
+export async function upsert(
+  driver: SqlDriver,
+  item: { eventId: string; kind: string; payload: Record<string, unknown> },
+  now = new Date()
+) {
+  await driver.run(
+    `INSERT INTO outbox (event_id, kind, payload_json, attempts, next_attempt_at, queued_at, dead, last_error)
+     VALUES (?, ?, ?, 0, ?, ?, 0, NULL)
+     ON CONFLICT(event_id) DO UPDATE SET
+       payload_json = excluded.payload_json,
+       attempts = 0,
+       next_attempt_at = excluded.next_attempt_at,
+       dead = 0,
+       last_error = NULL`,
+    [item.eventId, item.kind, JSON.stringify(item.payload), now.toISOString(), now.toISOString()]
+  );
+}
+
 /** Items ready to send: not dead, and past their backoff. */
 export async function dueItems(driver: SqlDriver, now = new Date()): Promise<QueuedItem[]> {
   const rows = await driver.all(
