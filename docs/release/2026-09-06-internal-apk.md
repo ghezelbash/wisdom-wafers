@@ -1,7 +1,11 @@
 # Release record — 2026-09-06 · internal-apk
 
-The first signed artifact this project has produced. **Not yet approved for
-anyone outside the development team** — see the decision at the end.
+The first signed artifact this project has produced.
+
+> **SUPERSEDED — do not install `dd4a1956`.** It opened to the logo screen and
+> stayed there. Root cause and fix below; a replacement build was made from
+> `8eee35f`. This record is kept because the failure is the most useful thing
+> in it.
 
 ## The build
 
@@ -134,17 +138,77 @@ Android SDK in the environment this build was produced in — neither `adb` nor
 | issue | severity | affects | workaround |
 |---|---|---|---|
 | Privacy policy and terms do not resolve | **P0 for external release** | `https://dananeh.app/privacy`, `/terms` — both linked from the About screen | Publish the pages. `npm run check:legal` gates this |
+| **Artifact does not start** | **P0 — fixed** | `dd4a1956` only | Superseded; see above |
 | Maestro suite never executed | **P0 for sign-off** | all eleven flows | Needs a device |
 | `expo-updates` absent while every profile sets `channel: preview` | P2 | EAS warns on each build; OTA is deliberately off | Remove `channel`, or install `expo-updates`. Not touched during a release |
 | Android launcher name is Latin | P2 | reads "Dananeh (Staging)", not «دانانه» | `app_name` in a Persian values folder — a product decision |
 | English port reads "1 seeds" | P3 | LTR only | `count` is a display string at 27 call sites |
 | App Check registered but not enforced | P2 | abuse protection is rules + rate limits | The JS SDK cannot attest on Android; needs RNFirebase |
 
+## Post-build defect — the artifact does not start
+
+Installed on a physical Android device, `dd4a1956` shows the native splash and
+never proceeds. Nothing else happens: no error, no screen, no crash.
+
+**Two defects, both introduced during this session's own work.**
+
+### 1 · A correct build declaring itself misconfigured
+
+Goal 11 added `EXPO_PUBLIC_CONTENT_SOURCE` to `validateEnvironment`, which is
+shared between the build and the device — and only the build-time callers were
+updated. `currentEnvironmentIssues` supplies six Firebase keys and the
+environment name, so on a device the content source read as absent:
+
+```
+$ node -e "…validateEnvironment({ variant:'staging', env: <the six keys + env name> })"
+issues on a correctly configured staging APK: 1
+  EXPO_PUBLIC_CONTENT_SOURCE — missing
+```
+
+`RootLayout` then renders `MisconfiguredEnvironment` instead of the app.
+
+### 2 · The reason nothing said so
+
+`SplashScreen.hideAsync()` was reachable from exactly one component — the splash
+overlay, nested inside four providers — and four `return`s sit above it. The
+misconfiguration branch mounts none of those providers, so the screen written to
+*explain* the problem was drawing behind a splash nobody had told to go away.
+
+The same shape applies to three other paths: a font that fails to load, a locale
+bootstrap that never settles, and a config fetch that never resolves. Each ends
+on the logo for the life of the process.
+
+### How it was diagnosed without a device
+
+The backend had already recorded the answer. Every reader is signed in
+anonymously before the first screen, and staging held **only the three staff
+accounts** — no anonymous user was ever created — with zero crash reports and
+zero telemetry. Startup never reached `AuthProvider`.
+
+### Why the pipeline was green throughout
+
+Nothing in it exercises this. `currentEnvironmentIssues` returns `[]` under
+`__DEV__`, so the check does not run in dev, on web, or in any unit test; and
+the native CI job builds `assembleDebug`, which is a debug build. The first time
+the code path ran anywhere was on the phone.
+
+### Fixed in `8eee35f`
+
+- The runtime check supplies the content source, and `env.test.ts` now asserts
+  that **every key the validator can reject is one the device-side check
+  passes** — a rule added without a matching input now fails a unit test.
+- One `hideSplash` helper, called on the misconfiguration path and from an
+  8-second watchdog, so no path can end on the logo.
+- A font that fails to load no longer hangs startup; Persian falls back to the
+  system face.
+- `release-disclosures.test.ts` asserts all three statically.
+
 ## Decision
 
-- **Go / No-Go: No-Go for anyone outside the development team.**
-- **Go for on-device verification by the development team** — that is the next
-  step, and the artifact exists for it.
+- **Go / No-Go: No-Go — this artifact does not start.** Superseded by the build
+  from `8eee35f`.
+- The on-device verification it was built for found exactly the defect it was
+  built to find, on the first launch. That is the process working, not failing.
 - **Decided by:** pending owner sign-off.
 - **Rationale:** the binary is signed, points only at `dananeh-staging`, and
   every backend path it needs answers correctly from a workstation. What is
