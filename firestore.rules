@@ -33,6 +33,27 @@ service cloud.firestore {
              (field in resource.data && request.resource.data[field] == resource.data[field]);
     }
 
+    /**
+     * A profile a client may write.
+     *
+     * The key allow-list alone left every *value* unconstrained: a locale could
+     * be an object, a timezone could be a megabyte, and twenty interests could
+     * each be a paragraph. Absent fields pass — this is a merge.
+     */
+    function validPreferences(data) {
+      return (!('displayName' in data)
+              || (data.displayName is string && data.displayName.size() <= 80))
+        && (!('locale' in data) || data.locale in ['fa-IR', 'en'])
+        && (!('timezone' in data) || (data.timezone is string && data.timezone.size() <= 64))
+        && (!('interests' in data)
+            || (data.interests is list && data.interests.size() <= 20))
+        && (!('notificationPreferences' in data)
+            || (data.notificationPreferences is map
+                && data.notificationPreferences.keys().hasOnly(
+                     ['pace', 'timeOfDay', 'reminderTime', 'enabled'])))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 32));
+    }
+
     // ---------------------------------------------------------------- catalogue
     // Published content is world-readable; nothing here is client-writable.
     // A client listing these must filter on `status == 'published'` itself.
@@ -57,9 +78,44 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    /** Minimum supported version and catalogue version; read by every client. */
-    match /appConfig/{document} {
+    /**
+     * The one public configuration document.
+     *
+     * Scoped to `public` by name rather than left open across the collection:
+     * `appConfig` is where operational settings naturally accumulate, and the
+     * next document added to it would have been world-readable by default.
+     */
+    match /appConfig/public {
       allow read: if true;
+      allow write: if false;
+    }
+
+    match /appConfig/{document} {
+      allow read, write: if false;
+    }
+
+    /**
+     * Rate-limit counters and App Check coverage.
+     *
+     * Both are written by the callable guard through the Admin SDK, which
+     * bypasses these rules. A client that could read its own counter learns
+     * exactly when to resume; one that could write it has no limit at all.
+     */
+    match /rateLimits/{bucket} {
+      allow read, write: if false;
+    }
+
+    /**
+     * The daily operating figure. Admin-readable so an operator can look
+     * without a console query; written only by the scheduled function.
+     */
+    match /opsDigest/{day} {
+      allow read: if staff('admin');
+      allow write: if false;
+    }
+
+    match /appCheckCoverage/{day}/shards/{shard} {
+      allow read: if staff('admin');
       allow write: if false;
     }
 
@@ -74,59 +130,90 @@ service cloud.firestore {
              'displayName', 'locale', 'timezone', 'interests',
              'notificationPreferences', 'createdAt', 'updatedAt'
            ])
-        && request.resource.data.interests is list
-        && request.resource.data.interests.size() <= 20;
+        && validPreferences(request.resource.data);
 
       allow update: if owner(uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
              'displayName', 'locale', 'timezone', 'interests',
              'notificationPreferences', 'updatedAt'
            ])
-        && (!('interests' in request.resource.data)
-            || (request.resource.data.interests is list
-                && request.resource.data.interests.size() <= 20));
+        && validPreferences(request.resource.data);
 
       // Deletion is a Function: it has to reach subcollections, Storage files
       // and push tokens, none of which a client delete would touch.
       allow delete: if false;
 
+      /**
+       * Progress is server-authoritative, derived from events.
+       *
+       * The client writes are kept for now and tightened in goal 7, but the
+       * position and the schedule already come from the server — a client that
+       * could write `blockIndex` could also move another device's reader.
+       */
+      /**
+       * Progress, written by the server alone.
+       *
+       * The client used to be allowed to write here, validated field by field.
+       * That contradicted the architecture: every progress change already
+       * travels through the outbox into `ingestProgress`, which is idempotent
+       * on event id and derives `percent`, `blockIndex` and the review schedule
+       * itself. A client that could also write directly could set a completion
+       * the server never counted, or move its resume position backwards past
+       * the monotonic rule the ingest applies — two devices then disagreeing
+       * with no event to reconcile from. There is exactly one writer. See
+       * ADR 0022.
+       */
       match /progress/{seedId} {
         allow read: if owner(uid);
-        allow create, update: if owner(uid)
-          && request.resource.data.seedId == seedId
-          && request.resource.data.revision is int
-          && request.resource.data.revision > 0
-          && request.resource.data.percent is number
-          && request.resource.data.percent >= 0
-          && request.resource.data.percent <= 100
-          && request.resource.data.status in ['in_progress', 'completed']
-          // Completion is monotonic: a finished seed never reopens, because the
-          // streak and review schedule are derived from it. `resource` is null
-          // on create, and reading through it there is an evaluation error, not
-          // a false — so the null case comes first.
-          && (resource == null
-              || resource.data.status != 'completed'
-              || request.resource.data.status == 'completed');
-        allow delete: if false;
+        allow write: if false;
       }
-
       match /saved/{seedId} {
-        allow read, write: if owner(uid)
-          && (request.method == 'delete' || request.resource.data.seedId == seedId);
-      }
-
-      match /reviews/{reviewId} {
         allow read: if owner(uid);
-        // Intervals are computed server-side; a client may record the attempt
-        // but not invent its own schedule.
         allow create, update: if owner(uid)
-          && request.resource.data.seedId is string
-          && request.resource.data.confidence in ['easy', 'good', 'hard', 'again'];
+          && request.resource.data.keys().hasOnly(['seedId', 'saved', 'updatedAt'])
+          && request.resource.data.seedId == seedId
+          && request.resource.data.saved is bool
+          && request.resource.data.updatedAt is string
+          && request.resource.data.updatedAt.size() <= 32;
         allow delete: if false;
       }
 
+      /**
+       * Review state is derived by `ingestProgress` from a `reviewed` event.
+       *
+       * Client-writable before, which let a device invent its own due date —
+       * and a client that can write its own schedule can decide never to be
+       * asked again. The attempt is still recorded by the reader, as an event.
+       */
+      match /reviews/{seedId} {
+        allow read: if owner(uid);
+        allow write: if false;
+      }
+
+      /**
+       * A device and its push token.
+       *
+       * Was `read, write: if owner(uid)` — anything of any shape or size. A
+       * token is a capability to reach this reader's phone, so what may be
+       * written is spelled out, and a document that carries anything else is
+       * refused whole.
+       */
       match /devices/{deviceId} {
-        allow read, write: if owner(uid);
+        allow read: if owner(uid);
+        allow create, update: if owner(uid)
+          && request.resource.data.keys().hasOnly([
+               'deviceId', 'pushToken', 'platform', 'appVersion', 'updatedAt'
+             ])
+          && request.resource.data.deviceId == deviceId
+          && request.resource.data.pushToken is string
+          && request.resource.data.pushToken.size() <= 256
+          && request.resource.data.platform in ['ios', 'android', 'web']
+          && request.resource.data.appVersion is string
+          && request.resource.data.appVersion.size() <= 32
+          && request.resource.data.updatedAt is string
+          && request.resource.data.updatedAt.size() <= 32;
+        // Signing out or uninstalling should be able to retire a token.
+        allow delete: if owner(uid);
       }
 
       /** Server-authoritative aggregates: readable by their owner, never written. */
@@ -141,12 +228,16 @@ service cloud.firestore {
     }
 
     /**
-     * Deletion jobs. Written by the Function only; the owner can watch their
-     * own, which is what lets a resumed deletion report where it got to.
+     * Deletion jobs. Written by the Function only.
+     *
+     * Not readable even by the owner: the document carries the receipt, which
+     * is a capability that can finish the deletion without a session. A reader
+     * asks about their own job through `myAccountDeletionStatus`, which
+     * requires the receipt they were handed and answers with a state and
+     * nothing else. Admins are excluded for the same reason.
      */
     match /deletionJobs/{uid} {
-      allow read: if owner(uid) || staff('admin');
-      allow write: if false;
+      allow read, write: if false;
     }
 
     match /userStats/{uid} {
@@ -223,10 +314,17 @@ service cloud.firestore {
              'publishedRevision', 'publishedAt', 'publishedBy'
            ]);
 
-      // Editing is content only, and only while the draft is still the
-      // author's to edit. A draft in review is frozen: a reviewer must be
-      // looking at the text that was submitted.
+      /**
+       * Editing is content only, by the author, while the draft is still
+       * theirs to edit.
+       *
+       * Any editorial role could previously rewrite any draft, including one
+       * already submitted by someone else — the trail would show the original
+       * author against text they never wrote. An admin keeps an override,
+       * because someone has to be able to fix a draft whose author has left.
+       */
       allow update: if editorial()
+        && (resource.data.authorUid == request.auth.uid || staff('admin'))
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['seed', 'title', 'updatedAt'])
         && resource.data.state in ['draft', 'changes_requested'];

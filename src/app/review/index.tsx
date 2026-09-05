@@ -14,6 +14,7 @@ import { content } from '@/data/content-repository';
 import { localizeDigits } from '@/lib/format';
 import { listProgress, type SeedProgress } from '@/lib/progress-store';
 import { dueItems, INTERVAL_DAYS } from '@/lib/schedule';
+import { FeatureGate } from '@/components/feature-gate';
 
 /** Roughly one minute per item; the queue says so before it starts. */
 const MINUTES_PER_ITEM = 1;
@@ -24,7 +25,7 @@ const MINUTES_PER_ITEM = 1;
  * Three items, about three minutes, and deferring is free: «بعداً مرور می‌کنم»
  * is a first-class action with no debt language anywhere near it.
  */
-export default function ReviewQueueScreen() {
+function ReviewQueueScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const [progress, setProgress] = useState<SeedProgress[] | null>(null);
@@ -88,6 +89,8 @@ export default function ReviewQueueScreen() {
                 key={item.seedId}
                 variant="review"
                 seed={seed}
+                placement="garden"
+                rank={index + 1}
                 intervalDays={stored?.reviewInterval ?? INTERVAL_DAYS.hard}
                 dueLabel={t('review.pass', {
                   count: localizeDigits((stored?.reviewCount ?? 0) + 1, i18n.language),
@@ -118,5 +121,17 @@ export default function ReviewQueueScreen() {
         />
       </View>
     </SafeAreaView>
+  );
+}
+
+/**
+ * Review is a killable feature, so the route refuses for itself — a deep link
+ * or a stale reminder does not pass the button that leads here.
+ */
+export default function GatedReview() {
+  return (
+    <FeatureGate flag="reviewEnabled">
+      <ReviewQueueScreen />
+    </FeatureGate>
   );
 }

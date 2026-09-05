@@ -1,0 +1,28 @@
+# Notifications: denied, and accepted.
+#
+# Two halves, because they are two different claims. Denial must cost nothing —
+# that is the product promise. Acceptance must schedule the reminder and, when a
+# notification is opened, land on the route it names rather than on the home
+# screen.
+#
+# The OS permission sheet is the one control this cannot name by id, so it is
+# matched by label in three languages. It is *not* optional: a run where the
+# sheet never appeared has proved nothing about the ask.
+appId: com.dananeh.app.staging
+---
+- launchApp
+- tapOn:
+    id: "tab-profile"
+- tapOn: "یادآوری‌ها"
+
+# --- denied ---
+- tapOn: "یادآور روزانه"
+- tapOn:
+    text: "Don’t allow|Don't allow|Deny|اجازه نده"
+- assertVisible: "یادآوری‌ها در تنظیمات دستگاه خاموش است"
+# Every other feature still works, and the screen says what it can and cannot do.
+- assertVisible: "رفتن به تنظیمات"
+- tapOn:
+    id: "tab-index"
+- assertVisible: "دانه‌ی پیشنهادی امروز"
+- takeScreenshot: notifications-denied

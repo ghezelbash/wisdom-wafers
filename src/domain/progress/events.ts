@@ -67,6 +67,8 @@ export interface EventInput {
   revision: number;
   type: ProgressEvent['type'];
   blockId?: string;
+  /** The reader's position, so another device can resume where this one is. */
+  blockIndex?: number;
   answer?: string | number | boolean | string[];
   correct?: boolean;
   confidence?: ProgressEvent['confidence'];
@@ -82,6 +84,7 @@ export function progressEvent(input: EventInput, id = eventId()): ProgressEvent 
     revision: input.revision,
     type: input.type,
     ...(input.blockId ? { blockId: input.blockId } : {}),
+    ...(input.blockIndex !== undefined ? { blockIndex: input.blockIndex } : {}),
     ...(input.answer !== undefined ? { answer: input.answer } : {}),
     ...(input.correct !== undefined ? { correct: input.correct } : {}),
     ...(input.confidence ? { confidence: input.confidence } : {}),
@@ -127,6 +130,16 @@ export const recordReviewed = (input: Omit<EventInput, 'type'>) =>
   recordProgressEvent({ ...input, type: 'reviewed' });
 
 /**
+ * The reader reached a block they had not reached before.
+ *
+ * Queued once per furthest position rather than on every navigation — moving
+ * back and forth within a seed is normal and says nothing new about where they
+ * got to. Bounded by the number of blocks in a seed.
+ */
+export const recordPosition = (input: Omit<EventInput, 'type'> & { blockIndex: number }) =>
+  recordProgressEvent({ ...input, type: 'block_viewed' });
+
+/**
  * Queues a content report.
  *
  * It goes through the outbox like everything else: a reader who spots a wrong
@@ -149,4 +162,20 @@ export async function recordContentReport(
 
   await enqueue('content-report', report.id, report as unknown as Record<string, unknown>);
   return report;
+}
+
+/**
+ * How long onboarding took, from the stored instant.
+ *
+ * Zero for a session that predates the field or one whose clock moved
+ * backwards — an impossible duration is worse than a missing one, because it
+ * silently skews an average nobody thinks to question.
+ */
+export function onboardingDurationMs(startedAt: string | null, now = new Date()): number {
+  if (!startedAt) return 0;
+
+  const started = Date.parse(startedAt);
+  if (Number.isNaN(started)) return 0;
+
+  return Math.max(0, now.getTime() - started);
 }

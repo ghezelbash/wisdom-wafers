@@ -10,7 +10,7 @@ import {
   type OutboxItem,
   type SendOutcome,
 } from '@/lib/outbox';
-import { outcomeFor } from '@/lib/outbox-ack';
+import { outcomeFor, ThrottledError } from '@/lib/outbox-ack';
 
 /**
  * The queue's contract with the transport.
@@ -192,5 +192,127 @@ describe('reading a batch answer', () => {
   it('refuses to treat an unrecognised answer as delivery', () => {
     expect(() => outcomeFor(item, {})).toThrow('no-acknowledgement');
     expect(() => outcomeFor(item, { applied: 0, duplicates: 0, rejected: [] })).toThrow();
+  });
+});
+
+describe('a server that says "not yet"', () => {
+  const throttle = async () => {
+    throw new ThrottledError(30);
+  };
+
+  const NOW = new Date('2026-09-05T12:00:00.000Z');
+
+  /**
+   * The failure this prevents is data loss, not a retry storm. The queue
+   * dead-letters after MAX_ATTEMPTS, so if a throttle counted as a failure, a
+   * device that hit the rate limit eight times would delete a reader's
+   * completed seed — having been told the send failed when the server had said
+   * "wait".
+   */
+  it('spends no part of the retry budget', async () => {
+    await anEvent('event-0001');
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS + 2; attempt += 1) {
+      await flush(throttle, true, NOW);
+    }
+
+    const [item] = await listOutbox();
+    expect(item.attempts).toBe(0);
+    expect(await deadLetters()).toHaveLength(0);
+  });
+
+  it('waits exactly as long as the server asked', async () => {
+    await anEvent('event-0001');
+    await flush(throttle, true, NOW);
+
+    const [item] = await listOutbox();
+    expect(item.nextAttemptAt).toBe(new Date(NOW.getTime() + 30_000).toISOString());
+  });
+
+  it('reports the deferral rather than counting it as sent or failed', async () => {
+    await anEvent('event-0001');
+    const result = await flush(throttle, true, NOW);
+
+    expect(result).toMatchObject({ throttled: 1, sent: 0, failed: 0, rejected: 0, remaining: 1 });
+  });
+
+  /** Everything behind it on the *same* endpoint would be refused too. */
+  it('stops trying the endpoint that was throttled', async () => {
+    await anEvent('event-0001');
+    await anEvent('event-0002');
+    await anEvent('event-0003');
+
+    let attempted = 0;
+    await flush(async () => {
+      attempted += 1;
+      throw new ThrottledError(30);
+    }, true, NOW);
+
+    // One refusal, three items deferred: the rest never cost a round trip.
+    expect(attempted).toBe(1);
+    expect((await listOutbox()).every((item) => item.attempts === 0)).toBe(true);
+  });
+
+  /**
+   * Analytics may wait; a reader's completed seed may not.
+   *
+   * Telemetry and progress share one queue, so a throttled telemetry batch
+   * sitting at the front used to hold up every completion behind it.
+   */
+  it('keeps draining other endpoints while one is throttled', async () => {
+    await enqueue('telemetry-event', 'telemetry-0001', { name: 'seed_impression' });
+    await anEvent('event-0002');
+
+    const attempted: string[] = [];
+    const result = await flush(
+      async (item) => {
+        attempted.push(item.id);
+        if (item.kind === 'telemetry-event') throw new ThrottledError(30);
+        return { status: 'applied' } as SendOutcome;
+      },
+      true,
+      NOW,
+      (item) => (item.kind === 'progress-event' ? 'ingestProgress' : 'recordTelemetryBatch')
+    );
+
+    expect(attempted).toEqual(['telemetry-0001', 'event-0002']);
+    expect(result).toMatchObject({ sent: 1, throttled: 1 });
+  });
+
+  /** The same, for an ordinary failure rather than a throttle. */
+  it('does not let a failing telemetry item stop a completion', async () => {
+    await enqueue('telemetry-crash', 'crash-0001', { message: 'boom' });
+    await anEvent('event-0002');
+
+    const result = await flush(
+      async (item) => {
+        if (item.kind === 'telemetry-crash') throw new Error('server down');
+        return { status: 'applied' } as SendOutcome;
+      },
+      true,
+      NOW
+    );
+
+    expect(result).toMatchObject({ sent: 1, failed: 1 });
+  });
+
+  it('sends everything once the wait is over', async () => {
+    await anEvent('event-0001');
+    await flush(throttle, true, NOW);
+
+    const later = new Date(NOW.getTime() + 31_000);
+    const result = await flush(async (): Promise<SendOutcome> => ({ status: 'applied' }), true, later);
+
+    expect(result).toMatchObject({ sent: 1, remaining: 0 });
+  });
+
+  /** An ordinary network error must still burn an attempt and eventually die. */
+  it('does not change what an ordinary failure costs', async () => {
+    await anEvent('event-0001');
+    await flush(async () => {
+      throw new Error('offline');
+    }, true, NOW);
+
+    expect((await listOutbox())[0].attempts).toBe(1);
   });
 });

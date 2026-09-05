@@ -14,6 +14,7 @@ import { useCatalog } from '@/context/CatalogContext';
 import { useSession } from '@/context/SessionContext';
 import { usedBytes } from '@/lib/catalog-store';
 import { formatMegabytes } from '@/lib/format-bytes';
+import { appVersion } from '@/platform/app-info';
 import { localizeDigits } from '@/lib/format';
 
 function SettingsRow({
@@ -82,6 +83,7 @@ export default function ProfileScreen() {
         {isGuest ? (
           <Pressable
             accessibilityRole="button"
+            testID="profile-create-account"
             onPress={() => router.push('/auth')}
             className="mb-5 flex-row items-center gap-[13px] rounded-[20px] bg-brand-tint p-4">
             <BrandMark size={40} />
@@ -123,6 +125,13 @@ export default function ProfileScreen() {
             value={formatMegabytes(usedBytes(snapshot), i18n.language)}
             onPress={() => router.push('/settings/storage')}
           />
+          {/* Version, build, the two policies, the support address and how to
+              delete an account — none of which a tester could find before. */}
+          <SettingsRow
+            label={t('profile.about')}
+            value={appVersion()}
+            onPress={() => router.push('/settings/about')}
+          />
         </View>
 
         {!isGuest ? (
@@ -135,6 +144,7 @@ export default function ProfileScreen() {
             />
             <Pressable
               accessibilityRole="button"
+              testID="profile-delete-account"
               onPress={() => router.push('/settings/delete-account')}
               className="mt-3 items-center justify-center"
               style={{ minHeight: MinTouchTarget }}>

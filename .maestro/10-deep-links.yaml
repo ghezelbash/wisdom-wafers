@@ -1,0 +1,42 @@
+# Deep links: what opens, and what must not.
+#
+# This was shell output — two `adb am start` calls whose result nobody looked
+# at. `am start` reports that it *delivered* an intent, which says nothing about
+# what the app then did with it, so a link that opened an arbitrary route would
+# have printed exactly the same success.
+#
+# Maestro opens the link and then asserts what is on screen.
+appId: com.dananeh.app.staging
+env:
+  SCHEME: dananeh-staging
+  SEED_TITLE: "چرا آسمان شب کاملاً تاریک است؟"
+---
+- launchApp
+- stopApp
+
+# Allowed: a seed that exists.
+- openLink: "${SCHEME}:///seed/seed-sky-darkness"
+- extendedWaitUntil:
+    visible: "${SEED_TITLE}"
+    timeout: 15000
+- takeScreenshot: deep-link-allowed
+
+# A protocol-relative target. A slash test accepts this; several link handlers
+# read it as an absolute URL and would leave the app entirely.
+- stopApp
+- launchApp
+- openLink: "${SCHEME}:////evil.example/x"
+- assertNotVisible: "evil.example"
+- assertVisible: "دانه‌ی پیشنهادی امروز"
+- takeScreenshot: deep-link-refused-protocol-relative
+
+# A route that is not in the allow-list.
+- openLink: "${SCHEME}:///settings/delete-account?confirm=1"
+- assertNotVisible: "حذف حساب کاربری"
+
+# A route behind a feature flag, and one that does not exist at all.
+- openLink: "${SCHEME}:///tutor"
+- assertVisible: "دانه‌ی پیشنهادی امروز"
+- openLink: "${SCHEME}:///../../etc/passwd"
+- assertVisible: "دانه‌ی پیشنهادی امروز"
+- takeScreenshot: deep-link-refused-all

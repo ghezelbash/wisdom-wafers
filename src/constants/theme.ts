@@ -29,7 +29,7 @@ export const Colors = {
     textSecondary: '#5D665B',
     /** CTA fill, progress fill, links — 5.6:1 on canvas */
     brand: '#2F6D4B',
-    /** label on a brand fill — 5.6:1 */
+    /** label on a brand fill — 6.1:1 */
     onBrand: '#FFFDF7',
     /** decorative only in light mode — 2.6:1 */
     sprout: '#65A96B',
@@ -39,7 +39,7 @@ export const Colors = {
     sunInk: '#8A6100',
     /** humanities topic family — 6.1:1 */
     plum: '#6F5178',
-    /** incorrect, destructive — 5.0:1 on canvas */
+    /** incorrect, destructive — 4.9:1 on canvas */
     error: '#B5443C',
     /** error text on its own tint — 5.7:1 */
     errorInk: '#A03A33',
@@ -68,7 +68,7 @@ export const Colors = {
     brand: '#77B98A',
     /** ink label on a brand fill — 8.2:1. White would be 2.1:1. */
     onBrand: '#0F120F',
-    /** progress fill is safe in dark — 9.3:1 */
+    /** progress fill is safe in dark — 9.2:1 */
     sprout: '#8BCB94',
     /** usable as type in dark — 10.7:1 */
     sun: '#F2C45F',
@@ -123,8 +123,13 @@ export const Fonts = Platform.select({
 })!;
 
 /**
- * Type scale. Line height is never below 1.65× at body sizes: Persian
- * descenders and dots collide below that.
+ * Type scale.
+ *
+ * Line height is never below 1.65× **for prose** — `body`, `bodySm`, `caption`
+ * — because Persian descenders and dots collide below that. Titles and `label`
+ * are deliberately tighter: they are one or two lines of large or bold type
+ * where the leading would otherwise read as a gap, and they are not read as
+ * running text. `contrast.test.ts` holds both halves of that rule.
  */
 export const Typography = {
   display: { fontFamily: FontFamily.extrabold, fontSize: 34, lineHeight: 44 },

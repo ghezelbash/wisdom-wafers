@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+import { track } from './analytics';
+import { isEnabled } from './config';
 import { adjustForQuietHours, parseTime, type QuietHours } from './reminder-rules';
 
 export { routeFromNotificationData, isAllowedRoute } from './deep-links';
@@ -88,6 +90,10 @@ export async function requestPermission(): Promise<PermissionState> {
   await ensureNotificationChannel();
 
   const { status } = await notifications.requestPermissionsAsync();
+
+  // Recorded here rather than at the call site: this is the only place the ask
+  // happens, so the funnel cannot go missing when a second screen learns to ask.
+  track('notification_permission', { state: status });
   return status as PermissionState;
 }
 
@@ -102,6 +108,14 @@ export async function scheduleDailyReminder(
   copy: { title: string; body: string },
   quiet?: QuietHours
 ): Promise<{ scheduled: boolean; at?: { hour: number; minute: number } }> {
+  // Switched off remotely: nothing is scheduled, and anything already on the
+  // schedule is taken off. A kill switch that only stops *new* reminders would
+  // leave every existing reader still being pinged.
+  if (!isEnabled('remindersEnabled')) {
+    await cancelDailyReminder();
+    return { scheduled: false };
+  }
+
   const notifications = await api();
   if (!notifications) return { scheduled: false };
 

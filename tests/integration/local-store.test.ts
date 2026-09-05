@@ -15,6 +15,7 @@ import {
   getProgress,
   listProgress,
   listSeeds,
+  deferItem,
   markFailed,
   markSent,
   open,
@@ -288,6 +289,27 @@ describe('the outbox', () => {
     expect(await dueItems(driver, now)).toHaveLength(0);
     const later = new Date(now.getTime() + 60_000);
     expect(await dueItems(driver, later)).toHaveLength(1);
+  });
+
+  /**
+   * A throttle is not a failure. The SQL has to keep the two apart or a device
+   * that is being rate-limited spends its retry budget on being told to wait,
+   * and the eighth refusal dead-letters the reader's completion.
+   */
+  it('defers a throttled item without spending an attempt', async () => {
+    const now = new Date('2026-09-03T10:00:00.000Z');
+    await enqueue(driver, item, now);
+
+    const until = new Date(now.getTime() + 30_000);
+    for (let round = 0; round < MAX_ATTEMPTS + 2; round += 1) {
+      await deferItem(driver, item.eventId, until);
+    }
+
+    expect(await dueItems(driver, now)).toHaveLength(0);
+    expect(await deadLetters(driver)).toHaveLength(0);
+
+    const [due] = await dueItems(driver, new Date(until.getTime() + 1000));
+    expect(due.attempts).toBe(0);
   });
 
   it('gives up after the ceiling, but keeps the item as a dead letter', async () => {

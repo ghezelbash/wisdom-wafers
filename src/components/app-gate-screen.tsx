@@ -21,38 +21,53 @@ import { appVersion } from '@/platform/app-info';
 export function AppGateScreen({
   gate,
   onRecheck,
-  onOpenGarden,
+  onContinueOffline,
 }: {
   gate: Exclude<GateState, { state: 'open' }>;
   onRecheck: () => void;
-  onOpenGarden: () => void;
+  /** Maintenance only. A build too old to be trusted has no safe subset. */
+  onContinueOffline: () => void;
 }) {
   const { t } = useTranslation();
 
-  return (
-    <SafeAreaView className="flex-1 bg-canvas" edges={['top', 'bottom']}>
-      {gate.state === 'maintenance' ? (
+  if (gate.state === 'maintenance') {
+    return (
+      <SafeAreaView className="flex-1 bg-canvas" edges={['top', 'bottom']}>
         <SystemState
           icon="info"
           title={t('maintenance.title')}
           body={gate.message ?? t('maintenance.body')}
           facts={gate.until ? [{ label: t('maintenance.untilLabel'), value: gate.until }] : undefined}
-          primary={{ label: t('maintenance.goToGarden'), onPress: onOpenGarden }}
+          primary={{ label: t('maintenance.goToGarden'), onPress: onContinueOffline }}
           secondary={{ label: t('maintenance.retry'), onPress: onRecheck }}
         />
-      ) : (
-        <SystemState
-          icon="alert"
-          title={t('updateRequired.title')}
-          body={t('updateRequired.body')}
-          facts={[
-            { label: t('updateRequired.currentLabel'), value: appVersion(), mono: true },
-            { label: t('updateRequired.minimumLabel'), value: gate.minimumVersion, mono: true },
-          ]}
-          primary={{ label: t('updateRequired.cta'), onPress: onRecheck }}
-          secondary={{ label: t('maintenance.goToGarden'), onPress: onOpenGarden }}
-        />
-      )}
+        <View className="h-6" />
+      </SafeAreaView>
+    );
+  }
+
+  /**
+   * A forced update has no way past it.
+   *
+   * There was one: the same "go to the garden" action the maintenance state
+   * offers, which set the gate open and let a build the server has refused run
+   * the whole app. A minimum version exists because this build cannot be
+   * trusted with the current data — offering a subset would be guessing which
+   * part is still safe.
+   */
+  return (
+    <SafeAreaView className="flex-1 bg-canvas" edges={['top', 'bottom']}>
+      <SystemState
+        icon="alert"
+        tone="error"
+        title={t('updateRequired.title')}
+        body={t('updateRequired.body')}
+        facts={[
+          { label: t('updateRequired.currentLabel'), value: appVersion(), mono: true },
+          { label: t('updateRequired.minimumLabel'), value: gate.minimumVersion, mono: true },
+        ]}
+        primary={{ label: t('updateRequired.cta'), onPress: onRecheck }}
+      />
       <View className="h-6" />
     </SafeAreaView>
   );

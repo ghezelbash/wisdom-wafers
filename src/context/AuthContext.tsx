@@ -12,7 +12,8 @@ import React, {
 import { FirebaseIdentityRepository } from '@/data/repositories/firebase-identity-repository';
 import { LocalIdentityRepository } from '@/data/repositories/local-identity-repository';
 import { isFirebaseConfigured } from '@/data/remote/firebase-app';
-import { migrateIdentity } from '@/domain/identity/migration';
+import { setSessionSyncIdentity } from '@/context/SessionContext';
+import { track } from '@/platform/analytics';
 import {
   AuthError,
   isGuest as identityIsGuest,
@@ -29,6 +30,14 @@ interface IdentityContextValue {
   isGuest: boolean;
   /** True when sync is unavailable and the reader is on a device-only uid. */
   isLocalOnly: boolean;
+  /**
+   * True when work created under a previous uid has not been handed over yet.
+   *
+   * The reader is signed in and nothing is lost — the handover is recorded and
+   * retried — but until it finishes, what they did as a guest is still
+   * addressed to the old owner.
+   */
+  hasPendingMigration: boolean;
   createAccount: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -45,6 +54,11 @@ interface IdentityContextValue {
    * nothing on the device has been touched.
    */
   deleteAccount: () => Promise<void>;
+  /**
+   * Proves the account holder is present, without sending them away to sign
+   * out and back in.
+   */
+  reauthenticate: (password: string) => Promise<void>;
 }
 
 const IdentityContext = createContext<IdentityContextValue | null>(null);
@@ -76,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLocalOnly, setIsLocalOnly] = useState(!isFirebaseConfigured);
   const identityRef = useRef<Identity | null>(null);
   const recovering = useRef<Promise<boolean> | null>(null);
+  const [hasPendingMigration, setHasPendingMigration] = useState(false);
 
   const networkState = Network.useNetworkState();
   const isOnline = networkState.isInternetReachable ?? networkState.isConnected ?? true;
@@ -83,6 +98,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const apply = useCallback((next: Identity | null) => {
     identityRef.current = next;
     setIdentity(next);
+    // `SessionProvider` sits above this one and cannot call `useIdentity`, so
+    // the target for preference sync is handed down rather than read up.
+    setSessionSyncIdentity(next?.uid ?? null, next?.source === 'account');
   }, []);
 
   useEffect(() => {
@@ -125,6 +143,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [apply]);
 
   /**
+   * Hands work from one uid to another, and records it if that fails.
+   *
+   * The reader is signed in either way — refusing to sign them in because a
+   * background handover failed would be worse than the problem. What must not
+   * happen is the failure disappearing: it is written down, surfaced as
+   * `hasPendingMigration`, and retried.
+   */
+  const runMigration = useCallback(
+    async (from: string, to: string, announce: boolean): Promise<boolean> => {
+      const [{ migrateIdentity: migrate }, pending] = await Promise.all([
+        import('@/domain/identity/migration'),
+        import('@/data/local/pending-migration'),
+      ]);
+
+      try {
+        await migrate(from, to, { announce });
+        await pending.clearPendingMigration();
+        setHasPendingMigration(false);
+        return true;
+      } catch (error) {
+        await pending.recordPendingMigration({ from, to, announce }, error);
+        setHasPendingMigration(true);
+        return false;
+      }
+    },
+    []
+  );
+
+  /** Finishes anything a previous session could not. */
+  const retryPendingMigration = useCallback(async () => {
+    const { readPendingMigration } = await import('@/data/local/pending-migration');
+    const pending = await readPendingMigration();
+    if (!pending) return;
+
+    // Only meaningful while the reader is still the owner it was handed to.
+    if (identityRef.current?.uid !== pending.to) {
+      setHasPendingMigration(true);
+      return;
+    }
+    await runMigration(pending.from, pending.to, pending.announce);
+  }, [runMigration]);
+
+  /**
    * Climbs out of the device-only identity.
    *
    * The queue moves with the reader: envelopes built under the `local-…` uid
@@ -145,7 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Recovery, not a change of owner: the queue already holds everything
         // the server has not seen, so nothing is re-announced.
         if (previous && isLocalUid(previous)) {
-          await migrateIdentity(previous, next.uid).catch(() => undefined);
+          await runMigration(previous, next.uid, false);
         }
 
         setIsLocalOnly(false);
@@ -160,13 +221,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     recovering.current = attempt;
     return attempt;
-  }, [apply, isLocalOnly]);
+  }, [apply, isLocalOnly, runMigration]);
 
   // A connection appearing is the signal to try again.
   useEffect(() => {
     if (!isReady || !isOnline || !isLocalOnly) return;
     void recoverFromLocalOnly();
   }, [isReady, isOnline, isLocalOnly, recoverFromLocalOnly]);
+
+  // An unfinished handover is retried on the same signal, and once at startup.
+  useEffect(() => {
+    if (!isReady || !isOnline) return;
+    void retryPendingMigration();
+  }, [isReady, isOnline, identity?.uid, retryPendingMigration]);
 
   /**
    * Picks the repository for a credential action.
@@ -192,15 +259,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // survives the upgrade, so the uid below is normally the same one.
       const next = await repository.linkEmailPassword(email.trim(), password);
 
-      if (previous && previous !== next.uid) {
+      const kept = !previous || previous === next.uid;
+
+      if (!kept) {
         // Only reachable when there was no anonymous session to link, so this
         // really is a new owner and the account has never been told what this
         // device holds.
-        await migrateIdentity(previous, next.uid, { announce: true }).catch(() => undefined);
+        await runMigration(previous, next.uid, true);
       }
+
+      // `anonymous` means the uid survived — the link worked, and the guest's
+      // record is still theirs. `local` means it did not, which is the case
+      // worth being able to count.
+      track('account_linked', { from: kept ? 'anonymous' : 'local' });
       apply(next);
     },
-    [apply, credentialRepository]
+    [apply, credentialRepository, runMigration]
   );
 
   /**
@@ -235,6 +309,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             reviewInterval: item.reviewInterval,
             reviewCount: item.reviewCount,
           })),
+        // A bookmark's timestamp is the progress row's: it is the last time
+        // anything about that seed changed on this device, which is the best
+        // statement available about when the bookmark was decided.
+        readLocalSaved: async () =>
+          (await progressStore.listProgress()).map((item) => ({
+            seedId: item.seedId,
+            saved: !!item.saved,
+            updatedAt: item.updatedAt,
+          })),
+        pushSaved: (entries) => sync.pushSaved(uid, entries),
         writeLocal: async (merged) => {
           for (const item of merged) {
             const existing = await progressStore.loadProgress(item.seedId, item.revision);
@@ -277,7 +361,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // already finished here is announced, with ids derived from the facts so
       // signing in twice cannot count anything twice.
       if (previous && previous !== next.uid) {
-        await migrateIdentity(previous, next.uid, { announce: true }).catch(() => undefined);
+        await runMigration(previous, next.uid, true);
       }
       apply(next);
 
@@ -285,7 +369,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // a second device shows the reader's garden rather than an empty one.
       await restoreFromAccount(next.uid);
     },
-    [apply, credentialRepository, restoreFromAccount]
+    [apply, credentialRepository, restoreFromAccount, runMigration]
   );
 
   const signOut = useCallback(async () => {
@@ -309,27 +393,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * local reset and a navigation — which told the reader their data was gone
    * while all of it was still on the server.
    */
-  const deleteAccount = useCallback(async () => {
-    const [{ deleteAccountEverywhere }, { requestServerDeletion }, { wipeDevice }] =
-      await Promise.all([
-        import('@/domain/account/delete'),
-        import('@/data/remote/account-deletion'),
-        import('@/data/local/device-wipe'),
-      ]);
+  /**
+   * A fresh reader after a deletion, whatever the network is doing.
+   *
+   * Anonymous sign-in can fail — and right after a deletion is a likely moment
+   * for it to, because the request that just succeeded may have been the last
+   * one to get through. Falling back to a device-local identity keeps the app
+   * usable, and `recoverFromLocalOnly` upgrades it when a connection returns.
+   */
+  const startFreshIdentity = useCallback(async () => {
+    const next = remoteRepository
+      ? await remoteRepository.ensureSignedIn().catch(() => null)
+      : null;
 
-    await deleteAccountEverywhere({
-      requestServerDeletion,
+    if (next) {
+      setIsLocalOnly(false);
+      apply(next);
+      return;
+    }
+
+    setIsLocalOnly(true);
+    apply(await localRepository.ensureSignedIn().catch(() => null));
+  }, [apply]);
+
+  const deletionPorts = useCallback(async (uid: string) => {
+    const [remote, { wipeDevice }, receipts] = await Promise.all([
+      import('@/data/remote/account-deletion'),
+      import('@/data/local/device-wipe'),
+      import('@/data/local/deletion-receipt'),
+    ]);
+
+    return {
+      uid,
+      beginServerDeletion: remote.beginServerDeletion,
+      storeReceipt: (receipt: string) =>
+        receipts.storeDeletionReceipt({ uid, receipt, requestedAt: new Date().toISOString() }),
+      clearReceipt: receipts.clearDeletionReceipt,
+      requestServerDeletion: remote.requestServerDeletion,
+      resumeServerDeletion: remote.resumeServerDeletion,
+      serverDeletionStatus: remote.serverDeletionStatus,
       wipeDevice: async () => {
         await wipeDevice();
       },
-      startFreshIdentity: async () => {
-        // Not a signed-out dead end: the reader lands back in the app as a new
-        // anonymous one, which is what guest-first means after a deletion too.
-        const repository = remoteRepository ?? localRepository;
-        apply(await repository.ensureSignedIn().catch(() => null));
-      },
-    });
-  }, [apply]);
+      startFreshIdentity,
+    };
+  }, [startFreshIdentity]);
+
+  const deleteAccount = useCallback(async () => {
+    const uid = identityRef.current?.uid;
+    if (!uid) throw new Error('no-identity');
+
+    const { deleteAccountEverywhere } = await import('@/domain/account/delete');
+    await deleteAccountEverywhere(await deletionPorts(uid));
+  }, [deletionPorts]);
+
+  const reauthenticate = useCallback(
+    async (password: string) => {
+      const repository = await credentialRepository();
+      await repository.reauthenticate(password);
+    },
+    [credentialRepository]
+  );
+
+  /**
+   * Finishes a deletion a previous session could not.
+   *
+   * A receipt still on the device means either the response was lost or the app
+   * was killed between the server finishing and the wipe. Both leave a reader
+   * who asked for deletion still holding their data.
+   */
+  useEffect(() => {
+    if (!isReady || !isOnline) return;
+
+    void (async () => {
+      const { readDeletionReceipt } = await import('@/data/local/deletion-receipt');
+      const pending = await readDeletionReceipt();
+      if (!pending) return;
+
+      const { resumeInterruptedDeletion } = await import('@/domain/account/delete');
+      await resumeInterruptedDeletion(
+        await deletionPorts(pending.uid),
+        pending.receipt
+      ).catch(() => false);
+    })();
+  }, [isReady, isOnline, deletionPorts]);
 
   const value = useMemo(
     () => ({
@@ -337,23 +484,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isReady,
       isGuest: identityIsGuest(identity),
       isLocalOnly,
+      hasPendingMigration,
       createAccount,
       signIn,
       signOut,
       sendPasswordReset,
       recoverFromLocalOnly,
       deleteAccount,
+      reauthenticate,
     }),
     [
       identity,
       isReady,
       isLocalOnly,
+      hasPendingMigration,
       createAccount,
       signIn,
       signOut,
       sendPasswordReset,
       recoverFromLocalOnly,
       deleteAccount,
+      reauthenticate,
     ]
   );
 

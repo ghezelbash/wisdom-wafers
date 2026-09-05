@@ -12,6 +12,8 @@ import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase
 import { connectStorageEmulator, getStorage, type FirebaseStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
+import { ensureAppCheck } from '@/data/remote/app-check';
+
 /**
  * The only place Firebase is constructed.
  *
@@ -63,9 +65,24 @@ function getApp(): FirebaseApp {
       ? getApps()[0]
       : initializeApp(
           usingEmulator
-            ? { ...config, apiKey: config.apiKey ?? 'demo-key', projectId: EMULATOR_PROJECT }
+            ? {
+                ...config,
+                apiKey: config.apiKey ?? 'demo-key',
+                projectId: EMULATOR_PROJECT,
+                // The bucket has to follow the project. Left alone it kept the
+                // name from `.env`, so emulator mode addressed a bucket named
+                // after whatever real project was configured — which the
+                // emulator happens to serve anyway, hiding the mistake until
+                // something looked at the URL.
+                storageBucket: `${EMULATOR_PROJECT}.appspot.com`,
+              }
             : config
         );
+
+    // Fire and forget. Enforcement is off, so a build that cannot attest is
+    // counted as unverified rather than stopped — and the emulator is never
+    // asked to, because a demo project has nothing to attest against.
+    if (!usingEmulator) void ensureAppCheck(app);
   }
   return app;
 }

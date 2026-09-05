@@ -13,8 +13,10 @@
 >
 > | بررسی | قبل | حالا |
 > |---|---|---|
-> | Unit/component tests | ۱۲ suite · ۱۴۱ تست | **۱۹ suite · ۲۵۳ تست** |
-> | Emulator/integration tests | ۹ suite · ۹۶ تست | **۱۶ suite · ۱۶۷ تست** |
+> | Unit/component tests | ۱۲ suite · ۱۴۱ تست | **۱۹ suite · ۲۵۶ تست** |
+> | Emulator/integration tests | ۹ suite · ۹۶ تست | **۱۶ suite · ۱۶۸ تست** |
+> | Expo Doctor | Fail (AsyncStorage 3.1.1) | **21/21 pass**، و دیگر `continue-on-error` نیست |
+> | Lint | ۰ error · ۲ warning | **۰ error · ۰ warning**، با `--max-warnings 0` |
 > | Config validation | نداشت | **۱۲ بررسی** (`npm run check:config`) |
 > | Android native verification | نداشت | **۱۱ بررسی** (`npm run check:android`) |
 > | E2E | نداشت | **۹ flow در `.maestro/`** |
@@ -29,6 +31,24 @@
 ---
 
 ## 1. حکم نهایی
+
+### به‌روزرسانی — ۱۵ شهریور ۱۴۰۵ (پس از release goals 1–12)
+
+**حکم: No-Go برای هر توزیع بیرونی؛ development-only برای وضعیت فعلی مخزن.** این همان حکمی است که سند اصلی داد و دلیلش عوض شده است، نه نتیجه‌اش.
+
+**چه چیزی تغییر کرد:** همه‌ی کارِ سمت کد تمام و سبز است — typecheck، lint، ۲۴ suite / ۳۵۰ تست واحد، ۲۳ suite / ۲۹۸ تست emulator، و پنج gate ایستا (`check:config`، `check:events`، `check:e2e`، `check:android`، `verify:env`). rules سفت شد و progress یک نویسنده پیدا کرد (ADR 22)، هر ۱۶ رویداد telemetry واقعاً فرستاده می‌شود و مسیر crash مثل یک سامانه‌ی واقعی اداره می‌شود (ADR 23)، برند Expo از صفحه پاک شد و هشت هدف لمسی زیر ۴۴pt اصلاح شد (ADR 24)، و build دیگر نمی‌تواند مبهم باشد (ADR 25).
+
+**چرا هنوز No-Go — سه چیز، و هیچ‌کدام کد نیست:**
+
+1. **هیچ backend واقعی‌ای وجود ندارد.** `verify:env` روی `.env` فعلی می‌گوید پروژه‌ی پیش از rebrand است با **هر دو روش ورود خاموش، Firestore با ۴۰۳، bucket با ۴۰۴ و هیچ function مستقری**. تا وقتی `dananeh-staging` ساخته و مستقر نشود، APK بالا می‌آید و هیچ کار مفیدی نمی‌کند.
+2. **هیچ اجرای واقعی روی دستگاه انجام نشده.** در محیطی که این کار ساخته شد Android SDK نصب نیست — نه `adb` نه `maestro`. یازده flow تعمیر و به‌صورت ایستا بررسی شده‌اند، ولی **هیچ‌کدام اجرا نشده‌اند**؛ همین‌طور TalkBack، آیکون themed و ضبط cold start.
+3. **صفحه‌های حقوقی منتشر نشده‌اند.** لینک‌های privacy و terms در اپ هستند و به صفحه‌ای اشاره می‌کنند که هنوز منتشر نشده است.
+
+هیچ‌کدام از این سه با نوشتن کد بیشتر حل نمی‌شود. مسیر دقیق در `docs/runbooks/environments.md` است و مرحله‌ی ۵ آن (`verify:env` تماماً سبز) دروازه‌ی پیش از ساخت APK است.
+
+---
+
+### حکم اصلی (۱۴ شهریور ۱۴۰۵)
 
 دانانه اکنون یک **prototype بصری بسیار خوب و یک codebase مهندسی‌شده‌ی امیدوارکننده** است، اما هنوز **Release Candidate** نیست. در وضعیت فعلی می‌توان UI را نمایش داد و مسیرهای محلی را تجربه کرد؛ نمی‌توان با اطمینان یک APK production به کاربر واقعی داد و انتظار داشت Firebase، ورود، محتوای آنلاین، sync، گزارش خطا و حذف حساب درست کار کنند.
 
@@ -80,12 +100,24 @@
 | **پس از Goal 8** — `npm run check:android` | ۱۱ بررسی Pass روی prebuild واقعی؛ دو نقص واقعی (`POST_NOTIFICATIONS`، `allowBackup`) پیدا و رفع شد |
 | **پس از Goal 9** — unit tests | ۱۹ suite و ۲۵۳ تست Pass |
 | **پس از Goal 9** — emulator/integration tests | ۱۶ suite و ۱۶۷ تست Pass، شامل `telemetry.test.ts` (funnel و رد شدن PII) |
+| **Release Goal 1** — unit tests | ۱۹ suite و ۲۵۶ تست Pass |
+| **Release Goal 1** — emulator/integration tests | ۱۶ suite و ۱۶۹ تست Pass، بدون هشدار open-handle و با exit code صفر |
+| **Release Goal 1** — Expo Doctor | ۲۱ از ۲۱ Pass؛ AsyncStorage به ۲.۲.۰ و چهار پکیج دیگر به نسخه‌ی SDK 57 برگشتند |
+| **Release Goal 1** — lint | ۰ error و ۰ warning (`--max-warnings 0`) |
+| **Release Goal 1** — GitHub Actions | هر ۶ job سبز روی PR #3، شامل Expo Doctor و Android native build |
+| **Release Goal 2** — `npm run smoke:local` | ۱۸ بررسی Pass روی محیط تازه: ورود، catalogue، دانلود bundle با checksum، سه callable، idempotency، PII guard و کل جریان تحریریه |
+| **Release Goal 2** — full-stack emulators | Auth، Functions، Firestore و Storage همگی بالا؛ خاموش‌شدن تمیز بدون process باقی‌مانده |
+| **Release Goal 3** — unit / emulator tests | ۱۹ suite و ۲۶۴ تست · ۱۷ suite و ۱۸۶ تست، شامل `two-device-sync.test.ts` |
+| **Release Goal 4** — unit / emulator tests | ۲۰ suite و ۲۸۱ تست · ۱۷ suite و ۱۸۶ تست |
+| **Release Goal 4** — flags و gate روی اپ در حال اجرا | kill switch مرور `/review` را غیرقابل‌دسترس کرد؛ maintenance صفر درخواست Storage داشت؛ forced update هیچ راه فراری نداشت؛ بازگرداندن config همه‌چیز را برگرداند |
+| **Release Goal 5** — unit / emulator tests | ۲۱ suite و ۲۸۵ تست · ۱۷ suite و ۱۹۶ تست، شامل هر مرز شکست حذف حساب |
+| **Release Goal 6** — unit / emulator tests | ۲۱ suite و ۲۸۵ تست · ۱۸ suite و ۲۱۳ تست، شامل `publish-concurrency.test.ts` |
 | Lint | بدون error؛ ۲ warning در `src/i18n.ts` |
 | Expo web export | Pass |
 | Expo Android JS export | Pass؛ این APK یا native build نیست |
 | Expo prebuild اندروید در فضای موقت | Pass |
 | Gradle APK build محلی | اجرا نشد؛ روی این Mac، Java/Android toolchain نصب نیست |
-| Expo Doctor | Fail: نسخه‌ی AsyncStorage با نسخه‌ی توصیه‌شده‌ی Expo 57 سازگار نیست (`3.1.1` در برابر `2.2.0`) |
+| Expo Doctor | ~~Fail: نسخه‌ی AsyncStorage با نسخه‌ی توصیه‌شده‌ی Expo 57 سازگار نیست (`3.1.1` در برابر `2.2.0`)~~ — **رفع شد در Release Goal 1**؛ اکنون ۲۱ از ۲۱ Pass |
 | live Firebase probe | Fail: درخواست Auth پاسخ `API key not valid` داد؛ Firestore نیز HTTP 403 برگرداند |
 | visual smoke test در viewport موبایل 390×844 | onboarding، انتخاب علایق و seed player بدون crash و با RTL خوب اجرا شدند |
 | runtime console | چند warning برای route names در root Stack و warning مخصوص animation روی web |
@@ -293,18 +325,24 @@ asset pack نهایی دانانه اکنون ساخته شده، در `assets/b
 1. **Auth fallback trap (original):** اگر anonymous auth در startup یک‌بار fail کند، `isLocalOnly=true` می‌شود و sign-in/sign-up تا restart همیشه از repository محلی خطای network می‌گیرند. recovery online و migration `local-* → Firebase uid` وجود ندارد.
 2. ~~**Account sync ادعایی نیست**~~ — **fixed in Goal 4**: `AccountSync` reads `users/{uid}` progress, saved and reviews; `restoreAccount` merges them into the device on sign-in with the deterministic §8.3 policy. Preferences push-on-change is still open. Original text: هیچ client write/read برای `users/{uid}` یا progress/saved/reviews server-side وجود ندارد؛ ورود در دستگاه دوم progress را برنمی‌گرداند.
 3. ~~**CMS rules قابل دورزدن است**~~ — **fixed in Goal 6** (ADR 15). `cmsDrafts` now allows content-only writes (`seed`, `title`, `updatedAt`) and only while a draft is editable; create requires `authorUid == request.auth.uid` and `state == 'draft'`; `cmsReviews` is `write: if false`. Deny cases are tested for every role. Original text: `cmsDrafts` به همه‌ی editorialها create/update کامل می‌دهد و `cmsReviews` به reviewer اجازه‌ی create مستقیم می‌دهد. یک client مخرب می‌تواند state/author/audit را خارج از Functions تغییر دهد. transitionها باید فقط server-write باشند.
-4. ~~**Observability واقعی صفر است**~~ — **partly fixed in Goal 9**: analytics events and crash reports now ship through the outbox to `recordTelemetryBatch`, with the PII guard applied on both sides; the ErrorBoundary reports fatals with route/seed/revision and a redacted message. Crashlytics/Performance/App Check still need native modules — see `docs/runbooks/observability.md`. Original text: default analytics sink فقط در dev log می‌کند؛ Crashlytics/Performance/App Check نصب نیست. release بدون crash telemetry کور است.
-5. **Analytics wiring ناقص است:** impression، notification، download و account-link eventها عملاً ثبت نمی‌شوند؛ `seed_completed.duration_ms` همیشه صفر است و source همیشه `direct` است.
+4. ~~**Observability واقعی صفر است**~~ — **partly fixed in Goal 9**: analytics events and crash reports now ship through the outbox to `recordTelemetryBatch`, with the PII guard applied on both sides; the ErrorBoundary reports fatals with route/seed/revision and a redacted message. Crashlytics/Performance/App Check still need native modules — see `docs/runbooks/observability.md`. **Release goal 7** added the missing half of the App Check story: coverage is now *measured* (a sharded daily count of verified vs unverified calls) so enforcement becomes a decision with a number behind it, and the reason it cannot be enforced on device is written down — the Firebase JS SDK attests with reCAPTCHA, which has no DOM on Android or iOS. Original text: default analytics sink فقط در dev log می‌کند؛ Crashlytics/Performance/App Check نصب نیست. release بدون crash telemetry کور است.
+5. ~~**Analytics wiring ناقص است**~~ — **fixed in release goal 8** (ADR 23). ۹ رویداد از ۱۶ رویداد اعلام‌شده هیچ call site نداشتند (impression، هر سه رویداد download، `review_completed`، هر دو رویداد notification، `onboarding_started` و `account_linked`) — هرکدام روی داشبورد به‌صورت **صفر** خوانده می‌شد، یعنی «اتفاق نمی‌افتد» نه «اندازه‌گیری نشده». `onboarding_completed.duration_ms` هم hard-code شده بود روی صفر. اکنون هر ۱۶ رویداد فرستاده می‌شوند، `docs/event-coverage.md` تولید می‌شود و `tests/static/event-coverage.test.ts` اگر رویدادی بی‌صاحب بماند شکست می‌خورد. متن اصلی: impression، notification، download و account-link eventها عملاً ثبت نمی‌شوند؛ `seed_completed.duration_ms` همیشه صفر است و source همیشه `direct` است.
+5b. **تصمیم crash reporting برای staging APK** — Crashlytics نیاز به native module دارد و در این build نیست؛ بنابراین `crashReports` در Firestore **همان** مسیر واقعی crash است و مثل یک سامانه‌ی واقعی اداره می‌شود: retention (۳۰ روز event / ۹۰ روز crash، جاروی شبانه‌ی کران‌دار)، یک سند روزانه‌ی `opsDigest/{day}` که از `occurredAt` محاسبه می‌شود نه `receivedAt`، و `npm run diagnose` که یک crash مصنوعی می‌فرستد و آن را با version/route/environment بازمی‌خواند و بعد پاک می‌کند. آستانه‌ها، داشبورد و مالکیت incident در `docs/runbooks/observability.md`.
 6. ~~**Feature flags remote نیست**~~ — **fixed in Goal 9**: `appConfig/public` drives flags, maintenance and minimum version, all failing open. Narrow-only was documented but not enforced; it is now.
 7. **OTA واقعاً فعال نیست:** generated Android manifest مقدار `expo.modules.updates.ENABLED=false` داشت؛ runbook فعلی درباره‌ی EAS Update زودتر از implementation نوشته شده است.
 8. ~~**CI native را نمی‌سازد**~~ — **fixed in Goal 7**: CI now runs `npm run check:config` and an Android `prebuild` + `assembleDebug`. Expo Doctor remains `continue-on-error` pending the AsyncStorage version decision.
+9b. ~~**Maestro suite قابل شکست نبود**~~ — **fixed in release goal 10**. flowها به `id: "email"` اشاره می‌کردند در حالی که اپ **هیچ `testID`ای نداشت**، و tap با `optional: true` علامت خورده بود؛ یعنی مرحله با *انجام‌نشدن* پاس می‌شد. flow ثبت‌نام آدرس را از متغیر copied-text مِیسترو می‌ساخت که هیچ‌وقت چیزی کپی نشده بود، «قبلاً حساب ساخته‌ای؟» را می‌زد (که به حالت **ورود** سوییچ می‌کند) و بعد «ساختن حساب» را، هیچ‌وقت رمز وارد نمی‌کرد، و در پایان برچسبی را assert می‌کرد که بی‌ربط به بقای داده همیشه روی صفحه است. یک اجرای واقعی روی دستگاه سبز می‌شد. حالا ۱۵ `testID` اضافه شده، flowها با id آدرس‌دهی می‌کنند، و `npm run check:e2e` به‌عنوان gate در CI به این پرسش پاسخ می‌دهد که *آیا این flow اصلاً می‌تواند شکست بخورد؟* **باقی‌مانده:** خودِ اجرا — در این محیط Android SDK نصب نیست.
 9. ~~**Native QA وجود ندارد**~~ — **fixed in Goal 8** (ADR 17). `npm run check:android` asserts eleven things out of the generated manifest/resources and is a CI gate; nine Maestro flows cover the tester paths; `docs/runbooks/native-qa.md` lists what only a device can answer. Original text: SQLite، notifications، file system، deep link، keyboard و RTL فقط با unit/web پوشش داده شده‌اند؛ Maestro/Detox/EAS device smoke test وجود ندارد.
-10. **اسناد وضعیت گمراه‌کننده‌اند:** `BUILD_TODO.md` بعضی بخش‌های وصل‌نشده را done اعلام کرده و recommendation پیاده‌شده را undone نشان می‌دهد. README نیز هنوز README پیش‌فرض Expo است.
-11. **محتوای اولین تجربه ناقص است:** seed اول image block دارد ولی asset واقعی ندارد و fallback متن جایگزین نشان داده می‌شود. source URLها نیز به homepage ناشر اشاره می‌کنند، نه صفحه‌ی دقیق منبع.
-12. **حقوقی/پشتیبانی:** privacy policy، terms، support contact، data retention، account deletion URL و Data Safety answers وجود ندارند.
+10. ~~**اسناد وضعیت گمراه‌کننده‌اند**~~ — **fixed**: `BUILD_TODO.md` reconciled against the code across goals 1–9, and the default Expo README replaced with a real one carrying the canonical local startup sequence (release goal 2).
+11. ~~**محتوای اولین تجربه ناقص است**~~ — **بخش تصویری در release goal 9 بسته شد** (ADR 24). دو placeholder واقعاً به کاربر نمایش داده می‌شد: کاور کارت hero متن «تصویرسازی برای روان‌شناسی» را روی یک نوار خاکستری نشان می‌داد (یعنی زیرنویسِ تصویری که وجود ندارد)، و image block بدون `imageUrl` متن جانشین را داخل قاب خالی می‌کشید — دقیقاً همان چیزی که یک asset خراب شبیه آن است. حالا کاور کشیده می‌شود (نشان دانه روی tint خانواده‌ی موضوع) و image block باید یا تصویر داشته باشد یا `describedOnly: true` اعلام کند، وگرنه publish gate ردش می‌کند. **باقی‌مانده:** source URLها هنوز به homepage ناشر اشاره می‌کنند نه صفحه‌ی دقیق.
+11b. **English plural در پورت LTR:** در هر ۲۷ فراخوانی، `count` یک رشته‌ی قالب‌بندی‌شده است نه عدد، پس i18next هیچ‌وقت فرم جمع را انتخاب نمی‌کند و انگلیسی «1 seeds on this device» می‌شود. فارسی تحت تأثیر نیست (اسم شمرده‌شده صرف نمی‌شود). رفع آن یک تغییر قرارداد در هر ۲۷ محل است — عدد برای انتخاب جمع، متغیر جدا برای نمایش.
+12. ~~**حقوقی/پشتیبانی**~~ — **بخش درون‌اپ در release goal 12 بسته شد**: صفحه‌ی «درباره و پشتیبانی» با نسخه **و شماره‌ی ساخت** (سه APK داخلی هر سه `1.0.0` هستند؛ «روی کدام build بودی؟» اولین پرسشی است که گزارش crash باید جواب بدهد)، محیط، سیاست حریم خصوصی، شرایط استفاده، نشانی پشتیبانی، شرح اینکه چه چیزی دستگاه را ترک می‌کند، و توضیح حذف حساب **کنار خودِ دکمه‌ی حذف**. retention در `docs/runbooks/observability.md` است. **باقی‌مانده (owner):** انتشار واقعی دو صفحه‌ی privacy/terms و پاسخ‌های Data Safety.
 13. ~~**Backup privacy**~~ — **fixed in Goal 8**: `android.allowBackup: false`, asserted by `check:android`. The trade — a reader changing phones loses on-device progress without an account — is recorded in ADR 17.
 14. **Audio/video:** هیچ schema/player/pipeline برای audio یا video وجود ندارد. یا باید صریحاً از MVP حذف شود، یا قبل از ادعای Nibble-like بودن اضافه شود.
-15. **Dependency health:** Expo Doctor باید gate شود و AsyncStorage به نسخه‌ی سازگار با Expo 57 برگردد/ارتقا داده شود. dependency vulnerability scan نیز به CI افزوده شود.
+15. ~~**Public callable abuse surface**~~ — **fixed in release goal 7** (ADR 22). هر callable فقط *محتوای* درخواست را اعتبارسنجی می‌کرد: نه اندازه‌ی بدنه، نه تعداد فراخوانی. یک حساب واردشده می‌توانست بدنه‌ای در هر اندازه بفرستد و هر endpoint را به سرعت باز کردن socket صدا بزند؛ سه سقف batch موجود (۲۰۰ / ۵۰ / ۱۰۰) inline در سه جا نوشته شده بودند و با هم نمی‌خواندند. اکنون یک جدول واحد (`functions/src/shared/guard.ts`) سقف بایت، سقف batch و نرخ فراخوانی هر callable را نگه می‌دارد و پیش از handler اجرا می‌شود؛ rate limit یک transaction است تا دو درخواست هم‌زمان نتوانند هر دو از read-then-write رد شوند. شواهد: `RESOURCE_EXHAUSTED, retry after 33s` در `npm run smoke:local`، و ۱۷ تست integration.
+16. ~~**Progress دو نویسنده داشت**~~ — **fixed in release goal 7** (ADR 22). معماری `ingestProgress` را authoritative می‌خواند ولی rules هنوز به client اجازه‌ی نوشتن مستقیم روی `users/{uid}/progress` می‌داد. یک نویسنده‌ی دوم فقط می‌توانست با سرور تناقض بسازد — completionی که سرور نشمرده، یا عقب بردن resume position از قاعده‌ی monotonic. حالا client فقط می‌خواند.
+17. **مهم — throttle نباید داده‌ی خواننده را از بین ببرد:** outbox پس از `MAX_ATTEMPTS` (۸) شکست، آیتم را dead-letter می‌کند. اگر throttle به‌عنوان failure شمرده می‌شد، دستگاهی که هشت بار به سقف نرخ می‌خورد **یک seed کامل‌شده‌ی خواننده را حذف می‌کرد**. `resource-exhausted` اکنون `retryAfterSeconds` حمل می‌کند و صف آیتم را بدون خرج کردن attempt به تعویق می‌اندازد. (ثبت‌شده به‌عنوان یک تصمیم، نه یک باگ باز.)
+18. ~~**Dependency health**~~ — **fixed in Release Goal 1**: `npx expo install --fix` brought AsyncStorage to `2.2.0` and four other packages to the versions SDK 57 expects; Doctor passes 21/21 and is a hard CI gate. A dependency vulnerability scan is still outstanding.
 
 ---
 

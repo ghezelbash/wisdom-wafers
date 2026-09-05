@@ -41,6 +41,45 @@ export interface EventMap {
 export type EventName = keyof EventMap;
 
 /**
+ * The same names, at runtime.
+ *
+ * `keyof EventMap` disappears at compile time, so nothing could ask "is every
+ * declared event actually sent?" — which is how nine of the sixteen came to be
+ * declared and never called. Kept beside the map, and asserted against it.
+ */
+export const EVENT_NAMES = [
+  'onboarding_started',
+  'onboarding_completed',
+  'seed_impression',
+  'seed_started',
+  'block_completed',
+  'answer_submitted',
+  'seed_completed',
+  'review_completed',
+  'search_performed',
+  'download_started',
+  'download_failed',
+  'download_completed',
+  'notification_permission',
+  'notification_opened',
+  'content_reported',
+  'account_linked',
+] as const satisfies readonly EventName[];
+
+/**
+ * Fails to compile if a name is declared in `EventMap` and missing from the
+ * list above. `satisfies` alone only checks the other direction — a short list
+ * of valid names satisfies it perfectly, which is precisely the mistake this
+ * has to catch.
+ */
+const _everyEventIsListed: (typeof EVENT_NAMES)[number] extends EventName
+  ? EventName extends (typeof EVENT_NAMES)[number]
+    ? true
+    : ['missing from EVENT_NAMES:', Exclude<EventName, (typeof EVENT_NAMES)[number]>]
+  : never = true;
+void _everyEventIsListed;
+
+/**
  * Parameter names that must never carry free text.
  *
  * Search terms, reflections, titles and email addresses are the four ways

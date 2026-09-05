@@ -19,14 +19,13 @@ appId: com.dananeh.app.staging
 - assertVisible: "روان‌شناسی"
 - tapOn: "روان‌شناسی"
 - tapOn: "زیست‌شناسی"
-- tapOn:
-    text: "ادامه"
-    optional: false
+- tapOn: "ادامه"
 
 # Pace, then the handoff into the first seed.
-- assertVisible:
-    text: ".*"
-- tapOn:
-    text: "ادامه"
-    optional: true
+# Pace, then the hand-off into the first seed. `assertVisible: ".*"` matched
+# any screen at all, and the tap that follows was optional — together they
+# asserted nothing about ever reaching the end of onboarding.
+- assertVisible: "چقدر وقت داری؟|هر روز چند دانه؟"
+- tapOn: "ادامه"
+- assertVisible: "شروع دانه|اولین دانه‌ات"
 - takeScreenshot: onboarding-complete

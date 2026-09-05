@@ -4,6 +4,7 @@ import { KeyValueOutboxStore, type KeyValue } from '@/data/local/outbox-store';
 import {
   eventId,
   InvalidEventError,
+  onboardingDurationMs,
   progressEvent,
   recordCompletion,
   recordContentReport,
@@ -124,5 +125,30 @@ describe('queueing what the reader did', () => {
     const [item] = await listOutbox();
 
     expect(Object.keys(item.payload)).not.toContain('reflection');
+  });
+});
+
+describe('how long onboarding took', () => {
+  const started = '2026-09-05T12:00:00.000Z';
+
+  it('measures from the stored instant, not from this launch', () => {
+    // The reason it is stored: onboarding survives a restart, and a duration
+    // held in memory would report seconds for a reader who came back the next
+    // morning.
+    const next = new Date('2026-09-06T12:00:30.000Z');
+    expect(onboardingDurationMs(started, next)).toBe(24 * 60 * 60 * 1000 + 30_000);
+  });
+
+  it('reports nothing for a session that predates the field', () => {
+    expect(onboardingDurationMs(null)).toBe(0);
+  });
+
+  /** An impossible duration silently skews an average nobody questions. */
+  it('reports nothing rather than a negative, if the clock moved back', () => {
+    expect(onboardingDurationMs(started, new Date('2026-09-05T11:00:00.000Z'))).toBe(0);
+  });
+
+  it('reports nothing for an unparseable instant', () => {
+    expect(onboardingDurationMs('not a date')).toBe(0);
   });
 });

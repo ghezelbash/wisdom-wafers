@@ -29,9 +29,18 @@ Fill in after `eas build` returns.
 ```bash
 npx expo install --check
 npm run typecheck && npm run lint && npm test -- --ci && npm run test:emulator
-npm run check:config
+npm run check:config && npm run check:events && npm run check:e2e && npm run check:android
+APP_VARIANT=staging npm run verify:env      # every line must be a ✓
 npx eas-cli@latest build --platform android --profile internal-apk
 ```
+
+`verify:env` is the gate. Against the `.env` in this checkout it currently
+reports the pre-rebrand project with **both sign-in methods off, Firestore 403,
+the bucket 404 and no function deployed** — which is the whole reason sign-in
+does not work today, and exactly what a build made without checking would ship.
+
+Record the result in `docs/release/` from `TEMPLATE.md`. A build with no record
+there did not happen.
 
 ---
 
@@ -68,13 +77,17 @@ without a new build, and both fail open.
 | | Impact | Plan |
 |---|---|---|
 | Three launch seeds | Home rails are short and Explore has one path | Content, not code — the pipeline and CMS are ready |
-| The bundled seed's image block has no asset | Shows its alt text instead of a picture | Asset production |
+| ~~The bundled seed's image block has no asset~~ | Resolved (release goal 9) | It is now a **described figure** — a titled figure card with the description as body text — and an image block that has neither a picture nor `describedOnly: true` is refused by the publish gate. No empty frame ships |
+| Preferences sync one way | A second device gets progress, bookmarks and reviews; pace and reminder time still come from the device | See the row below |
+| The English port says "1 seeds" | Cosmetic, LTR only | `count` is a formatted display string at all 27 call sites, so i18next never selects a plural. Persian does not inflect the counted noun and is unaffected |
+| Impression counts are an upper bound | Ranking metrics only | The lists are `ScrollView`s, which have no viewability callback; a card below the fold is counted. Stated in `docs/event-coverage.md` |
+| App Check cannot be enforced on device | No abuse protection beyond rules and rate limits | The JS SDK attests with reCAPTCHA, which has no DOM on Android. Needs React Native Firebase — coverage is measured meanwhile |
 | Crashlytics, Performance and App Check are not on | Crashes reach `crashReports` in Firestore, not a crash dashboard | Needs React Native Firebase and a development build |
 | Preferences do not sync | Progress and bookmarks do; pace and reminder time stay per device | The transport exists, `SessionContext` does not call it |
 | Data export is device-only | The pre-deletion export does not include server data | — |
 | `allowBackup` is off | Changing phones loses on-device progress unless you have an account | Deliberate: the alternative copies private reflections into Google backup |
 | No audio or video blocks | Not in this release | Explicitly out of MVP scope |
-| Expo Doctor warns on AsyncStorage | `3.1.1` vs the version Expo 57 pins | Decide before public beta |
+| ~~Expo Doctor warns on AsyncStorage~~ | Resolved | `expo install --fix` brought it to `2.2.0`; Doctor passes 21/21 and gates CI |
 
 ---
 
@@ -164,3 +177,14 @@ From `docs/runbooks/environments.md`:
 enabled per project; Firestore and Storage created; an Android app registered
 per package name; the Android signing decision (EAS-generated or your own
 keystore); and the emails holding `admin` / `editor` / `reviewer`.
+
+**Needed before it goes to anyone outside the team:** a published privacy policy
+and terms page at the two URLs in `src/app/settings/about.tsx`, and a support
+address that is actually monitored.
+
+**Never run:** the Maestro suite. There is no Android SDK in the environment
+this was built in — neither `adb` nor `maestro` — so every flow is repaired and
+statically checked (`npm run check:e2e`) but none has been executed. Same for
+TalkBack, the themed launcher icon and a cold-start recording. Those are the
+first things to do with the APK in hand, and until they are done the honest
+status is **No-Go for anyone outside the team**.

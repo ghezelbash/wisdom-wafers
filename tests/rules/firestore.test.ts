@@ -84,6 +84,21 @@ describe('catalogue', () => {
     );
   });
 
+  /**
+   * `appConfig/{document}` was world-readable across the collection, so the
+   * next operational document added there would have been public by default.
+   */
+  it('publishes exactly one configuration document', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'appConfig/internal'), { note: 'not for clients' });
+    });
+
+    await assertSucceeds(getDoc(doc(anonymous(env), 'appConfig/public')));
+    await assertFails(getDoc(doc(anonymous(env), 'appConfig/internal')));
+    await assertFails(getDoc(doc(reader(env), 'appConfig/internal')));
+    await assertFails(getDocs(collection(reader(env), 'appConfig')));
+  });
+
   it('never lets a client write content', async () => {
     await assertFails(setDoc(doc(reader(env), 'seeds/published-seed'), { status: 'published' }));
     await assertFails(setDoc(doc(staff(env, 'admin'), 'seeds/new-seed'), { status: 'published' }));
@@ -110,6 +125,39 @@ describe('user documents', () => {
     await assertFails(updateDoc(doc(reader(env), `users/${UID}`), { premium: true }));
   });
 
+  /**
+   * The allow-list constrained *which* keys could be written and nothing about
+   * their values: a locale could be an object and a timezone a megabyte.
+   */
+  it('validates the values, not only the key names', async () => {
+    const db = reader(env);
+    await assertSucceeds(updateDoc(doc(db, `users/${UID}`), { locale: 'en' }));
+    await assertFails(updateDoc(doc(db, `users/${UID}`), { locale: 'kl' }));
+    await assertFails(updateDoc(doc(db, `users/${UID}`), { locale: { fa: true } }));
+    await assertFails(updateDoc(doc(db, `users/${UID}`), { timezone: 'z'.repeat(65) }));
+    await assertFails(updateDoc(doc(db, `users/${UID}`), { displayName: 'n'.repeat(81) }));
+  });
+
+  it('accepts the notification preferences the app writes, and no others', async () => {
+    const db = reader(env);
+    await assertSucceeds(
+      updateDoc(doc(db, `users/${UID}`), {
+        notificationPreferences: {
+          pace: 'one',
+          timeOfDay: 'evening',
+          reminderTime: '20:30',
+          enabled: true,
+        },
+      })
+    );
+    await assertFails(
+      updateDoc(doc(db, `users/${UID}`), {
+        notificationPreferences: { enabled: true, everything: 'else' },
+      })
+    );
+    await assertFails(updateDoc(doc(db, `users/${UID}`), { notificationPreferences: 'on' }));
+  });
+
   it('caps the size of the interests list', async () => {
     const tooMany = Array.from({ length: 21 }, (_, index) => `topic-${index}`);
     await assertFails(updateDoc(doc(reader(env), `users/${UID}`), { interests: tooMany }));
@@ -121,11 +169,17 @@ describe('user documents', () => {
   });
 });
 
-describe('progress', () => {
+describe('progress is the server\u2019s to write', () => {
   const progressPath = `users/${UID}/progress/new-seed`;
 
-  it('accepts a well-formed write from its owner', async () => {
-    await assertSucceeds(
+  /**
+   * The client used to be allowed to write here under field validation. Every
+   * progress change already goes through the outbox into `ingestProgress`,
+   * which derives the percent, the resume position and the review schedule — a
+   * second writer could only contradict it.
+   */
+  it('refuses a write from the reader it belongs to, however well-formed', async () => {
+    await assertFails(
       setDoc(doc(reader(env), progressPath), {
         seedId: 'new-seed',
         revision: 1,
@@ -135,33 +189,19 @@ describe('progress', () => {
     );
   });
 
-  it('rejects a percent outside 0–100 or a mismatched id', async () => {
-    const db = reader(env);
+  it('refuses an update to a document the server wrote', async () => {
     await assertFails(
-      setDoc(doc(db, progressPath), { seedId: 'new-seed', revision: 1, percent: 140, status: 'in_progress' })
+      updateDoc(doc(reader(env), `users/${UID}/progress/published-seed`), { percent: 20 })
     );
-    await assertFails(
-      setDoc(doc(db, progressPath), { seedId: 'other-seed', revision: 1, percent: 10, status: 'in_progress' })
-    );
-    await assertFails(
-      setDoc(doc(db, progressPath), { seedId: 'new-seed', revision: 0, percent: 10, status: 'in_progress' })
-    );
+    await assertFails(deleteDoc(doc(reader(env), `users/${UID}/progress/published-seed`)));
   });
 
-  // Completion drives the streak and the review schedule, so it only goes one way.
-  it('will not reopen a completed seed', async () => {
-    await assertFails(
-      setDoc(doc(reader(env), `users/${UID}/progress/published-seed`), {
-        seedId: 'published-seed',
-        revision: 1,
-        percent: 20,
-        status: 'in_progress',
-      })
-    );
-  });
-
-  it('keeps progress private to its owner', async () => {
+  it('still lets the reader read their own, and nobody else read it', async () => {
+    await assertSucceeds(getDoc(doc(reader(env), `users/${UID}/progress/published-seed`)));
     await assertFails(getDoc(doc(reader(env, OTHER), `users/${UID}/progress/published-seed`)));
+  });
+
+  it('refuses a forged write from another account', async () => {
     await assertFails(
       setDoc(doc(reader(env, OTHER), `users/${UID}/progress/forged`), {
         seedId: 'forged',
@@ -170,6 +210,161 @@ describe('progress', () => {
         status: 'completed',
       })
     );
+  });
+});
+
+describe('devices and their push tokens', () => {
+  const devicePath = `users/${UID}/devices/device-1`;
+  const device = {
+    deviceId: 'device-1',
+    pushToken: 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]',
+    platform: 'android',
+    appVersion: '1.0.0',
+    updatedAt: '2026-09-05T12:00:00.000Z',
+  };
+
+  it('accepts the shape the app writes', async () => {
+    await assertSucceeds(setDoc(doc(reader(env), devicePath), device));
+  });
+
+  it('lets a reader retire their own token', async () => {
+    await setDoc(doc(reader(env), devicePath), device);
+    await assertSucceeds(deleteDoc(doc(reader(env), devicePath)));
+  });
+
+  /** `read, write: if owner(uid)` accepted every one of these. */
+  it('refuses a document of any other shape', async () => {
+    const db = reader(env);
+    await assertFails(setDoc(doc(db, devicePath), { ...device, note: 'anything at all' }));
+    await assertFails(setDoc(doc(db, devicePath), { ...device, deviceId: 'someone-elses' }));
+    await assertFails(setDoc(doc(db, devicePath), { ...device, platform: 'toaster' }));
+    await assertFails(setDoc(doc(db, devicePath), { ...device, pushToken: 42 }));
+    await assertFails(setDoc(doc(db, devicePath), { ...device, pushToken: 'x'.repeat(257) }));
+    await assertFails(setDoc(doc(db, devicePath), { ...device, appVersion: 'v'.repeat(33) }));
+  });
+
+  it('keeps another account away from it entirely', async () => {
+    await assertFails(getDoc(doc(reader(env, OTHER), devicePath)));
+    await assertFails(setDoc(doc(reader(env, OTHER), devicePath), device));
+  });
+});
+
+describe('bookmarks', () => {
+  it('accepts a well-formed save and un-save from their owner', async () => {
+    const db = reader(env);
+    await assertSucceeds(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: true,
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      })
+    );
+    // The removal is a document, not an absence.
+    await assertSucceeds(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: false,
+        updatedAt: '2026-09-05T13:00:00.000Z',
+      })
+    );
+  });
+
+  it('rejects an unknown field, a mismatched id, or a wrong type', async () => {
+    const db = reader(env);
+    const base = { seedId: 'published-seed', saved: true, updatedAt: '2026-09-05T12:00:00.000Z' };
+
+    await assertFails(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), { ...base, note: 'anything' })
+    );
+    await assertFails(setDoc(doc(db, `users/${UID}/saved/other-seed`), base));
+    await assertFails(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), { ...base, saved: 'yes' })
+    );
+    await assertFails(
+      setDoc(doc(db, `users/${UID}/saved/published-seed`), { ...base, updatedAt: 12345 })
+    );
+  });
+
+  /** Deleting would lose the statement that the bookmark was taken away. */
+  it('refuses a delete, because a removal has to be a document', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `users/${UID}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: true,
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      });
+    });
+
+    await assertFails(deleteDoc(doc(reader(env), `users/${UID}/saved/published-seed`)));
+  });
+
+  it('keeps one reader out of another reader\'s bookmarks', async () => {
+    await assertFails(
+      setDoc(doc(reader(env), `users/${OTHER}/saved/published-seed`), {
+        seedId: 'published-seed',
+        saved: true,
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      })
+    );
+  });
+});
+
+describe('review state', () => {
+  /**
+   * A client that can write its own schedule can decide never to be asked
+   * again. The attempt is recorded as an event; the due date is derived.
+   */
+  it('is readable by its owner and writable by nobody', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `users/${UID}/reviews/published-seed`), {
+        seedId: 'published-seed',
+        reviewedAt: '2026-09-05T12:00:00.000Z',
+        interval: 14,
+        dueAt: '2026-09-19T12:00:00.000Z',
+        count: 1,
+        confidence: 'easy',
+        updatedAt: '2026-09-05T12:00:00.000Z',
+      });
+    });
+
+    await assertSucceeds(getDoc(doc(reader(env), `users/${UID}/reviews/published-seed`)));
+    await assertFails(
+      setDoc(doc(reader(env), `users/${UID}/reviews/published-seed`), {
+        seedId: 'published-seed',
+        interval: 365,
+        dueAt: '2099-01-01T00:00:00.000Z',
+        confidence: 'easy',
+      })
+    );
+    await assertFails(deleteDoc(doc(reader(env), `users/${UID}/reviews/published-seed`)));
+  });
+
+  it('is not readable by anyone else', async () => {
+    await assertFails(getDoc(doc(reader(env), `users/${OTHER}/reviews/published-seed`)));
+  });
+});
+
+describe('deletion jobs', () => {
+  /**
+   * The document holds the receipt, which is a capability that can finish a
+   * deletion without a session. Nobody reads it — a reader asks about their
+   * own job through `myAccountDeletionStatus`, which requires the receipt they
+   * were handed and answers with a state and nothing else.
+   */
+  it('are unreadable and unwritable by everyone, owner and admin alike', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `deletionJobs/${UID}`), {
+        uid: UID,
+        state: 'requested',
+        receipt: 'a'.repeat(32),
+        completed: [],
+      });
+    });
+
+    await assertFails(getDoc(doc(reader(env), `deletionJobs/${UID}`)));
+    await assertFails(getDoc(doc(staff(env, 'admin'), `deletionJobs/${UID}`)));
+    await assertFails(setDoc(doc(reader(env), `deletionJobs/${UID}`), { state: 'done' }));
+    await assertFails(deleteDoc(doc(staff(env, 'admin'), `deletionJobs/${UID}`)));
   });
 });
 
@@ -274,6 +469,30 @@ describe('CMS', () => {
         updateDoc(doc(staff(env, role), 'cmsDrafts/draft-1'), { state: 'in_review' })
       );
     }
+  });
+
+  /**
+   * Any editorial role could rewrite any draft, including one submitted by
+   * someone else — the trail would then show the original author against text
+   * they never wrote.
+   */
+  it('does not let one editor rewrite another editor\u2019s draft', async () => {
+    await assertFails(
+      updateDoc(doc(staff(env, 'editor', 'editor-2'), 'cmsDrafts/draft-1'), {
+        seed: { id: 'seed-1', title: 'نوشته‌ی کس دیگر' },
+        updatedAt: '2026-09-05T00:00:00.000Z',
+      })
+    );
+  });
+
+  /** Someone has to be able to fix a draft whose author has left. */
+  it('keeps an admin override, documented rather than implicit', async () => {
+    await assertSucceeds(
+      updateDoc(doc(staff(env, 'admin'), 'cmsDrafts/draft-1'), {
+        seed: { id: 'seed-1', title: 'اصلاح مدیر' },
+        updatedAt: '2026-09-05T00:00:00.000Z',
+      })
+    );
   });
 
   it('does not let anyone forge authorship or an approval', async () => {
@@ -389,6 +608,39 @@ describe('published content is immutable to clients', () => {
 
     await assertSucceeds(getDoc(doc(anonymous(env), 'seedRevisions/published-seed_1')));
     await assertFails(getDoc(doc(staff(env, 'admin'), 'seedRevisions/draft-seed_1')));
+  });
+});
+
+describe('the guard\u2019s own bookkeeping', () => {
+  it('keeps rate-limit counters away from the caller they count', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `rateLimits/ingestProgress__${UID}`), {
+        windowStartedAt: 0,
+        count: 1,
+      });
+    });
+
+    // Reading it tells a caller exactly when to resume; writing it removes the
+    // limit altogether.
+    await assertFails(getDoc(doc(reader(env), `rateLimits/ingestProgress__${UID}`)));
+    await assertFails(
+      setDoc(doc(reader(env), `rateLimits/ingestProgress__${UID}`), { count: 0 })
+    );
+  });
+
+  it('lets an admin read App Check coverage and nobody write it', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'appCheckCoverage/2026-09-05/shards/0'), {
+        verified: 3,
+        unverified: 1,
+      });
+    });
+
+    await assertSucceeds(getDoc(doc(staff(env, 'admin'), 'appCheckCoverage/2026-09-05/shards/0')));
+    await assertFails(getDoc(doc(reader(env), 'appCheckCoverage/2026-09-05/shards/0')));
+    await assertFails(
+      setDoc(doc(staff(env, 'admin'), 'appCheckCoverage/2026-09-05/shards/1'), { verified: 999 })
+    );
   });
 });
 

@@ -45,8 +45,15 @@ function Rail({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
-        {seeds.map((seed) => (
-          <SeedCard key={seed.id} variant="rail" seed={seed} onPress={() => onOpen(seed)} />
+        {seeds.map((seed, position) => (
+          <SeedCard
+            key={seed.id}
+            variant="rail"
+            seed={seed}
+            placement="home_rail"
+            rank={position + 1}
+            onPress={() => onOpen(seed)}
+          />
         ))}
       </ScrollView>
     </View>
@@ -233,6 +240,8 @@ export default function HomeScreen() {
                 <Pressable
                   accessibilityRole="button"
                   disabled={due.length === 0}
+                  // An inline text action is still a touch target.
+                  style={{ minHeight: MinTouchTarget, justifyContent: 'center' }}
                   onPress={() => router.push('/review')}>
                   <Text
                     variant="caption"
@@ -251,6 +260,8 @@ export default function HomeScreen() {
               <SeedCard
                 variant="hero"
                 seed={hero}
+                placement="home_hero"
+                rank={1}
                 reason={
                   heroPick?.reason
                     ? { code: heroPick.reason, topicId: hero.topicId }

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { Icon } from '@/components/icon';
+import { BrandMark, Icon } from '@/components/icon';
 import { MetaDot } from '@/components/meta-dot';
 import { ProgressRing } from '@/components/progress-ring';
 import { Text } from '@/components/Text';
@@ -12,6 +12,7 @@ import { getTopic, topicLabel } from '@/data/topics';
 import type { ReasonCode } from '@/domain/recommendation/rank';
 import { formatMegabytes } from '@/lib/format-bytes';
 import { localizeDigits } from '@/lib/format';
+import { useImpression, type ImpressionPlacement } from '@/platform/analytics/impression';
 import type { Seed } from '@/models/seed';
 
 /**
@@ -33,6 +34,26 @@ const chipStyles = {
   sciences: { surface: 'bg-brand-tint', color: 'brand' },
   humanities: { surface: 'bg-plum-tint', color: 'plum' },
   practical: { surface: 'bg-sun-tint', color: 'sun' },
+} as const;
+
+/**
+ * The hero card's cover.
+ *
+ * What it replaced was a grey band containing the words "an illustration for
+ * psychology" — a caption describing a picture that does not exist, on the
+ * first card of the first screen. It read as an asset that had failed to load,
+ * because that is exactly what it looked like.
+ *
+ * There is no illustration to ship, so the cover is drawn instead: the seed
+ * mark on the topic family's own tint. It is a designed surface rather than a
+ * space held open for one, it carries the topic's colour before the chip
+ * repeats it in words, and it is hidden from screen readers — the title below
+ * says everything it says.
+ */
+const coverStyles = {
+  sciences: 'bg-brand-tint',
+  humanities: 'bg-plum-tint',
+  practical: 'bg-sun-tint',
 } as const;
 
 export function TopicChip({ topicId }: { topicId: string }) {
@@ -77,11 +98,31 @@ export interface SeedCardProps {
   dueLabel?: string;
   /** Set on the list variant when the seed is finished. */
   completed?: boolean;
+  /**
+   * Where this card is being shown, and at what position. Given together: a
+   * rank without a placement compares nothing. Omitting them means the card is
+   * not counted — a skeleton, or a single card that is not part of a list.
+   */
+  placement?: ImpressionPlacement;
+  rank?: number;
 }
 
 export function SeedCard(props: SeedCardProps) {
   const { t, i18n } = useTranslation();
   const { isOnline, entryFor } = useCatalog();
+
+  // Before the skeleton's early return, so the hook count never changes.
+  useImpression(
+    props.seed && props.placement && props.rank
+      ? {
+          seedId: props.seed.id,
+          revision: props.seed.revision,
+          placement: props.placement,
+          rank: props.rank,
+          reasonCode: props.reason?.code,
+        }
+      : null
+  );
 
   if (props.variant === 'skeleton' || !props.seed) {
     // Mirrors the loaded geometry exactly, so nothing shifts on swap.
@@ -218,10 +259,13 @@ export function SeedCard(props: SeedCardProps) {
   // hero
   return (
     <View className="overflow-hidden rounded-sheet border border-hairline bg-card">
-      <View className="h-[118px] items-center justify-center border-b border-hairline bg-track">
-        <Text variant="caption" color="secondary">
-          {t('seed.illustration', { topic: topicLabel(getTopic(seed.topicId), t) })}
-        </Text>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        className={`h-[118px] items-center justify-center border-b border-hairline ${
+          coverStyles[getTopic(seed.topicId)?.family ?? 'sciences']
+        }`}>
+        <BrandMark size={64} />
       </View>
 
       <View className="p-[18px]">
@@ -268,6 +312,7 @@ export function SeedCard(props: SeedCardProps) {
           accessibilityRole="button"
           accessibilityState={{ disabled: unavailableOffline }}
           disabled={unavailableOffline}
+          testID="hero-start-seed"
           onPress={props.onPress}
           className="items-center justify-center rounded-card bg-brand"
           style={{ minHeight: 52, opacity: unavailableOffline ? 0.5 : 1 }}>

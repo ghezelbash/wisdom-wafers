@@ -5,6 +5,7 @@ import * as local from './local-store';
 import { bundleFileName, getBundleFiles } from './bundle-files';
 import { CATALOG_KEY } from './device-catalog';
 import { OUTBOX_KEY } from './outbox-store';
+import { INSTALL_ID_KEY, __resetCorrelation } from '@/platform/analytics/correlation';
 
 /**
  * Erasing everything this device holds.
@@ -29,6 +30,10 @@ export const OWNED_KEYS = [
   CATALOG_KEY,
   'dananeh.outbox.v1',
   OUTBOX_KEY,
+  // The telemetry install id describes this installation's data, so it must
+  // not outlive it: a reader who deletes their account and starts again is a
+  // new installation, not the same one continuing.
+  INSTALL_ID_KEY,
 ];
 
 const OWNED_PREFIXES = ['dananeh.progress.v1.', 'dananeh.bundle.'];
@@ -52,6 +57,9 @@ const TABLES = [
 
 export async function wipeDevice(): Promise<WipeReport> {
   const report: WipeReport = { tablesCleared: 0, filesRemoved: 0, keysRemoved: 0 };
+
+  // The cached copy would otherwise be written straight back on the next event.
+  __resetCorrelation();
 
   const driver = await getLocalDriver().catch(() => null);
 

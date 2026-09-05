@@ -42,6 +42,11 @@ export interface OutboxStore {
   all(): Promise<OutboxItem[]>;
   remove(id: string): Promise<void>;
   recordFailure(id: string, error: string, now: Date): Promise<void>;
+  /**
+   * Puts an item back to sleep without spending an attempt — what a server-side
+   * throttle earns, as opposed to a failure.
+   */
+  defer(id: string, until: Date): Promise<void>;
   recordRejection(id: string, reason: string): Promise<void>;
   /**
    * Hands every queued envelope from one owner to another.
@@ -79,6 +84,10 @@ export class SqlOutboxStore implements OutboxStore {
 
   async recordFailure(id: string, error: string, now: Date) {
     await local.markFailed(this.driver, id, error, now);
+  }
+
+  async defer(id: string, until: Date) {
+    await local.deferItem(this.driver, id, until);
   }
 
   async recordRejection(id: string, reason: string) {
@@ -180,6 +189,10 @@ export class KeyValueOutboxStore implements OutboxStore {
         dead: isDead(attempts),
       };
     });
+  }
+
+  async defer(id: string, until: Date) {
+    await this.patch(id, (item) => ({ ...item, nextAttemptAt: until.toISOString() }));
   }
 
   async recordRejection(id: string, reason: string) {

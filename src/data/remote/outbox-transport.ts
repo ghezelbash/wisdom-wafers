@@ -2,7 +2,7 @@ import { getApps } from 'firebase/app';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 
 import { usingEmulator } from '@/data/remote/firebase-app';
-import { outcomeFor, type BatchResult } from '@/lib/outbox-ack';
+import { outcomeFor, ThrottledError, type BatchResult } from '@/lib/outbox-ack';
 import type { OutboxItem, SendOutcome } from '@/lib/outbox';
 
 /**
@@ -12,7 +12,29 @@ import type { OutboxItem, SendOutcome } from '@/lib/outbox';
  * and what the server said about it. The distinction it has to preserve is the
  * one the old sender collapsed: a network failure means *try again*, while a
  * rejection means *this will never be accepted* — and neither means "delivered".
+ *
+ * There is a third answer: `resource-exhausted`, the server's rate limit. It is
+ * neither — the item is still owed and will be accepted later — so it is raised
+ * as `ThrottledError` and the queue defers it without spending an attempt.
  */
+
+/** Seconds to wait, taken from the server rather than guessed. */
+const DEFAULT_RETRY_AFTER_SECONDS = 30;
+
+/** The endpoint an item is bound for — two telemetry kinds share one. */
+export const outboxScope = (item: OutboxItem): string =>
+  ENDPOINT[item.kind]?.name ?? item.kind;
+
+function throttleFrom(error: unknown): ThrottledError | null {
+  const code = (error as { code?: string })?.code;
+  if (code !== 'functions/resource-exhausted' && code !== 'resource-exhausted') return null;
+
+  const details = (error as { details?: { retryAfterSeconds?: unknown } })?.details;
+  const seconds = details?.retryAfterSeconds;
+  return new ThrottledError(
+    typeof seconds === 'number' && seconds > 0 ? seconds : DEFAULT_RETRY_AFTER_SECONDS
+  );
+}
 
 const ENDPOINT: Record<OutboxItem['kind'], { name: string; field: string }> = {
   'progress-event': { name: 'ingestProgress', field: 'events' },
@@ -47,6 +69,13 @@ export async function sendOutboxItem(item: OutboxItem): Promise<SendOutcome> {
     return { status: 'rejected', reason: `unknown-kind:${item.kind}` };
   }
 
-  const response = await getCallable(endpoint.name)({ [endpoint.field]: [item.payload] });
+  const response = await getCallable(endpoint.name)({
+    [endpoint.field]: [item.payload],
+  }).catch((error: unknown) => {
+    const throttled = throttleFrom(error);
+    if (throttled) throw throttled;
+    throw error;
+  });
+
   return outcomeFor(item, (response.data ?? {}) as BatchResult);
 }

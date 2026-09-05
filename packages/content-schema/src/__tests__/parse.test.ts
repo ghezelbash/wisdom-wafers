@@ -18,6 +18,7 @@ const blocks = [
   {
     id: 'b2',
     type: 'image' as const,
+    describedOnly: true as const,
     alt: 'نمودار خطوط دید در جهان بی‌کران',
     aspect: '4:5' as const,
   },
@@ -63,6 +64,42 @@ describe('the publish gate', () => {
     });
     const result = parseBundleStrict(bundle);
     expect(result.ok).toBe(false);
+  });
+
+  /**
+   * An image block with neither a picture nor a declared intent used to pass
+   * the gate, and the player drew an empty grey frame with the alt text inside
+   * it — indistinguishable, to a reader, from an asset that failed to load.
+   */
+  it('rejects an image block that has neither a picture nor a description', () => {
+    const bundle = makeBundle({
+      blocks: [blocks[0], { id: 'b2', type: 'image', alt: 'نمودار', aspect: '4:5' }, blocks[2]],
+    });
+
+    expect(parseBundleStrict(bundle).ok).toBe(false);
+  });
+
+  it('accepts a real picture', () => {
+    const bundle = makeBundle({
+      blocks: [
+        blocks[0],
+        {
+          id: 'b2',
+          type: 'image',
+          imageUrl: 'https://cdn.example.com/olbers.png',
+          alt: 'نمودار',
+          aspect: '4:5',
+        },
+        blocks[2],
+      ],
+    });
+
+    expect(parseBundleStrict(bundle).ok).toBe(true);
+  });
+
+  /** Saying "described" is a decision, so it has to be written down. */
+  it('accepts a described figure, because the intent is declared', () => {
+    expect(parseBundleStrict(makeBundle()).ok).toBe(true);
   });
 
   it('rejects an incomplete accessibility flag', () => {

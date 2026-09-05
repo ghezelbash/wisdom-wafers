@@ -1,6 +1,7 @@
 import { eventId } from '@/domain/progress/events';
 import { enqueue } from '@/lib/outbox';
-import { setAnalyticsSink, type AnalyticsSink } from '@/platform/analytics';
+import { setAnalyticsContext, setAnalyticsSink, type AnalyticsSink } from '@/platform/analytics';
+import { installId, sessionId } from '@/platform/analytics/correlation';
 import { appVariant, appVersion } from '@/platform/app-info';
 import { setCrashSink, type CrashReport, type CrashSink } from '@/platform/crash';
 
@@ -61,4 +62,19 @@ const outboxCrashSink: CrashSink = {
 export function installTelemetrySinks() {
   setAnalyticsSink(outboxAnalyticsSink);
   setCrashSink(outboxCrashSink);
+
+  // Build context and the correlation key, on every event and every crash.
+  // The session id is available synchronously so a crash during startup still
+  // correlates; the install id arrives a tick later, when storage answers.
+  setAnalyticsContext({
+    session_id: sessionId(),
+    app_version: appVersion(),
+    env: appVariant(),
+  });
+
+  void installId()
+    .then((id) => setAnalyticsContext({ install_id: id }))
+    .catch(() => {
+      // Already handled inside `installId`; nothing to add here.
+    });
 }

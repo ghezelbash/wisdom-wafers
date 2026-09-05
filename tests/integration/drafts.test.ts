@@ -2,6 +2,7 @@ import { deleteApp, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 import {
+  createDraft,
   publishDraft,
   reviewDraft,
   submitDraft,
@@ -46,6 +47,9 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
+  // The admin Firestore keeps a gRPC channel that `deleteApp` does not
+  // close, which leaves the process alive after the run finishes.
+  await db.terminate();
   await deleteApp(app);
 });
 
@@ -182,5 +186,61 @@ describe('publishing', () => {
       publishDraft(deps, { draftId: 'missing', actorUid: EDITOR })
     ).rejects.toMatchObject({ code: 'not-found' });
     expect(objects.size).toBe(0);
+  });
+});
+
+/**
+ * Creating content used to mean inserting a document into Firestore by hand,
+ * which is how a draft ends up with an author who did not write it, a state
+ * that skips review, or content nothing validated.
+ */
+describe('creating a draft', () => {
+  it('makes it a draft, authored by whoever is signed in', async () => {
+    const created = await createDraft(deps, { actorUid: 'editor-7', seed: skyDarknessSeed });
+
+    expect(created.state).toBe('draft');
+    const stored = await db.doc(`cmsDrafts/${created.draftId}`).get();
+    expect(stored.data()).toMatchObject({ state: 'draft', authorUid: 'editor-7' });
+  });
+
+  /** Authorship cannot be chosen, or the self-approval rule means nothing. */
+  it('ignores any author the caller might name', async () => {
+    const created = await createDraft(deps, {
+      actorUid: 'editor-7',
+      seed: skyDarknessSeed,
+      draftId: 'authored-check',
+    });
+
+    expect((await db.doc(`cmsDrafts/${created.draftId}`).get()).data()?.authorUid).toBe('editor-7');
+  });
+
+  it('refuses to overwrite somebody else\'s draft', async () => {
+    await createDraft(deps, { actorUid: 'editor-7', seed: skyDarknessSeed, draftId: 'taken' });
+
+    await expect(
+      createDraft(deps, { actorUid: 'editor-8', seed: skyDarknessSeed, draftId: 'taken' })
+    ).rejects.toBeInstanceOf(WorkflowError);
+  });
+
+  it('refuses an unusable id or missing content', async () => {
+    await expect(
+      createDraft(deps, { actorUid: 'editor-7', seed: skyDarknessSeed, draftId: '../escape' })
+    ).rejects.toMatchObject({ code: 'invalid' });
+
+    await expect(
+      createDraft(deps, { actorUid: 'editor-7', seed: undefined as never })
+    ).rejects.toMatchObject({ code: 'invalid' });
+  });
+
+  it('records the creation in the audit trail', async () => {
+    const created = await createDraft(deps, {
+      actorUid: 'editor-7',
+      seed: skyDarknessSeed,
+      draftId: 'audited',
+    });
+
+    const audit = await db.collection('cmsReviews').where('draftId', '==', created.draftId).get();
+    expect(audit.size).toBe(1);
+    expect(audit.docs[0].data()).toMatchObject({ actorUid: 'editor-7', note: 'created' });
   });
 });

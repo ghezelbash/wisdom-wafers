@@ -23,6 +23,28 @@ Goal order adjusted for what the first track already built; the reasoning is in
       Jalali dates, schema parsing, fixture validity, registry fallback
 - [x] Eight ADRs; `app.config.ts` with per-variant identity; zero lint errors
 
+## Local full stack — done (release goal 2)
+
+- [x] `npm run emulators` starts **Auth, Firestore, Storage and Functions**,
+      building the functions first; `emulators:lite` keeps the fast subset the
+      Node suites use
+- [x] The seeder produces a *usable* environment: four accounts including an
+      ordinary reader, `appConfig/public` with the gate open, the three launch
+      seeds published **through the real pipeline** with their revisions,
+      manifests, checksums and Storage bundles, topics, paths, and two drafts —
+      one authored by an admin, so the self-approval rule can be reached at all
+- [x] Emulator mode addresses the emulator's own bucket. It kept the name from
+      `.env`, so it was talking to a bucket named after a real project — which
+      the emulator serves anyway, hiding the mistake
+- [x] `npm run smoke:local`: 18 checks over HTTP the way the app does — sign-in,
+      catalogue, bundle download with checksum, three callables, idempotency,
+      the PII guard, and the whole editorial workflow including both refusal
+      paths
+- [x] `publishApproved` maps `PublishError` instead of answering `INTERNAL`;
+      an approved draft at an already-published revision is an ordinary
+      editorial condition, not a broken server
+- [x] A real README with one canonical startup sequence
+
 ## C · Firebase shape and security — done
 
 *Taken before B: identity needs a backend to verify against, and the emulator is
@@ -31,9 +53,19 @@ the safe one.*
 - [x] `firebase.json`, project aliases, emulator suite, JDK via Homebrew
 - [x] Firestore + Storage rules (blueprint §15), deny by default
 - [x] Composite indexes for the feed and catalogue queries
-- [x] 31 allow/deny rules tests against the emulator — they caught a real bug
+- [x] 48 allow/deny rules tests against the emulator — they caught a real bug
       (reading through a null `resource` on create is an evaluation error, not a
       false)
+- [x] **Tightened for release goal 7** (ADR 22): `appConfig` is public for the
+      one `public` document rather than across the collection; device/push-token
+      documents carry a key allow-list with types and sizes instead of
+      `read, write: if owner`; profile *values* are validated, not only their key
+      names; and an editor must own a draft to edit it, with an admin override
+      that is written down
+- [x] **Progress has one writer.** Client writes to `users/{uid}/progress` are
+      refused — every change already goes through `ingestProgress`, which derives
+      the percent, the resume position and the schedule; a second writer could
+      only contradict it
 
 ## B · Identity — done
 
@@ -61,14 +93,47 @@ the safe one.*
       and the Auth record; reports anonymised rather than destroyed; the device
       wipes only after the server reports `done`, then starts a fresh anonymous
       reader
-- [ ] Preferences are not pushed on change yet — the shape and the transport
-      exist, `SessionContext` does not call them
+- [x] **A receipt closes the window after Auth deletion** (release goal 5).
+      Auth goes last, so a lost response left a device that could neither
+      resume nor ask — it had to guess whether its data was gone. The receipt
+      is minted before anything is destroyed and outlives the account
+- [x] Reauthentication happens **in the flow**: the reader types their password
+      on the delete screen instead of being sent away to sign out and back in
+- [x] An interrupted deletion is resumed at launch
+- [x] A fresh anonymous identity afterwards, falling back to a device-local one
+      if sign-in fails — likely right after a deletion
+- [x] Export covers the account as well as the device, so it matches what
+      deletion is about to destroy
+- [x] `deletionJobs` is unreadable by everyone including admins: it holds the
+      receipt, which is a capability
+- [x] **Preferences and bookmarks are pushed on change** (ADR 19). Both had a
+      transport and no caller, so a second device restored progress and then
+      showed the default pace and an empty garden
+- [x] Review state is derived server-side from the `reviewed` event, using the
+      same interval table the app states on the button — and
+      `users/{uid}/reviews` is now `write: if false`
+- [x] The resume position rides on `block_viewed`, queued once per *furthest*
+      block, and only ever advances within a revision
+- [x] An un-save is a document (`saved: false`), not a deletion — an absent row
+      says nothing to a device that never saw it exist, and delete is refused
+- [x] A failed identity migration is recorded durably and retried on relaunch
+      and reconnect instead of being swallowed before the uid switches
 
 ## D · Content pipeline — done
 
 - [x] `functions/` (2nd gen, TypeScript) sharing `@dananeh/content-schema`
-- [x] `publishSeed`: validate → compile → checksum → upload → transactional
-      pointer; a published revision is immutable, corrections are new revisions
+- [x] `publishSeed`: validate → compile → checksum → **reserve** → upload with a
+      no-overwrite precondition → transactional pointer (ADR 21). Immutability
+      now survives concurrency: the old check-then-write let two publishes both
+      pass and produced one artifact holding the loser's bytes under the
+      winner's checksum
+- [x] Rollback restores the whole catalogue summary, not only the pointer and
+      manifest — title, objective, topic, difficulty, duration and locale
+- [x] Editorial transitions and their audit entries commit as one operation;
+      publishing claims the draft (`approved → publishing → published`) so two
+      editors cannot both run the pipeline
+- [x] Drafts are created through `createContentDraft` / `startCorrection`
+      rather than by inserting a document into Firestore by hand
 - [x] `rollbackSeed`: the pointer moves, artifacts are never deleted
 - [x] `ingestProgressEvents`: idempotent on event id, monotonic completion,
       daily buckets in the reader's own timezone, aggregates written server-side
@@ -150,17 +215,69 @@ the safe one.*
       and the AI tutor stays off — **now actually enforced**: a remote boolean
       may go `true → false`, never the reverse. It previously could switch a
       shipped-off feature on
+- [x] **The flags reach the features** (ADR 20). `isEnabled`/`getFlags` had zero
+      callers, so every kill switch was decoration. `RemoteConfigContext` is the
+      single runtime source; `platform/config` mirrors it for code outside the
+      tree
+- [x] A disabled feature is unreachable, not merely unadvertised: route
+      requirements, notification-payload checks, and a `FeatureGate` that makes
+      the screen refuse for itself when the flag flips while it is open
+- [x] Nothing mounts until the first config fetch settles — the catalogue was
+      starting a remote refresh under the shipped flags and beating maintenance
+      to it (six Storage requests before, zero after), bounded by a timeout so
+      a slow config service cannot stop the app opening
+- [x] **A forced update has no way past it.** Both gate states offered "go to
+      the garden", and the handler declared the gate open — so a build the
+      server had refused could open the whole app with one press
+- [x] Maintenance is a scoped exception expressed as flags, not an open gate
+- [x] `seed:emulator --gate=maintenance|update-required --off=<flags>` makes
+      both states reachable locally instead of by hand-editing Firestore
 - [x] **Remote config is live**: `appConfig/public` drives maintenance, minimum
       version and flags, and every path fails open
 - [x] **Maintenance and forced-update states** exist and can be triggered — the
       handoff wrote the copy and nothing could reach it before
 - [x] Analytics and crash reports ship through the outbox to
       `recordTelemetryBatch`; a crash that killed the app offline still arrives
+- [x] **Every declared event is actually sent** (ADR 23, release goal 8). Nine of
+      sixteen had no call site — impressions, all three download events, review
+      completion, both notification events, `onboarding_started` and
+      `account_linked`. Each would have read as a confident zero on a dashboard.
+      `docs/event-coverage.md` is generated, and `tests/static/event-coverage.test.ts`
+      fails when a declared event has no caller
+- [x] `onboarding_completed.duration_ms` was hard-coded to zero; the start
+      instant is stored with the session, so it survives a restart
+- [x] **Correlation**: a session id ties a crash to the events around it, an
+      install id answers "one device or many". Neither is the uid, and both are
+      wiped with the device's data on account deletion
+- [x] **Analytics may wait; progress may not.** The flush is per endpoint, so a
+      throttled or failing telemetry batch no longer holds up the completions
+      queued behind it
+- [x] **Firestore is the crash trail, so it is operated like one**: retention
+      (30 days events / 90 crashes, swept nightly in bounded batches), a daily
+      `opsDigest/{day}` computed from `occurredAt` not `receivedAt`, and
+      `npm run diagnose` — sign-in, a callable answering, a callable still
+      *refusing*, content with an artifact and checksum, and a synthetic crash
+      read back with its version, route and environment, then deleted
+- [x] Dashboards, thresholds, retention and incident ownership written down in
+      `docs/runbooks/observability.md`
 - [x] The PII guard runs on the client *and* the server; a crash message is
       redacted rather than refused, because a refused crash is an invisible one
-- [ ] Crashlytics, Performance Monitoring and App Check need native modules and
-      land with the RNFirebase migration — `docs/runbooks/observability.md` has
-      the App Check monitor → enforce order
+- [x] **Public callables are guarded** (ADR 22): one table of per-callable body,
+      batch and rate limits, checked before the handler in cost order. The rate
+      limit is a Firestore transaction, so two simultaneous requests cannot both
+      pass a read-then-write
+- [x] **A throttle costs a reader nothing.** `resource-exhausted` carries
+      `retryAfterSeconds`, the transport raises `ThrottledError`, and the queue
+      defers the item without spending an attempt — otherwise eight throttles
+      would have dead-lettered a completed seed
+- [x] **App Check coverage is measured** while enforcement stays off: a sharded
+      daily counter of verified vs unverified calls, so the rollout is a decision
+      with a number behind it
+- [ ] Crashlytics, Performance Monitoring and App Check *enforcement* need native
+      modules and land with the RNFirebase migration. The JS SDK attests with
+      reCAPTCHA, which has no DOM on device — `src/data/remote/app-check.ts`
+      wires web and reports `unsupported-platform` on native rather than
+      pretending. `docs/runbooks/observability.md` has the monitor → enforce order
 
 ## H · Recommendation v1 — done
 
@@ -213,6 +330,102 @@ the safe one.*
 - [ ] App Check: monitor → staging enforce → phased production
 - [ ] Native Analytics, Crashlytics, Performance
 
+
+### Brand and native UX — done (release goal 9)
+
+- [x] **The Expo starter is gone from the screen.** `AnimatedSplashOverlay` drew
+      a full-screen Expo logo on Expo blue after the native Dananeh splash, on
+      every cold start. Replaced by `brand-splash.tsx`, which continues the
+      native splash in the same two colours with the same 124pt mark, so a cold
+      start is one splash rather than two
+- [x] Fourteen starter images, `assets/expo.icon/`, six unimported starter
+      components and two starter scripts deleted;
+      `tests/static/brand-assets.test.ts` fails if any of them, or Expo blue,
+      comes back
+- [x] **Every button had collapsed to its label height** — 364×30 against a 44pt
+      floor. `Pressable`'s `style={({ pressed }) => …}` is dropped when the
+      component also carries a NativeWind `className`, taking `minHeight` with
+      it (ADR 24)
+- [x] Seven more targets raised to 44: tab items (42), garden and search chips
+      (40 tall, 43 wide), the search field (23 of a 48pt row), the reminder
+      switch (40×20, now a pressable 44×44 box) and an inline text action (22)
+- [x] **No placeholder visual ships.** The hero cover said "an illustration for
+      psychology" on a grey band; it is now the seed mark on the topic family's
+      tint. An image block must carry a picture or `describedOnly: true`, and
+      the publish gate refuses anything else — a described figure is a titled
+      figure card, not alt text in an empty frame
+- [x] `expo-router` warned on every launch that `seed`, `settings`, `topic`,
+      `path` and `review` were not routes; the declarations now name the real
+      files, so options set on them apply
+- [x] `npm run ux:audit` — the rendered app in fa/en × light/dark × 100%/200%,
+      measuring targets, contrast and direction. All pass; record and
+      screenshots in `docs/qa/2026-09-05/`
+- [x] `contrast.test.ts` computes the ratios the tokens claim. Three had drifted
+      (5.6 for 6.1, 5.0 for 4.9, 9.3 for 9.2) — the colours were right, the
+      comments were not
+- [ ] TalkBack, a themed launcher icon, a real cold-start recording and a
+      reminder that actually fires — no Android SDK in this environment, so
+      they are owner actions, listed in `docs/runbooks/native-qa.md`
+
+### End-to-end flows — repaired (release goal 10)
+
+- [x] **The suite could not fail.** It addressed `id: "email"` when the app had
+      **no `testID` anywhere at all**, with the tap marked optional — so the step
+      passed by not happening. A device run would have gone green
+- [x] Fifteen `testID`s added; every flow addresses controls by id rather than
+      by Persian label
+- [x] Signup repaired: a deterministic unique address minted per run by the
+      runner and shared with the deletion flow, both fields filled, create-account
+      mode asserted rather than assumed (it used to tap "already have an
+      account?", switching to sign-in, then tap "create account"), and the
+      linked guest completion asserted **by the seed's title**
+- [x] Offline proves a *downloaded* seed: fetched from Storage online, then
+      opened after a force-stop with the radio off, asserting the corrupt and
+      missing-asset states are absent. Two halves, because Maestro cannot toggle
+      airplane mode
+- [x] Deep links are asserted in the app, not by shell output — `am start`
+      reports delivery, which a refused link and an opened one both produce.
+      One allowed, four refused
+- [x] Notification routing covered; the OS permission sheet is no longer optional
+- [x] Deletion creates and deletes its own account, re-authenticates when asked,
+      and verifies what is left
+- [x] Optional taps confined to the player walk, where each block type puts a
+      different CTA on screen — and the assertion after the loop is what fails
+- [x] `npm run check:e2e` is a CI gate: every id exists in the source, every
+      flow asserts something, and the seven required behaviours are covered
+- [x] The runner records Maestro's version, the device model and the Android
+      release into `docs/qa/e2e-<stamp>/README.md` beside the results
+- [ ] **The run itself.** No Android SDK in this environment — `adb` and
+      `maestro` are absent, so the suite has never been executed. Owner action,
+      on a clean emulator and one real device, before beta sign-off
+
+### Staging environment and release disclosures (release goals 11–12, code side)
+
+- [x] **The emulator flag exempted every variant.** A staging build setting
+      `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1` skipped *all* environment validation:
+      no Firebase configuration needed, any project id, any content source
+      (ADR 25)
+- [x] A release build now also fails on a missing or non-remote
+      `EXPO_PUBLIC_CONTENT_SOURCE` (it would serve the seeds in the binary and
+      never fetch), on an emulator host, on the retired `wisdom-wafers` project,
+      and on a missing `EAS_PROJECT_ID` where the build needs one
+- [x] `npm run verify:env` — identity and service health, no secrets. Run against
+      the current `.env` it reports the pre-rebrand project with **both sign-in
+      methods off, Firestore 403, the bucket 404 and no function deployed** —
+      the entire explanation for "I cannot make an account"
+- [x] `./scripts/deploy-staging.sh` and `npm run bootstrap:project`, both
+      idempotent; rules and indexes deploy before functions, and content is
+      published through `publishSeed` rather than written by hand
+- [x] **The disclosures a build cannot ship without**: an About screen with the
+      version *and* build number, environment, privacy policy, terms, support
+      address, what leaves the device, and account deletion described next to
+      the control that does it
+- [x] `docs/release/TEMPLATE.md` — the record a build is signed off with
+- [ ] **Provisioning itself**: create `dananeh-staging`, enable both sign-in
+      methods, deploy, bootstrap, `eas init`, build. Needs credentials —
+      `docs/runbooks/environments.md` has the ordered checklist
+- [ ] Publish the privacy policy and terms pages the About screen links to
+
 ## K · CI/CD and release — done
 
 - [x] GitHub Actions: static checks, unit tests, emulator suite on a JDK, a web
@@ -235,8 +448,17 @@ the safe one.*
       one-time human setup and exactly what is needed from the project owner
 - [x] Release, incident and backup/restore runbooks in `docs/runbooks/`
 - [x] `npm run check:config` and an Android prebuild + `assembleDebug` +
-      `check:android` are CI gates; Expo Doctor stays a warning pending the
-      AsyncStorage version decision
+      `check:android` are CI gates
+- [x] **Expo Doctor is a hard gate** (21/21). `expo install --fix` brought
+      AsyncStorage back to `2.2.0` and four other packages to the versions SDK
+      57 expects; nothing in CI is behind `continue-on-error` any more
+- [x] `lint` runs with `--max-warnings 0` — a warning that never fails a build
+      is a warning nobody fixes
+- [x] The Node suites map `expo/virtual/env`, which `babel-preset-expo` injects
+      for every `process.env.EXPO_PUBLIC_*` read; without it any app module
+      touching one failed to *parse* rather than fail an assertion
+- [x] Client Firestore instances are `terminate()`d in teardown. `deleteApp`
+      alone left the gRPC channel open and Jest never exited
 - [x] `docs/internal-beta.md`: release notes, known issues and a 20-step
       install-and-test checklist for a clean device
 - [ ] **The build itself.** Everything in the repository is done and green; EAS

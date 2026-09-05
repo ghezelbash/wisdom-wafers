@@ -67,8 +67,7 @@
       "medium": "Intermediate",
       "advanced": "Advanced"
     },
-    "sources": "{{count}} sources",
-    "illustration": "Illustration for {{topic}}"
+    "sources": "{{count}} sources"
   },
   "auth": {
     "title": "Sign in",
@@ -109,7 +108,8 @@
     "storage": "Storage",
     "notifications": "Reminders",
     "deleteAccount": "Delete account",
-    "localOnly": "Without an account, this device only"
+    "localOnly": "Without an account, this device only",
+    "about": "About and support"
   },
   "home": {
     "welcome": "Welcome to Dananeh",
@@ -178,7 +178,10 @@
     "true": "True",
     "false": "False",
     "image": {
-      "altRecorded": "Alt text is recorded for this image"
+      "altRecorded": "Alt text is recorded for this image",
+      "figureLabel": "Figure",
+      "describedTitle": "Described figure",
+      "describedNote": "This part is described in words instead of shown as a picture"
     },
     "ordering": {
       "hint": "Move rows with the up and down buttons",
@@ -431,7 +434,8 @@
     "deniedTitle": "Notifications are off in your device settings",
     "deniedBody": "The app can't change this itself. If you want a reminder, allow it in your device settings — everything else works without it.",
     "deniedPath": "Path: Settings → Dananeh → Notifications",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "toggle": "Daily reminder"
   },
   "deleteAccount": {
     "title": "Delete account",
@@ -454,7 +458,12 @@
     "failedNetwork": "We could not reach the server. Nothing was deleted — try again.",
     "failedPartial": "The deletion did not finish, and nothing on your device was erased. Try again; it resumes where it stopped.",
     "failedUnknown": "The deletion did not run. No data was erased.",
-    "done": "Your account and data are gone. You are continuing as a new guest."
+    "done": "Your account and data are gone. You are continuing as a new guest.",
+    "reauthTitle": "Enter your password again",
+    "reauthBody": "Deleting an account needs proof it is you. This does not take you anywhere else.",
+    "reauthCta": "Confirm and continue",
+    "reauthWrong": "That password is not right.",
+    "exportIncludes": "Includes progress on this device; if you have an account, its data is added too."
   },
   "authError": {
     "invalidEmail": "That email doesn't look right.",
@@ -463,6 +472,7 @@
     "invalidCredential": "That email or password isn't right.",
     "tooManyRequests": "Too many attempts in a row. Wait a moment and try again.",
     "network": "We can't reach the network. The seeds on this device still work.",
+    "notConfigured": "Signing in is not available in this build. Carry on as a guest — everything you read stays on this device.",
     "notAllowed": "That sign-in method isn't available right now.",
     "requiresRecentLogin": "Sign in again to do that.",
     "unknown": "Something didn't go through. Try again."
@@ -484,5 +494,29 @@
     "currentLabel": "This build",
     "minimumLabel": "Minimum required",
     "cta": "Get the new version"
+  },
+  "featureOff": {
+    "title": "This part is unavailable right now",
+    "body": "It will be back shortly. The rest of the app, and the seeds on your device, work as usual.",
+    "back": "Go back"
+  },
+  "about": {
+    "title": "About Dananeh",
+    "version": "Version",
+    "build": "Build",
+    "environment": "Environment",
+    "legalTitle": "Privacy and terms",
+    "privacy": "Privacy policy",
+    "terms": "Terms of use",
+    "support": "Support and contact",
+    "supportValue": "support@dananeh.app",
+    "dataTitle": "Your data",
+    "dataBody": "Reflections you write stay on this device and are never sent to a server. Progress and reviews sync only once you create an account. A search is recorded as a length and a count, never as words.",
+    "deletionTitle": "Deleting your account",
+    "deletionBody": "You can delete your account and everything in it from inside the app at any time: You → Delete account. An export is offered first. Deletion cannot be undone.",
+    "deletionCta": "Go to delete account",
+    "openLink": "Open in browser",
+    "beta": "Internal beta",
+    "betaBody": "This build is for internal testing. If something does not work, use Report on the seed itself, or write to the address above."
   }
 }

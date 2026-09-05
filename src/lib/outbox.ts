@@ -1,3 +1,4 @@
+import { ThrottledError } from '@/lib/outbox-ack';
 import {
   openOutbox,
   type OutboxItem,
@@ -16,7 +17,9 @@ import {
  *
  *  - `applied` / `duplicate` — the server counted it. Remove it.
  *  - `rejected` — the server never will. Keep it, dead, with the reason.
- *  - a thrown error — the network, not the content. Retry with backoff.
+ *  - `ThrottledError` — the server said *not yet*. Defer that endpoint's items,
+ *    spending no attempt. Other endpoints keep draining.
+ *  - any other thrown error — the network, not the content. Retry with backoff.
  *
  * The old queue treated every outcome as success and deleted the item, so a
  * malformed completion and a lost report both looked delivered.
@@ -70,6 +73,8 @@ export interface FlushResult {
   duplicates: number;
   rejected: number;
   failed: number;
+  /** Deferred by the server, still owed, with their retry budget intact. */
+  throttled: number;
   remaining: number;
 }
 
@@ -83,10 +88,19 @@ export interface FlushResult {
 export async function flush(
   send: OutboxSender,
   isOnline: boolean,
-  now = new Date()
+  now = new Date(),
+  /**
+   * Which endpoint an item is bound for.
+   *
+   * Only used to decide who has to wait when one endpoint throttles. It
+   * defaults to the item's kind, which is right whenever a kind maps to one
+   * endpoint — the transport passes a truer answer for the two telemetry kinds
+   * that share one.
+   */
+  scopeOf: (item: OutboxItem) => string = (item) => item.kind
 ): Promise<FlushResult> {
   const queue = await store();
-  const empty = { sent: 0, duplicates: 0, rejected: 0, failed: 0 };
+  const empty = { sent: 0, duplicates: 0, rejected: 0, failed: 0, throttled: 0 };
 
   if (!isOnline) {
     return { ...empty, remaining: (await queue.all()).length };
@@ -95,7 +109,22 @@ export async function flush(
   const due = await queue.due(now);
   const result = { ...empty };
 
+  /** Endpoints the server has already told us to wait on, and until when. */
+  const waiting = new Map<string, Date>();
+
   for (const item of due) {
+    const scope = scopeOf(item);
+
+    const until = waiting.get(scope);
+    if (until) {
+      // Its endpoint is throttled. Defer it too rather than spending a refused
+      // round trip on it — but keep going: a queue of completions must not be
+      // held up behind a throttled batch of analytics.
+      await queue.defer(item.id, until);
+      result.throttled += 1;
+      continue;
+    }
+
     try {
       const outcome = await send(item);
 
@@ -109,6 +138,16 @@ export async function flush(
       if (outcome.status === 'duplicate') result.duplicates += 1;
       else result.sent += 1;
     } catch (error) {
+      if (error instanceof ThrottledError) {
+        const until = new Date(now.getTime() + error.retryAfterSeconds * 1000);
+        await queue.defer(item.id, until);
+        result.throttled += 1;
+        // Keyed by the item's own scope, which is what later items are
+        // compared against — the limit is per endpoint, not per item.
+        waiting.set(scope, until);
+        continue;
+      }
+
       await queue.recordFailure(
         item.id,
         error instanceof Error ? error.message : String(error),

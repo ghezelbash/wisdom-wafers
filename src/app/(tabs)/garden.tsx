@@ -101,8 +101,11 @@ export default function GardenScreen() {
             key={id}
             accessibilityRole="button"
             accessibilityState={{ selected: segment === id }}
+            testID={`garden-segment-${id}`}
             onPress={() => setSegment(id)}
-            className={`flex-row items-center gap-2 rounded-chip border px-3 py-2 ${
+            // A caption line plus `py-2` comes to 40; the floor is 44.
+            style={{ minHeight: MinTouchTarget, minWidth: MinTouchTarget }}
+            className={`flex-row items-center justify-center gap-2 rounded-chip border px-3 py-2 ${
               segment === id ? 'border-brand bg-brand-tint' : 'border-hairline bg-card'
             }`}>
             <Text variant="caption" weight="bold" color={segment === id ? 'brand' : 'secondary'}>
@@ -162,7 +165,7 @@ export default function GardenScreen() {
           </View>
         ) : (
           <View className="gap-3">
-            {ids.map((seedId) => {
+            {ids.map((seedId, position) => {
               const seed = content.getSeed(seedId);
               if (!seed) return null;
               const stored = progress.find((item) => item.seedId === seedId);
@@ -186,6 +189,8 @@ export default function GardenScreen() {
                   key={seedId}
                   variant={segment === 'due' ? 'review' : 'list'}
                   seed={seed}
+                  placement="garden"
+                  rank={position + 1}
                   completed={!!stored?.completedAt}
                   intervalDays={stored?.reviewInterval ?? 3}
                   dueLabel={

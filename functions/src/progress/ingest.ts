@@ -1,4 +1,10 @@
-import { ProgressEventSchema, type ProgressEvent } from '@dananeh/content-schema';
+import {
+  intervalForConfidence,
+  nextDueAt,
+  ProgressEventSchema,
+  shouldAdvancePosition,
+  type ProgressEvent,
+} from '@dananeh/content-schema';
 import { FieldValue } from 'firebase-admin/firestore';
 
 import type { Deps } from '../shared/deps';
@@ -83,6 +89,30 @@ async function applyEvent(deps: Deps, event: ProgressEvent): Promise<boolean> {
     const alreadyCompleted = current?.status === 'completed';
     const isCompletion = event.type === 'completed';
 
+    /**
+     * The resume position, forward only.
+     *
+     * The queue can deliver out of order — an event recorded on a plane arrives
+     * after one recorded since — and a late arrival must not drag a reader back
+     * to a block they have already passed. A completion is the end of the seed
+     * by definition.
+     */
+    const storedPosition =
+      current === undefined
+        ? undefined
+        : {
+            revision: (current.revision as number) ?? event.revision,
+            blockIndex: (current.blockIndex as number) ?? 0,
+          };
+    const incomingPosition = {
+      revision: event.revision,
+      blockIndex: event.blockIndex ?? (isCompletion ? Number.MAX_SAFE_INTEGER : 0),
+    };
+    const advances = shouldAdvancePosition(storedPosition, incomingPosition);
+    const blockIndex = advances
+      ? Math.min(incomingPosition.blockIndex, 500)
+      : (storedPosition?.blockIndex ?? 0);
+
     transaction.set(eventRef, {
       type: event.type,
       seedId: event.seedId,
@@ -99,6 +129,7 @@ async function applyEvent(deps: Deps, event: ProgressEvent): Promise<boolean> {
         revision: event.revision,
         status: isCompletion || alreadyCompleted ? 'completed' : 'in_progress',
         percent: isCompletion ? 100 : (current?.percent ?? 0),
+        blockIndex,
         updatedAt: deps.now().toISOString(),
         ...(isCompletion && !alreadyCompleted
           ? { completedAt: event.occurredAtDevice }
@@ -130,7 +161,33 @@ async function applyEvent(deps: Deps, event: ProgressEvent): Promise<boolean> {
       );
     }
 
+    /**
+     * Review state, derived here rather than trusted from the client.
+     *
+     * The app states the interval on the button the reader presses, and this
+     * writes the date it produces — from the same shared table, so the promise
+     * and the schedule cannot disagree. A client that could write its own due
+     * date could also decide never to be asked again.
+     */
     if (event.type === 'reviewed') {
+      const confidence = event.confidence ?? 'good';
+      const reviewedAt = event.occurredAtDevice;
+
+      transaction.set(
+        userRef.collection('reviews').doc(event.seedId),
+        {
+          seedId: event.seedId,
+          reviewedAt,
+          confidence,
+          interval: intervalForConfidence(confidence),
+          dueAt: nextDueAt(reviewedAt, confidence),
+          // Counted, not merged: every review happened, on whichever device.
+          count: FieldValue.increment(1),
+          updatedAt: deps.now().toISOString(),
+        },
+        { merge: true }
+      );
+
       transaction.set(
         deps.db.collection('userStats').doc(event.uid),
         { reviewsCompleted: FieldValue.increment(1), updatedAt: deps.now().toISOString() },

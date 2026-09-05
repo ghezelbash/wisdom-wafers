@@ -111,14 +111,27 @@ export default function NotificationSettingsScreen() {
                 {t('notifySettings.cap')}
               </Text>
             </View>
-            <Switch
-              value={session.notificationsEnabled}
-              onValueChange={(value) =>
-                void reschedule(value, session.reminderTime ?? '21:00')
+            {/* A switch is drawn 40×20 wherever it appears, so the box around
+                it carries the target — and it has to be pressable itself, or
+                the extra area looks tappable and does nothing. */}
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: session.notificationsEnabled }}
+              accessibilityLabel={t('notifySettings.toggle')}
+              onPress={() =>
+                void reschedule(!session.notificationsEnabled, session.reminderTime ?? '21:00')
               }
-              trackColor={{ false: theme.borderStrong, true: theme.brand }}
-              thumbColor={theme.card}
-            />
+              className="items-center justify-center"
+              style={{ minWidth: MinTouchTarget, minHeight: MinTouchTarget }}>
+              <Switch
+                value={session.notificationsEnabled}
+                onValueChange={(value) =>
+                  void reschedule(value, session.reminderTime ?? '21:00')
+                }
+                trackColor={{ false: theme.borderStrong, true: theme.brand }}
+                thumbColor={theme.card}
+              />
+            </Pressable>
           </View>
         </View>
 

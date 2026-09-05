@@ -13,6 +13,7 @@ import { useSession } from '@/context/SessionContext';
 import { content } from '@/data/content-repository';
 import { topicLabel } from '@/data/topics';
 import { localizeDigits } from '@/lib/format';
+import { onboardingDurationMs } from '@/domain/progress/events';
 import { track } from '@/platform/analytics';
 
 const chipStyles = {
@@ -39,7 +40,9 @@ export default function FirstSeedScreen() {
     track('onboarding_completed', {
       topic_count: session.interests.length,
       pace: session.pace ?? 'unset',
-      duration_ms: 0,
+      // Was hard-coded to zero, which made the funnel's one timing question —
+      // how long onboarding takes — unanswerable.
+      duration_ms: onboardingDurationMs(session.onboardingStartedAt),
     });
     completeOnboarding();
     router.replace(`/seed/${seed.id}`);

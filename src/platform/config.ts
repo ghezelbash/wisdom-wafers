@@ -31,11 +31,24 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   aiTutorEnabled: false,
 };
 
+/**
+ * The mirror, for code that is not React.
+ *
+ * `RemoteConfigContext` is the source of truth and writes here whenever the
+ * effective flags change; the outbox worker, the notification scheduler and
+ * anything else outside the tree read it. Two shapes, one set of values —
+ * never two sets.
+ */
 let flags: FeatureFlags = { ...DEFAULT_FLAGS };
 
 export const getFlags = (): FeatureFlags => ({ ...flags });
 
 export const isEnabled = <K extends keyof FeatureFlags>(flag: K) => flags[flag];
+
+/** Written by `RemoteConfigContext`. Nothing else should call it. */
+export function setFlags(next: FeatureFlags) {
+  flags = { ...next };
+}
 
 /**
  * Applies remote values.

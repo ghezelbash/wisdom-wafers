@@ -34,3 +34,20 @@ export function appVariant(): 'development' | 'staging' | 'production' {
 
   return declared === 'development' || declared === 'staging' ? declared : 'production';
 }
+
+/**
+ * The build number, as the store and a bug report see it.
+ *
+ * `version` alone cannot identify a build: three internal APKs can share
+ * `1.0.0` and differ in every other respect, and "which build were you on?" is
+ * the first question a crash report has to answer. EAS sets this remotely
+ * (`appVersionSource: remote`), so it is read rather than hard-coded.
+ */
+export function buildNumber(): string {
+  const android = Constants.expoConfig?.android?.versionCode;
+  const ios = Constants.expoConfig?.ios?.buildNumber;
+
+  if (typeof android === 'number') return String(android);
+  if (typeof ios === 'string' && ios.length) return ios;
+  return '—';
+}

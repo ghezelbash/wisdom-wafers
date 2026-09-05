@@ -32,7 +32,7 @@ export const USER_SUBCOLLECTIONS = [
 /** Top-level documents keyed on the uid. */
 const USER_KEYED_DOCUMENTS = ['userStats', 'entitlements'] as const;
 
-export type DeletionState = 'running' | 'done' | 'failed';
+export type DeletionState = 'requested' | 'running' | 'done' | 'failed';
 
 export interface DeletionJob {
   uid: string;
@@ -42,6 +42,27 @@ export interface DeletionJob {
   /** Every step that has completed, so a resumed run can skip it. */
   completed: string[];
   error?: string;
+  /**
+   * The capability that outlives the account.
+   *
+   * The Auth record is deleted last, so a response lost after that step leaves
+   * a device that can no longer authenticate and therefore cannot ask what
+   * happened — it would have to guess whether its data is gone. The receipt is
+   * minted by an authenticated, recently-signed-in request *before* anything
+   * is destroyed, handed to the device, and remains a valid way to ask about
+   * this one job afterwards.
+   *
+   * It is a bearer token for exactly two operations, both of which are
+   * idempotent and neither of which reveals anything about the account beyond
+   * how far its own deletion got.
+   */
+  receipt: string;
+}
+
+/** Long enough that guessing one is not a strategy. */
+export function mintReceipt(random: () => number = Math.random): string {
+  const chunk = () => Math.floor(random() * 0xffffffff).toString(16).padStart(8, '0');
+  return `${chunk()}${chunk()}${chunk()}${chunk()}`;
 }
 
 export class DeletionError extends Error {
@@ -93,17 +114,89 @@ export interface DeleteAccountResult {
   objectsDeleted: number;
 }
 
-export async function deleteAccount(
+/**
+ * The job document is kept after `done`.
+ *
+ * It is the only thing left that can answer "was my account deleted?" for a
+ * device whose response went missing, and it holds nothing personal — a uid
+ * with no account behind it, and a list of step names.
+ */
+
+/**
+ * Step one: prove who you are, and take a receipt.
+ *
+ * Nothing is destroyed here. It exists so the device holds a way to ask about
+ * the job *after* the account it belonged to is gone.
+ */
+export async function beginAccountDeletion(
   deps: Deps,
-  input: { uid: string; authTimeSeconds?: number }
-): Promise<DeleteAccountResult> {
+  input: { uid: string; authTimeSeconds?: number },
+  random?: () => number
+): Promise<{ receipt: string; state: DeletionState }> {
   if (!isRecentLogin(input.authTimeSeconds, deps.now())) {
     throw new DeletionError('requires-recent-login');
   }
 
+  const jobRef = deps.db.collection('deletionJobs').doc(input.uid);
+  const existing = (await jobRef.get()).data() as DeletionJob | undefined;
+
+  // A request made twice keeps the first receipt: the device may already have
+  // stored it, and invalidating it would strand exactly the case this exists
+  // for. A finished job starts a fresh one.
+  if (existing && existing.state !== 'done' && existing.receipt) {
+    return { receipt: existing.receipt, state: existing.state };
+  }
+
+  const receipt = mintReceipt(random);
+  await jobRef.set({
+    uid: input.uid,
+    state: 'requested' satisfies DeletionState,
+    startedAt: deps.now().toISOString(),
+    completed: [],
+    receipt,
+  });
+
+  return { receipt, state: 'requested' };
+}
+
+/**
+ * What happened to a job, for a device that can no longer authenticate.
+ *
+ * Answers only for a matching receipt, and says nothing about the account
+ * beyond the state of its own deletion.
+ */
+export async function accountDeletionStatus(
+  deps: Deps,
+  input: { uid: string; receipt: string }
+): Promise<{ state: DeletionState; completed: string[] } | null> {
+  const snapshot = await deps.db.collection('deletionJobs').doc(input.uid).get();
+  const job = snapshot.data() as DeletionJob | undefined;
+
+  if (!job || !job.receipt || job.receipt !== input.receipt) return null;
+  return { state: job.state, completed: job.completed ?? [] };
+}
+
+export async function deleteAccount(
+  deps: Deps,
+  input: { uid: string; authTimeSeconds?: number; receipt?: string }
+): Promise<DeleteAccountResult> {
   const { uid } = input;
   const jobRef = deps.db.collection('deletionJobs').doc(uid);
   const existing = (await jobRef.get()).data() as DeletionJob | undefined;
+
+  /**
+   * Either a fresh recent sign-in, or the receipt from one.
+   *
+   * The receipt is what lets a resumed run finish after the Auth record has
+   * gone — at which point there is no session left to prove anything with, and
+   * refusing would leave the account permanently half-deleted.
+   */
+  const hasReceipt = Boolean(
+    input.receipt && existing?.receipt && input.receipt === existing.receipt
+  );
+  if (!hasReceipt && !isRecentLogin(input.authTimeSeconds, deps.now())) {
+    throw new DeletionError('requires-recent-login');
+  }
 
   // A resumed run skips what already finished, so retrying after a timeout
   // cannot half-delete anything twice or report a step it did not do.
@@ -115,6 +208,7 @@ export async function deleteAccount(
       state: 'running' satisfies DeletionState,
       startedAt: existing?.startedAt ?? deps.now().toISOString(),
       completed: [...completed],
+      ...(existing?.receipt ? {} : { receipt: input.receipt ?? mintReceipt() }),
     },
     { merge: true }
   );

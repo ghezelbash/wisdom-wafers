@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import {
   connectFirestoreEmulator,
+  terminate,
   doc,
   getDoc,
   getFirestore,
@@ -44,6 +45,9 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
+  // `deleteApp` alone leaves the Firestore gRPC channel open, which keeps the
+  // Jest worker alive after the run finishes.
+  await terminate(db);
   await deleteApp(app);
 });
 
@@ -72,12 +76,16 @@ describe('upgrading a guest to an account', () => {
     const guest = await signInAnonymously(auth);
     const guestUid = guest.user.uid;
 
-    // Something worth keeping: a finished seed.
-    await setDoc(doc(db, `users/${guestUid}/progress/seed-sky-darkness`), {
+    // Something worth keeping: a bookmark.
+    //
+    // A bookmark rather than a completion, because progress is written by the
+    // server alone now (ADR 0022) and this suite has no Functions emulator.
+    // What is being asserted is the uid, and everything filed under it — which
+    // a bookmark demonstrates exactly as well.
+    await setDoc(doc(db, `users/${guestUid}/saved/seed-sky-darkness`), {
       seedId: 'seed-sky-darkness',
-      revision: 4,
-      percent: 100,
-      status: 'completed',
+      saved: true,
+      updatedAt: '2026-09-05T12:00:00.000Z',
     });
 
     const address = email();
@@ -90,9 +98,9 @@ describe('upgrading a guest to an account', () => {
     expect(linked.user.isAnonymous).toBe(false);
     expect(linked.user.email).toBe(address);
 
-    const kept = await getDoc(doc(db, `users/${guestUid}/progress/seed-sky-darkness`));
+    const kept = await getDoc(doc(db, `users/${guestUid}/saved/seed-sky-darkness`));
     expect(kept.exists()).toBe(true);
-    expect(kept.data()?.status).toBe('completed');
+    expect(kept.data()?.saved).toBe(true);
   });
 
   it('returns the reader to the same uid when they sign in again later', async () => {

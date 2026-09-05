@@ -75,6 +75,10 @@ export const skyDarknessSeed: Seed = {
     {
       id: 'b2',
       type: 'image',
+      // A described figure, on purpose: there is no diagram asset, and shipping
+      // an empty frame that looks like a broken image would be worse than
+      // saying plainly what the figure shows. See ADR 0024.
+      describedOnly: true,
       alt: 'نمودار: از یک چشم، چند خط دید در جهت‌های مختلف رسم شده و هر خط در نهایت به سطح یک ستاره می‌رسد.',
       caption:
         'در جهانی بی‌کران، هر خط دید در نهایت به سطح یک ستاره می‌رسد. تعداد ستاره‌ها با فاصله زیاد می‌شود و کم‌نوری‌شان را جبران می‌کند.',

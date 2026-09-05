@@ -1,18 +1,58 @@
-# Airplane mode, force-stop, relaunch.
+# A downloaded seed, opened with no network.
 #
-# The one that matters most for the beta: a downloaded seed opens with no
-# network, and nothing anywhere says "try again".
+# This used to reopen whatever was on screen and assert that no error appeared —
+# which the bundled launch seeds satisfy without a download ever happening. The
+# claim being tested is narrower and harder: a seed **fetched from Storage**,
+# verified against its checksum, written to the app's own directory, and then
+# opened after a force-stop with the radio off.
 #
-# Requires: `adb shell cmd connectivity airplane-mode enable` before, disable
-# after. Maestro cannot toggle it, so the runner script does.
+# The download happens in the first half, online. The runner enables airplane
+# mode between the two halves — Maestro cannot toggle it — and this flow is
+# therefore run twice, once per half, by `scripts/smoke-android.sh`.
+#
+# HALF: online | offline
 appId: com.dananeh.app.staging
+env:
+  HALF: online
+  SEED_ID: seed-anchoring
+  SEED_TITLE: "چرا اولین عدد، بقیه را می‌کِشد؟"
 ---
-- launchApp
-- assertVisible: "آخرین به‌روزرسانی|بدون اینترنت"
-- tapOn: "باغ"
-- assertVisible: "رسیده"
-- tapOn:
-    text: "چرا آسمان شب کاملاً تاریک است؟"
-    optional: true
-- assertNotVisible: "دوباره امتحان کن"
-- takeScreenshot: offline-relaunch
+- runFlow:
+    when:
+      true: ${HALF == 'online'}
+    commands:
+      - launchApp
+      - tapOn:
+          id: "tab-explore"
+      - tapOn: "${SEED_TITLE}"
+      # Not optional: without a download button there is nothing to download,
+      # and this flow has to fail rather than quietly pass on bundled content.
+      - tapOn:
+          id: "download-${SEED_ID}"
+      - extendedWaitUntil:
+          visible: "روی دستگاه"
+          timeout: 60000
+      - takeScreenshot: downloaded-online
+      - stopApp
+
+- runFlow:
+    when:
+      true: ${HALF == 'offline'}
+    commands:
+      - launchApp
+      # The banner names when the data was last true, rather than saying
+      # "no internet" and stopping there.
+      - assertVisible: "آخرین به‌روزرسانی|بدون اینترنت"
+      - tapOn:
+          id: "tab-garden"
+      - tapOn:
+          id: "garden-segment-downloaded"
+      - assertVisible: "${SEED_TITLE}"
+      - tapOn: "${SEED_TITLE}"
+      # The seed opens from the verified copy on disk. A checksum mismatch
+      # would show the corrupt state instead, and an unverified path would
+      # show the missing-asset state.
+      - assertNotVisible: "دوباره امتحان کن"
+      - assertNotVisible: "فایل این دانه سالم نیست"
+      - assertVisible: "ادامه|بررسی|تمام شد"
+      - takeScreenshot: offline-relaunch

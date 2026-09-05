@@ -1,7 +1,11 @@
+import type { SavedDoc } from '@dananeh/content-schema';
+
 import {
   mergePreferences,
   mergeProgressLists,
+  mergeReviews,
   mergeSaved,
+  savedSeedIds,
   type AccountPreferences,
   type SyncableProgress,
 } from '@/domain/account/sync';
@@ -92,14 +96,92 @@ describe('merging progress across devices', () => {
 });
 
 describe('merging bookmarks', () => {
-  // The union is wrong: un-saving on one device would never stick.
-  it('lets the newer side decide the whole set', () => {
-    expect(
-      mergeSaved(
-        { saved: ['a', 'b'], updatedAt: '2026-09-01T10:00:00.000Z' },
-        { saved: ['a'], updatedAt: '2026-09-02T10:00:00.000Z' }
-      )
-    ).toEqual(['a']);
+  const at = (seedId: string, saved: boolean, updatedAt: string) => ({ seedId, saved, updatedAt });
+
+  it('takes the newest statement about each seed', () => {
+    const merged = mergeSaved(
+      [at('a', true, '2026-09-01T10:00:00.000Z'), at('b', true, '2026-09-03T10:00:00.000Z')],
+      [at('a', false, '2026-09-02T10:00:00.000Z')]
+    );
+
+    expect(savedSeedIds(merged)).toEqual(['b']);
+  });
+
+  /**
+   * The reason a removal is a document rather than an absence: an un-save has
+   * to be able to travel, and a deleted row says nothing to a device that never
+   * saw it exist.
+   */
+  it('lets an un-save reach a device that still has the bookmark', () => {
+    const merged = mergeSaved(
+      [at('a', true, '2026-09-01T10:00:00.000Z')],
+      [at('a', false, '2026-09-02T10:00:00.000Z')]
+    );
+
+    expect(savedSeedIds(merged)).toEqual([]);
+  });
+
+  /**
+   * Per seed, not per set. Taking whole sets by timestamp would let a device
+   * that bookmarked something an hour ago undo an un-save from a minute ago.
+   */
+  it('does not let a newer change to one seed undo an older change to another', () => {
+    const merged = mergeSaved(
+      [at('a', true, '2026-09-05T10:00:00.000Z')],
+      [at('b', true, '2026-09-01T10:00:00.000Z')]
+    );
+
+    expect(savedSeedIds(merged)).toEqual(['a', 'b']);
+  });
+
+  it('is deterministic whichever device runs it', () => {
+    const one = [at('a', true, '2026-09-01T10:00:00.000Z')];
+    const two = [at('a', false, '2026-09-02T10:00:00.000Z')];
+
+    expect(mergeSaved(one, two)).toEqual(mergeSaved(two, one));
+  });
+});
+
+describe('restoring the review schedule', () => {
+  const item = (overrides = {}) => ({ ...progress(), reviewCount: 0, ...overrides });
+
+  it('takes the account schedule when it is newer', () => {
+    const [merged] = mergeReviews(
+      [item({ reviewedAt: '2026-09-01T10:00:00.000Z', reviewInterval: 3, reviewCount: 1 })],
+      [{ seedId: 'seed-1', reviewedAt: '2026-09-04T10:00:00.000Z', interval: 14, count: 2 }]
+    );
+
+    expect(merged.reviewedAt).toBe('2026-09-04T10:00:00.000Z');
+    expect(merged.reviewInterval).toBe(14);
+  });
+
+  it('keeps the schedule on this device when it is the newer one', () => {
+    const [merged] = mergeReviews(
+      [item({ reviewedAt: '2026-09-06T10:00:00.000Z', reviewInterval: 7, reviewCount: 3 })],
+      [{ seedId: 'seed-1', reviewedAt: '2026-09-04T10:00:00.000Z', interval: 14, count: 2 }]
+    );
+
+    expect(merged.reviewInterval).toBe(7);
+  });
+
+  /** Every review happened, on whichever device. */
+  it('takes the larger count either way', () => {
+    const [merged] = mergeReviews(
+      [item({ reviewedAt: '2026-09-06T10:00:00.000Z', reviewCount: 5 })],
+      [{ seedId: 'seed-1', reviewedAt: '2026-09-04T10:00:00.000Z', interval: 14, count: 9 }]
+    );
+
+    expect(merged.reviewCount).toBe(9);
+  });
+
+  // Signing in on a second device must not put a seed back in the queue.
+  it('does not reset a schedule for a seed the account has never reviewed', () => {
+    const [merged] = mergeReviews(
+      [item({ reviewedAt: '2026-09-06T10:00:00.000Z', reviewInterval: 7, reviewCount: 3 })],
+      []
+    );
+
+    expect(merged).toMatchObject({ reviewInterval: 7, reviewCount: 3 });
   });
 });
 
@@ -138,11 +220,23 @@ describe('restoring an account onto a device', () => {
       pull: async () => ({
         preferences: null,
         progress: [progress({ seedId: 'from-account', status: 'completed' })],
-        saved: ['from-account'],
-        reviews: [],
+        saved: [
+          { seedId: 'from-account', saved: true, updatedAt: '2026-09-02T10:00:00.000Z' },
+        ],
+        reviews: [
+          {
+            seedId: 'from-account',
+            reviewedAt: '2026-09-03T10:00:00.000Z',
+            interval: 14,
+            count: 2,
+          },
+        ],
       }),
       // A completion made on a plane, still queued and unknown to the account.
       readLocal: async () => [progress({ seedId: 'on-device', status: 'completed' })],
+      readLocalSaved: async () => [
+        { seedId: 'on-device', saved: true, updatedAt: '2026-09-01T10:00:00.000Z' },
+      ],
       writeLocal: async (items) => {
         written.push(...items);
       },
@@ -152,7 +246,40 @@ describe('restoring an account onto a device', () => {
     });
 
     expect(written.map((item) => item.seedId).sort()).toEqual(['from-account', 'on-device']);
-    expect(result).toMatchObject({ merged: 2, gained: 1, saved: 1 });
-    expect(saved).toEqual(['from-account']);
+    expect(result).toMatchObject({ merged: 2, gained: 1, saved: 2, reviewsRestored: 1 });
+    // Both sides' bookmarks survive; neither device's is dropped.
+    expect(saved).toEqual(['from-account', 'on-device']);
+
+    // The account's review schedule came down with it.
+    const restored = written.find((item) => item.seedId === 'from-account');
+    expect(restored).toMatchObject({ reviewInterval: 14, reviewCount: 2 });
+  });
+
+  /** What the account had not heard yet goes back up. */
+  it('sends newer bookmark statements from this device to the account', async () => {
+    const pushed: SavedDoc[] = [];
+
+    await restoreAccount('account-1', {
+      pull: async () => ({
+        preferences: null,
+        progress: [],
+        saved: [{ seedId: 'a', saved: true, updatedAt: '2026-09-01T10:00:00.000Z' }],
+        reviews: [],
+      }),
+      readLocal: async () => [],
+      readLocalSaved: async () => [
+        // Un-saved here, more recently than the account knows.
+        { seedId: 'a', saved: false, updatedAt: '2026-09-04T10:00:00.000Z' },
+        { seedId: 'b', saved: true, updatedAt: '2026-09-04T10:00:00.000Z' },
+      ],
+      writeLocal: async () => {},
+      applySaved: async () => {},
+      pushSaved: async (entries) => {
+        pushed.push(...entries);
+      },
+    });
+
+    expect(pushed.map((entry) => entry.seedId).sort()).toEqual(['a', 'b']);
+    expect(pushed.find((entry) => entry.seedId === 'a')?.saved).toBe(false);
   });
 });

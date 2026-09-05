@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,11 +7,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandMark } from '@/components/icon';
 import { Button } from '@/components/button';
 import { Text } from '@/components/Text';
+import { useSession } from '@/context/SessionContext';
+import { track } from '@/platform/analytics';
+
 
 /** 1 · Brand promise — one claim, one out. */
 export default function BrandPromiseScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { session, update } = useSession();
+
+  /**
+   * The top of the funnel.
+   *
+   * Recorded once, and the instant is stored with the session rather than kept
+   * in memory: onboarding survives a restart, so a duration measured from a
+   * module variable would report a few seconds for a reader who came back the
+   * next morning.
+   */
+  useEffect(() => {
+    if (session.onboardingStartedAt) return;
+
+    update({ onboardingStartedAt: new Date().toISOString() });
+    track('onboarding_started', { locale: i18n.language });
+  }, [i18n.language, session.onboardingStartedAt, update]);
 
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={['top', 'bottom']}>

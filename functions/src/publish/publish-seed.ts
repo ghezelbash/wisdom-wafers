@@ -74,32 +74,98 @@ export async function publishSeed(deps: Deps, input: PublishInput): Promise<Publ
   const revisionRef = deps.db.collection('seedRevisions').doc(revisionId);
   const seedRef = deps.db.collection('seeds').doc(bundle.seedId);
 
-  const existing = await revisionRef.get();
-  if (existing.exists && existing.data()?.status === 'published') {
-    // A published revision is immutable. Correcting content means a new
-    // revision, so a reader's recorded progress keeps pointing at the exact
-    // text they answered against.
-    throw new PublishError('revision-exists');
-  }
-
   const path = bundleStoragePath(bundle.seedId, bundle.revision);
   const body = JSON.stringify(bundle);
   // Measured over the exact bytes uploaded, so the size a reader is quoted
   // before a download is the size the object actually is.
   const bytes = Buffer.byteLength(body, 'utf8');
   const manifest = manifestFor(bundle, { storagePath: path, bytes });
-  const storedAt = await deps.putObject(path, body, 'application/json');
+
+  /**
+   * Reserve the revision before writing anything.
+   *
+   * Checking for an existing document and then uploading is two operations
+   * with a gap in the middle, and two publishes of the same revision both
+   * passed the check before either wrote. The transaction closes that: exactly
+   * one caller creates the document, and the other is refused before it can
+   * touch Storage.
+   *
+   * A reservation left behind by a run that died is *resumable* rather than
+   * fatal — the checksum identifies the bytes, so finishing it produces the
+   * same artifact the first attempt intended.
+   */
+  const reserved = await deps.db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(revisionRef);
+    const current = snapshot.data();
+
+    if (current?.status === 'published') {
+      // A published revision is immutable. Correcting content means a new
+      // revision, so a reader's recorded progress keeps pointing at the exact
+      // text they answered against.
+      return { taken: true, resumable: false };
+    }
+
+    // Someone else is mid-publish of this exact revision with different bytes;
+    // there is no way to make both true.
+    if (current?.status === 'reserved' && current.checksum !== checksum) {
+      return { taken: true, resumable: false };
+    }
+
+    const resuming = current?.status === 'reserved';
+    transaction.set(revisionRef, {
+      ...manifest,
+      status: 'reserved',
+      locale: bundle.locale,
+      publishedBy: input.actorUid,
+      reservedAt: deps.now().toISOString(),
+    });
+
+    return { taken: false, resumable: resuming };
+  });
+
+  if (reserved.taken) throw new PublishError('revision-exists');
+
+  /**
+   * The artifact, written once.
+   *
+   * `ifAbsent` on a resumed reservation would refuse the object the previous
+   * attempt already uploaded, so a resume writes over its own identical bytes —
+   * identical because the reservation only survived the checksum check above.
+   */
+  const storedAt = await deps.putObject(path, body, 'application/json', {
+    ifAbsent: !reserved.resumable,
+  }).catch((error: unknown) => {
+    // Losing the precondition means someone else uploaded first. The
+    // reservation is theirs; this attempt has nothing left to do.
+    if (String((error as Error)?.message ?? '').includes('412')) {
+      throw new PublishError('revision-exists');
+    }
+    throw error;
+  });
 
   await deps.db.runTransaction(async (transaction) => {
     const seedSnapshot = await transaction.get(seedRef);
     const current = seedSnapshot.data();
 
+    /**
+     * Everything a rollback needs to restore, on the revision itself.
+     *
+     * The catalogue document is a *summary*, and rollback used to move only
+     * the pointer and the manifest — leaving the title, objective, topic,
+     * difficulty and duration of whichever revision was published last. A
+     * reader would see the newer text with the older content behind it.
+     */
     transaction.set(revisionRef, {
       ...manifest,
       status: 'published',
       /** Where the bucket put it, for operators; clients follow `storagePath`. */
       storedAt,
       locale: bundle.locale,
+      title: bundle.title,
+      objective: bundle.objective,
+      topicId: bundle.topicId,
+      difficulty: bundle.difficulty,
+      estimatedMinutes: bundle.estimatedMinutes,
       publishedBy: input.actorUid,
     });
 
@@ -151,9 +217,9 @@ export async function rollbackSeed(
     throw new PublishError('not-found');
   }
 
-  // The revision document *is* the manifest, so a rollback republishes exactly
-  // the record that revision was published with — no field can drift out of
-  // step with the artifact it describes.
+  // The revision document carries the whole catalogue summary, so a rollback
+  // republishes exactly the record that revision was published with — no field
+  // can drift out of step with the artifact it describes.
   const restored = parseManifest({
     seedId: data.seedId,
     revision: data.revision,
@@ -172,6 +238,16 @@ export async function rollbackSeed(
   await deps.db.collection('seeds').doc(input.seedId).set(
     {
       ...restored.value,
+      // The summary too, not only the pointer: a rollback that moved the
+      // manifest alone left the newer revision's title and topic on screen.
+      ...(typeof data.title === 'string' ? { title: data.title } : {}),
+      ...(typeof data.objective === 'string' ? { objective: data.objective } : {}),
+      ...(typeof data.topicId === 'string' ? { topicId: data.topicId } : {}),
+      ...(typeof data.difficulty === 'number' ? { difficulty: data.difficulty } : {}),
+      ...(typeof data.estimatedMinutes === 'number'
+        ? { estimatedMinutes: data.estimatedMinutes }
+        : {}),
+      ...(typeof data.locale === 'string' ? { locale: data.locale } : {}),
       currentRevision: input.toRevision,
       rolledBackAt: deps.now().toISOString(),
       rolledBackBy: input.actorUid,
