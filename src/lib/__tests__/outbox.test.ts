@@ -41,7 +41,16 @@ afterEach(() => {
   __setOutboxStore(null);
 });
 
-const anEvent = (id: string) => enqueue('progress-event', id, { id, type: 'completed' });
+/**
+ * Queued *at* the moment the tests treat as now.
+ *
+ * Without the timestamp these tests read the wall clock to decide when an item
+ * became due, and then compared against a fixed `NOW` — so they passed in the
+ * morning and failed in the evening. This one was written at 00:37 and first
+ * failed at 21:11.
+ */
+const anEvent = (id: string, at?: Date) =>
+  enqueue('progress-event', id, { id, type: 'completed' }, at);
 
 describe('queueing', () => {
   it('keeps what has not been sent', async () => {
@@ -210,7 +219,7 @@ describe('a server that says "not yet"', () => {
    * "wait".
    */
   it('spends no part of the retry budget', async () => {
-    await anEvent('event-0001');
+    await anEvent('event-0001', NOW);
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS + 2; attempt += 1) {
       await flush(throttle, true, NOW);
@@ -222,7 +231,7 @@ describe('a server that says "not yet"', () => {
   });
 
   it('waits exactly as long as the server asked', async () => {
-    await anEvent('event-0001');
+    await anEvent('event-0001', NOW);
     await flush(throttle, true, NOW);
 
     const [item] = await listOutbox();
@@ -230,7 +239,7 @@ describe('a server that says "not yet"', () => {
   });
 
   it('reports the deferral rather than counting it as sent or failed', async () => {
-    await anEvent('event-0001');
+    await anEvent('event-0001', NOW);
     const result = await flush(throttle, true, NOW);
 
     expect(result).toMatchObject({ throttled: 1, sent: 0, failed: 0, rejected: 0, remaining: 1 });
@@ -238,9 +247,9 @@ describe('a server that says "not yet"', () => {
 
   /** Everything behind it on the *same* endpoint would be refused too. */
   it('stops trying the endpoint that was throttled', async () => {
-    await anEvent('event-0001');
-    await anEvent('event-0002');
-    await anEvent('event-0003');
+    await anEvent('event-0001', NOW);
+    await anEvent('event-0002', NOW);
+    await anEvent('event-0003', NOW);
 
     let attempted = 0;
     await flush(async () => {
@@ -260,8 +269,8 @@ describe('a server that says "not yet"', () => {
    * sitting at the front used to hold up every completion behind it.
    */
   it('keeps draining other endpoints while one is throttled', async () => {
-    await enqueue('telemetry-event', 'telemetry-0001', { name: 'seed_impression' });
-    await anEvent('event-0002');
+    await enqueue('telemetry-event', 'telemetry-0001', { name: 'seed_impression' }, NOW);
+    await anEvent('event-0002', NOW);
 
     const attempted: string[] = [];
     const result = await flush(
@@ -281,8 +290,8 @@ describe('a server that says "not yet"', () => {
 
   /** The same, for an ordinary failure rather than a throttle. */
   it('does not let a failing telemetry item stop a completion', async () => {
-    await enqueue('telemetry-crash', 'crash-0001', { message: 'boom' });
-    await anEvent('event-0002');
+    await enqueue('telemetry-crash', 'crash-0001', { message: 'boom' }, NOW);
+    await anEvent('event-0002', NOW);
 
     const result = await flush(
       async (item) => {
@@ -297,7 +306,7 @@ describe('a server that says "not yet"', () => {
   });
 
   it('sends everything once the wait is over', async () => {
-    await anEvent('event-0001');
+    await anEvent('event-0001', NOW);
     await flush(throttle, true, NOW);
 
     const later = new Date(NOW.getTime() + 31_000);
@@ -308,7 +317,7 @@ describe('a server that says "not yet"', () => {
 
   /** An ordinary network error must still burn an attempt and eventually die. */
   it('does not change what an ordinary failure costs', async () => {
-    await anEvent('event-0001');
+    await anEvent('event-0001', NOW);
     await flush(async () => {
       throw new Error('offline');
     }, true, NOW);

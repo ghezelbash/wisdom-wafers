@@ -110,3 +110,41 @@ describe('the policy URLs', () => {
     expect(read('.github/workflows/ci.yml')).not.toContain('check:legal');
   });
 });
+
+/**
+ * The splash has to come down on every path out of startup.
+ *
+ * `SplashScreen.hideAsync()` was reachable from one component, four providers
+ * deep, and four `return`s sat above it. The first APK took the
+ * misconfiguration branch and stayed on the logo forever — and the screen
+ * written to explain the problem was rendering behind a splash nobody had told
+ * to go away.
+ *
+ * Static, because the failure only appears in a release build on a device: the
+ * one place a unit test does not run.
+ */
+describe('startup can never end on the splash', () => {
+  const layout = read('src/app/_layout.tsx');
+
+  it('has a watchdog that hides it regardless of what rendered', () => {
+    expect(layout).toContain('SPLASH_WATCHDOG_MS');
+    expect(layout).toMatch(/setTimeout\(\s*hideSplash/);
+  });
+
+  it('hides it when the build reports itself misconfigured', () => {
+    // Otherwise the diagnosis is invisible, which is how this shipped.
+    expect(layout).toMatch(/if \(misconfigured\) hideSplash\(\)/);
+  });
+
+  it('does not wait forever on a font that failed to load', () => {
+    // The error used to be discarded, so a bad face hung the app for the life
+    // of the process. Persian falls back to the system face.
+    expect(layout).toContain('fontError');
+    expect(layout).toContain('fontsSettled');
+  });
+
+  it('keeps a single owner for hiding it', () => {
+    // One helper, so a new early return cannot forget to call it.
+    expect(layout).toContain('const hideSplash =');
+  });
+});

@@ -36,6 +36,50 @@ Add `-- --shots <dir>` to keep the screenshots. It is not in CI because it needs
 a running dev server; run it before a release and when a screen's layout
 changes.
 
+## Setting up the local Android toolchain
+
+Needed for the Maestro suite, an emulator, and `adb logcat` — none of which have
+ever been run against this app.
+
+```bash
+brew install --cask temurin@17          # the JDK Gradle expects
+brew install --cask android-commandlinetools
+brew install maestro
+
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+
+sdkmanager --install "platform-tools" "platforms;android-35" \
+  "build-tools;35.0.0" "system-images;android-35;google_apis;arm64-v8a"
+avdmanager create avd -n dananeh -k "system-images;android-35;google_apis;arm64-v8a"
+emulator -avd dananeh &
+```
+
+Then, with a device attached or the emulator running:
+
+```bash
+adb devices                              # must list one device
+adb install -r <the APK from docs/release/>
+npm run smoke:android                    # the eleven flows, with a report
+```
+
+### What it would and would not have caught
+
+**Not the startup hang.** `currentEnvironmentIssues` returns `[]` under
+`__DEV__`, and a local emulator runs a debug build — the code path that failed
+does not execute there. Only a *release* build reaches it. If you want a local
+release build:
+
+```bash
+cd android && ./gradlew assembleRelease   # after `npm run prebuild`
+```
+
+That is also the only local way to hit `lintVitalRelease`, which is what failed
+the first two EAS builds.
+
+**What it does catch:** everything in the list below, which is currently
+unsigned in its entirety.
+
 ## By hand, on a device
 
 Only these. Everything else above is automated.

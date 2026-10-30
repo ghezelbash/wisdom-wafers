@@ -22,6 +22,33 @@ import { RemoteConfigProvider, useRemoteConfig } from '@/context/RemoteConfigCon
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * However startup ends, the splash comes down.
+ *
+ * `SplashScreen.hideAsync()` used to be reachable from exactly one place —
+ * `AnimatedSplashOverlay`, four providers deep — and there are four `return`s
+ * above it. Every one of them left the native splash up **forever**: a font
+ * that failed to load, a locale bootstrap that never settled, a config fetch
+ * that never resolved, and a build that believed itself misconfigured.
+ *
+ * The last of those shipped. The first APK opened to the logo and stayed there,
+ * and the screen written to explain the problem was rendering behind a splash
+ * nobody had told to go away. A diagnosis nobody can see is not a diagnosis.
+ *
+ * So the splash is hidden on every terminal path, and a watchdog guarantees it
+ * even on a path nobody has thought of yet. Being stuck on a logo is the one
+ * outcome with no information in it at all.
+ */
+const hideSplash = () => {
+  SplashScreen.hideAsync().catch(() => {
+    // Already hidden, or the module is unavailable. Either way, not a reason
+    // to take the app down.
+  });
+};
+
+/** Long enough for an honest cold start, short enough to not read as frozen. */
+export const SPLASH_WATCHDOG_MS = 8000;
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [localeReady, setLocaleReady] = useState(false);
@@ -38,15 +65,41 @@ export default function RootLayout() {
     bootstrapLocale().finally(() => setLocaleReady(true));
   }, []);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'YekanBakh-Regular': require('../../assets/fonts/YekanBakhFaNum-Regular.ttf'),
     'YekanBakh-SemiBold': require('../../assets/fonts/YekanBakhFaNum-SemiBold.ttf'),
     'YekanBakh-Bold': require('../../assets/fonts/YekanBakhFaNum-Bold.ttf'),
     'YekanBakh-ExtraBold': require('../../assets/fonts/YekanBakhFaNum-ExtraBold.ttf'),
   });
 
-  if (!fontsLoaded || !localeReady) {
-    return null; // The splash screen stays up until both are ready.
+  /**
+   * A font that fails to load is a worse-looking app, not a broken one.
+   *
+   * The error was discarded — only `[fontsLoaded]` was read — so a missing or
+   * corrupt face meant `loaded` stayed false and the app waited on it for the
+   * rest of the process's life. Persian falls back to the system face, which
+   * the `en` port already relies on.
+   */
+  const fontsSettled = fontsLoaded || !!fontError;
+
+  // Pure, and evaluated before any early return so the hooks below are
+  // unconditional.
+  const issues = fontsSettled && localeReady ? currentEnvironmentIssues(appVariant()) : [];
+  const misconfigured = issues.length > 0;
+
+  // The two terminal states that render something other than the app.
+  useEffect(() => {
+    if (misconfigured) hideSplash();
+  }, [misconfigured]);
+
+  // And the backstop, for the paths that render nothing at all.
+  useEffect(() => {
+    const timer = setTimeout(hideSplash, SPLASH_WATCHDOG_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!fontsSettled || !localeReady) {
+    return null; // The splash stays up, but not past the watchdog.
   }
 
   /**
@@ -57,8 +110,7 @@ export default function RootLayout() {
    * is what made the original misconfiguration invisible: sign-in simply "did
    * not work", with nothing on screen to act on.
    */
-  const issues = currentEnvironmentIssues(appVariant());
-  if (issues.length) {
+  if (misconfigured) {
     return (
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <MisconfiguredEnvironment issues={issues} />

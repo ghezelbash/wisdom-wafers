@@ -65,3 +65,22 @@ scripts/screenshot-*.png
 *.aab
 *.keystore
 *.jks
+
+# Native Firebase configuration.
+#
+# This app talks to Firebase through the **JS SDK**, which reads its
+# configuration from `EXPO_PUBLIC_FIREBASE_*` — so `google-services.json` is not
+# used by anything here. It arrives with the native migration (React Native
+# Firebase, FCM, Crashlytics), and it is per-project: a staging file committed
+# once is a file somebody later builds production against.
+google-services.json
+GoogleService-Info.plist
+
+# Per-environment configuration. `.env.example` is the committed one; every
+# other `.env*` names a real project and stays on the machine that owns it.
+.env.*
+!.env.example
+
+# Application Default Credentials, wherever they land.
+application_default_credentials.json
+*-service-account*.json

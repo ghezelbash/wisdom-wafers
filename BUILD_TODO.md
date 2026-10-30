@@ -448,7 +448,20 @@ the safe one.*
       train
 - [x] APKs, AABs and keystores ignored; the release template gained the signing
       rows
-- [ ] **Provisioning `dananeh-staging`** — console and credentials
+- [x] **`dananeh-staging` is provisioned and verified** (2026-09-05). Rules,
+      indexes, Storage rules, `appConfig/public`, three staff accounts with
+      claims, and the three launch seeds published through the real pipeline —
+      a second bootstrap run leaves every published revision alone. Sixteen
+      functions ACTIVE on nodejs22 in europe-west1; the fourteen callables
+      answer `401 sign-in-required` without a token and the two scheduled ones
+      have no `allUsers` binding. `verify:env` 14/14, `diagnose` 7/7
+- [x] Three walls, all of them provisioning rather than code: the deploy's own
+      `SetIamPolicy` lost an etag race so the callables had no invoker binding
+      (403); `functions/package.json` depended on a workspace package the
+      registry has never heard of, which no local check could catch; and the
+      2nd-gen runtime service account had no data roles, which surfaces as
+      `PERMISSION_DENIED: Missing or insufficient permissions` — a rules error
+      message for an IAM problem — and took minutes to propagate after the fix
 - [ ] **The signed APK** — an EAS account and Android signing
 - [ ] **Device QA and the Go/No-Go** — an Android device, and the Maestro suite
       has still never been executed

@@ -47,6 +47,21 @@ const config: ExpoConfig = {
   scheme: identity.scheme,
   userInterfaceStyle: 'automatic',
   // The app is Persian-first; iOS shows the localized name on the home screen.
+  /**
+   * Per-locale strings, nested by platform.
+   *
+   * `CFBundleDisplayName` is an iOS Info.plist key. Unnested, Expo wrote it
+   * into Android's `values-b+fa/strings.xml` as well, where it does nothing —
+   * the launcher reads `app_name` — and where Android's release lint failed the
+   * build outright:
+   *
+   *     values-b+fa/strings.xml: Error: "CFBundleDisplayName" is translated
+   *     here but not found in default locale [ExtraTranslation]
+   *
+   * `lintVitalRelease` treats that as fatal, so every release APK failed while
+   * every debug build passed. Nesting under `ios` is what the SDK 57 config
+   * documents, and it keeps the key on the platform it belongs to.
+   */
   locales: {
     fa: './assets/locales/fa.json',
   },

@@ -53,17 +53,41 @@ Console → https://console.firebase.google.com
    - **Web**, any nickname. Its config is the six values the app reads.
 6. Copy the web config.
 
-## 2 · A service account for the bootstrap
+## 2 · Credentials for the bootstrap — no key file needed
 
-Console → **Project settings → Service accounts → Generate new private key**.
+**"Generate new private key" is often greyed out, and that is a good thing.** A
+Workspace organisation enforcing `constraints/iam.disableServiceAccountKeyCreation`
+is the usual reason: a downloaded key is a long-lived secret that cannot be
+revoked by signing out, and Google now discourages them by default.
 
-Save it **outside the repository** — `~/.config/dananeh/staging-sa.json` is
-fine. It is the one credential here that can do anything; it must never reach
-Git, a CI log or a chat message.
+Use Application Default Credentials instead. They are short-lived, scoped to
+your own account, and there is no file for anyone to leak:
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS=~/.config/dananeh/staging-sa.json
+brew install --cask google-cloud-sdk
+gcloud auth application-default login
+gcloud auth application-default set-quota-project dananeh-staging
 ```
+
+`applicationDefault()` in `firebase-admin` picks these up with no configuration,
+and `scripts/bootstrap-project.mjs` prints which of the two it used.
+
+If your organisation *does* allow key creation and you would rather use one:
+Console → **Project settings → Service accounts → Generate new private key**,
+saved **outside the repository** (`~/.config/dananeh/staging-sa.json`), then
+`export GOOGLE_APPLICATION_CREDENTIALS=…`. Never in Git, a CI log, or a message.
+
+## 2b · `google-services.json` is not used by this app
+
+The console offers it when you register an Android app. Download it if you like,
+but nothing here reads it: the app talks to Firebase through the **JS SDK**,
+which is configured entirely from `EXPO_PUBLIC_FIREBASE_*`. That file belongs to
+the native SDKs — React Native Firebase, FCM, Crashlytics — and arrives with the
+native migration.
+
+It is git-ignored, along with `GoogleService-Info.plist`, because it is
+per-project: a staging file committed once is a file somebody later builds
+production against.
 
 ## 3 · EAS
 
@@ -108,6 +132,143 @@ and reads back what is deployed there now. The second prints the staff accounts,
 the config document and the seeds it would publish. Neither writes anything, and
 neither needs a credential.
 
+## 4b · Grant the build service account — new projects need this
+
+The first functions deploy into a fresh project fails like this:
+
+```
+Build failed with status: FAILURE. Could not build the function due to a
+missing permission on the build service account. If you didn't revoke that
+permission explicitly, this could be caused by a change in the organization
+policies.
+```
+
+It is not your code and not the deploy command. Since 2024 Cloud Functions
+builds run as the **Compute Engine default service account**, and a new project
+— particularly one inside a Workspace organisation — does not get the build role
+granted automatically.
+
+```bash
+gcloud projects add-iam-policy-binding dananeh-staging \
+  --member="serviceAccount:1066103901472-compute@developer.gserviceaccount.com" \
+  --role="roles/cloudbuild.builds.builder"
+```
+
+Or in the console: **IAM & Admin → IAM → Grant access**, principal
+`1066103901472-compute@developer.gserviceaccount.com`, role **Cloud Build
+Service Account**.
+
+Then redeploy. Wait a minute or two first — IAM changes take a moment to reach
+the build system, and an immediate retry can fail with the same message.
+
+### How to tell it is still wrong
+
+`firebase deploy` can print *"Functions successfully deployed"* on the same run
+that failed every function, because a later step's error replaces the earlier
+summary. The truthful signal is the state:
+
+```bash
+npx firebase functions:list --project dananeh-staging --debug 2>&1 \
+  | grep -oE '"state":"[A-Z_]+"' | sort -u
+```
+
+`ACTIVE` is deployed. `FAILED` with `CloudRunServiceNotFound` means the metadata
+exists and the Cloud Run service behind it does not — the callable URL returns a
+Google 404, and the app cannot reach its backend. `npm run verify:env` catches
+the same thing from outside, which is why it is the gate.
+
+## 4c · Make the callables invokable
+
+A 2nd-gen callable is a Cloud Run service, and it is reachable only if
+`allUsers` holds `roles/run.invoker`. `firebase deploy` normally grants that
+itself — but its `SetIamPolicy` can lose an etag race against the other policy
+writes the same deploy is making:
+
+```
+SetIamPolicy | Exception calling IAM: There were concurrent policy changes.
+The request's ETag ... did not match the current policy.
+```
+
+When that happens the deploy still reports success, the functions still reach
+`ACTIVE`, and every call returns **403 Forbidden** from Google's front end. The
+app looks like it has no network.
+
+Re-running `firebase deploy --only functions` usually fixes it. If it does not:
+
+```bash
+gcloud auth login
+gcloud config set project dananeh-staging
+
+for f in publish createContentDraft startCorrection submitForReview review \
+         publishApproved rollback ingestProgress submitReport deleteMyAccount \
+         beginDeleteMyAccount resumeDeleteMyAccount myAccountDeletionStatus \
+         recordTelemetryBatch; do
+  gcloud run services add-iam-policy-binding "$(echo "$f" | tr '[:upper:]' '[:lower:]')" \
+    --region=europe-west1 --member=allUsers --role=roles/run.invoker
+done
+```
+
+**Only the callables.** `dailyOpsDigest` and `sweepTelemetry` are scheduled:
+Cloud Scheduler invokes them with its own identity, and they must stay private.
+Check with `gcloud run services get-iam-policy sweeptelemetry` — no `allUsers`.
+
+### What "public" means here, and why it is right
+
+`allUsers` can *reach* the endpoint; it cannot *do* anything. Every callable
+checks `request.auth` first and answers `UNAUTHENTICATED` without it, on top of
+the payload caps and per-caller rate limits from release goal 7. The correct
+response to an anonymous request is what you should see:
+
+```
+$ curl -X POST .../ingestProgress -d '{"data":{"events":[]}}'
+{"error":{"message":"sign-in-required","status":"UNAUTHENTICATED"}}   401
+```
+
+A **403** means the invoker binding is missing. A **404** means the Cloud Run
+service behind the function was never built. Neither is an auth problem in the
+app.
+
+### A note on Domain Restricted Sharing
+
+`bashforward.nl` enforces `constraints/iam.allowedPolicyMemberDomains`, and the
+obvious guess is that it blocks `allUsers`. **It does not** — the grant above
+succeeds under it. If a future project *does* refuse with "one or more users
+named in the policy do not belong to a permitted customer", that is when an
+org-policy exception is needed, and not before.
+
+## 4d · Give the runtime service account its data roles
+
+A 2nd-gen function runs as the **Compute Engine default service account**, and
+in a new project that account holds nothing but the build role. The functions
+deploy, they answer, and then every one of them fails inside:
+
+```
+Unhandled error Error: 7 PERMISSION_DENIED: Missing or insufficient permissions.
+```
+
+That reads like a security-rules denial and is not one — the Admin SDK bypasses
+rules. It is IAM: the identity the code runs as cannot touch Firestore.
+
+Least privilege, not Editor:
+
+```bash
+SA="serviceAccount:1066103901472-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding dananeh-staging --member="$SA" --role=roles/datastore.user
+gcloud projects add-iam-policy-binding dananeh-staging --member="$SA" --role=roles/storage.objectAdmin
+gcloud projects add-iam-policy-binding dananeh-staging --member="$SA" --role=roles/firebaseauth.admin
+```
+
+| role | what needs it |
+|---|---|
+| `datastore.user` | every function — progress, telemetry, drafts, the rate-limit counters |
+| `storage.objectAdmin` | writing a bundle on publish, deleting a reader's files on account deletion |
+| `firebaseauth.admin` | deleting the Auth record, the last step of account deletion |
+
+**Then wait.** IAM took roughly four minutes to reach the running services here;
+a retry after forty-five seconds still failed with the same error, which is
+exactly how somebody concludes the grant did not work and starts changing
+things that were already correct. Retry once, slowly, before believing it.
+
 ## 5 · Deploy
 
 ```bash
@@ -133,23 +294,60 @@ history, a CI log, or both. Send each person a reset link from
 
 ## 6 · Verify
 
-```bash
-APP_VARIANT=staging \
-EXPO_PUBLIC_ENV_NAME=staging \
-EXPO_PUBLIC_CONTENT_SOURCE=remote \
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=dananeh-staging \
-EXPO_PUBLIC_FIREBASE_API_KEY=… \
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=… \
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=… \
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=… \
-EXPO_PUBLIC_FIREBASE_APP_ID=… \
-EAS_PROJECT_ID=… \
-npm run verify:env
+Both of these should end green. They did, on 2026-09-05:
+
 ```
+$ APP_VARIANT=staging npm run verify:env
+  ✓ nothing resolves to the pre-rebrand project
+  ✓ not addressing the emulator suite
+  ✓ serving published content rather than the seeds in the binary
+  ✓ not a demo project
+  ✓ the configuration says staging and the build is staging
+  ✓ client and functions agree on europe-west1
+  ✓ the package is com.dananeh.app.staging
+  ✓ anonymous sign-in is enabled
+  ✓ and the account it created was removed again
+  ✓ email/password sign-in is enabled
+  ✓ Firestore answers (200)
+  ✓ Storage answers (403)
+  ✓ ingestProgress is deployed in europe-west1 (401)
+  ✓ and refuses an unauthenticated call
+
+$ npm run diagnose
+  ✓ sign-in works
+  ✓ a callable answers — ingestProgress
+  ✓ a callable still refuses what it should — batch limit enforced
+  ✓ published content is downloadable — seed-anchoring@1
+  ✓ a synthetic crash reaches the operator — staging@1.0.0 at /diagnostics
+  ✓ the crash is visible in the day it happened — 1 crash(es), 1 session(s)
+  ✓ the synthetic crash is cleaned up — removed
+```
+
+
+Put the six web values in **`.env.staging`** — git-ignored, like every `.env.*`
+that is not `.env.example` — and the verifier picks it up by variant:
+
+```bash
+APP_VARIANT=staging npm run verify:env
+```
+
+It reads `.env.staging` when the variant is staging and `.env` otherwise, and
+evaluates the config with `EXPO_NO_DOTENV=1` so the two cannot be layered. That
+matters: `.env` carries `EXPO_PUBLIC_USE_FIREBASE_EMULATOR=1`, and underneath a
+staging check it produced "a staging build that addresses the emulator suite" —
+a true statement about a build nobody was making.
 
 **Every line must be a ✓.** It reports identity and service health and prints no
 secret — the API key is fingerprinted — so the output belongs in the release
 record verbatim.
+
+The sign-in checks *use* the providers rather than asking about them: anonymous
+sign-in creates an account and deletes it again with the token it just received,
+and email/password is probed with an address that cannot exist, which
+distinguishes a disabled provider from an unknown account without creating
+anything. An earlier version read a field off `identitytoolkit/v1/projects` that
+the endpoint does not return, and reported both providers as disabled on a
+project where both were on.
 
 Then a real round trip:
 

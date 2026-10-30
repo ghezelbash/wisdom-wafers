@@ -1,3 +1,5 @@
 {
-  "CFBundleDisplayName": "دانانه"
+  "ios": {
+    "CFBundleDisplayName": "دانانه"
+  }
 }
